@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom';
 
 const LINKS = [
-  { to: '/', label: 'Dashboard', icon: '◆' },
-  { to: '/log', label: 'Daily Log', icon: '✎' },
-  { to: '/progress', label: 'Progress', icon: '↗' },
-  { to: '/discipline', label: 'Discipline', icon: '▣' },
-  { to: '/history', label: 'History', icon: '▦' },
-  { to: '/settings', label: 'Settings', icon: '⚙' },
+  { to: '/', label: 'Today', short: 'Today', icon: '◆' },
+  { to: '/log', label: 'Log', short: 'Log', icon: '✎' },
+  { to: '/progress', label: 'Progress', short: 'Trend', icon: '↗' },
+  { to: '/discipline', label: 'Review', short: 'Review', icon: '▣' },
+  { to: '/history', label: 'History', short: 'History', icon: '▦' },
+  { to: '/settings', label: 'Settings', short: 'More', icon: '⚙' },
 ] as const;
 
 export function AppNav() {
@@ -14,9 +14,11 @@ export function AppNav() {
     <>
       <aside className="sidebar" aria-label="Primary">
         <div className="sidebar-brand">
-          <span className="brand">PROJECT 85</span>
+          <span className="brand">
+            PROJECT <span style={{ color: 'var(--accent)' }}>85</span>
+          </span>
           <span className="dim" style={{ fontSize: '0.75rem' }}>
-            Mission Control
+            Your private mission control
           </span>
         </div>
         <nav className="sidebar-nav">
@@ -41,11 +43,12 @@ export function AppNav() {
             to={l.to}
             end={l.to === '/'}
             className={({ isActive }) => `bottom-item${isActive ? ' active' : ''}`}
+            aria-label={l.label}
           >
             <span className="bottom-icon" aria-hidden>
               {l.icon}
             </span>
-            <span>{l.label.split(' ')[0]}</span>
+            <span>{l.short}</span>
           </NavLink>
         ))}
       </nav>
@@ -68,8 +71,8 @@ export function AppNav() {
           padding: 0 var(--space-2);
         }
         .sidebar-brand .brand {
-          font-size: 1.25rem;
-          color: var(--accent);
+          font-size: 1.3rem;
+          font-weight: 800;
         }
         .sidebar-nav {
           display: flex;
@@ -84,8 +87,8 @@ export function AppNav() {
           padding: 0 12px;
           border-radius: var(--radius);
           color: var(--text-muted);
-          font-weight: 600;
-          font-size: 0.92rem;
+          font-weight: 650;
+          font-size: 0.95rem;
         }
         .nav-item.active,
         .nav-item:hover {

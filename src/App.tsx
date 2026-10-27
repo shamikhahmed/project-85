@@ -34,17 +34,22 @@ export default function App() {
   }, [toast, setToast]);
 
   if (!ready) {
-    return <div className="empty-state">Booting PROJECT 85…</div>;
+    return (
+      <div className="empty-state">
+        <h2>PROJECT 85</h2>
+        <p>Warming up your local mission control…</p>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="empty-state panel" style={{ margin: 24 }}>
-        <h1>Storage unavailable</h1>
+        <h2>Can’t reach local storage</h2>
         <p>{error}</p>
         <p className="muted">
-          IndexedDB may be blocked (private mode / quota). Try another browser profile or free
-          disk space.
+          Private browsing or a full disk can block IndexedDB. Try a normal browser profile, free
+          some space, then reopen the app.
         </p>
       </div>
     );
@@ -73,27 +78,6 @@ export default function App() {
           </div>
         )}
       </div>
-      <style>{`
-        .toast {
-          position: fixed;
-          left: 50%;
-          bottom: calc(var(--nav-total-height) + var(--space-4));
-          transform: translateX(-50%);
-          z-index: 50;
-          background: var(--bg-elevated);
-          border: 1px solid var(--accent);
-          color: var(--text);
-          padding: 12px 18px;
-          border-radius: 999px;
-          box-shadow: var(--shadow);
-          max-width: min(90vw, 420px);
-          text-align: center;
-          font-size: 0.9rem;
-        }
-        @media (min-width: 900px) {
-          .toast { bottom: 24px; }
-        }
-      `}</style>
     </BrowserRouter>
   );
 }

@@ -15,11 +15,24 @@ const STATUS_CLASS: Record<string, string> = {
   INCOMPLETE_LOG: 'badge-info',
 };
 
+const STATUS_FRIENDLY: Record<string, string> = {
+  ON_TRACK: 'On track',
+  NEEDS_ATTENTION: 'Needs a nudge',
+  DAY_COMPLETED: 'Day locked in',
+  INCOMPLETE_LOG: 'Still filling in',
+};
+
+function timeGreeting(d = new Date()): string {
+  const h = d.getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function Dashboard() {
   const settings = useAppStore((s) => s.settings);
   const agg = useAppStore((s) => s.todayAgg);
   const score = useAppStore((s) => s.todayScore);
-  const actions = useAppStore((s) => s.nextActions);
   const setNightlyOpen = useAppStore((s) => s.setNightlyOpen);
   const progress = useWeightProgress();
   const today = toLocalISODate();
@@ -45,33 +58,27 @@ export function Dashboard() {
   }, [settings, score]);
 
   if (!settings || !agg || !progress || !briefing) {
-    return <div className="empty-state">Loading mission data…</div>;
+    return (
+      <div className="empty-state">
+        <h2>Opening PROJECT 85…</h2>
+        <p>Loading your private mission data on this device.</p>
+      </div>
+    );
   }
 
   const daysLeft = calendarDaysRemaining(settings.deadline, today);
   const status = score?.status ?? 'INCOMPLETE_LOG';
   const weeklyHint =
-    daysLeft > 0
-      ? (progress.remainingKg / (daysLeft / 7)).toFixed(2)
-      : null;
+    daysLeft > 0 ? (progress.remainingKg / (daysLeft / 7)).toFixed(2) : null;
+  const showRecovery =
+    score?.status === 'NEEDS_ATTENTION' || score?.status === 'INCOMPLETE_LOG';
 
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <section className="panel briefing" aria-labelledby="briefing-title">
-        <p className="hero-eyebrow" style={{ margin: 0 }}>
-          Mission briefing
-        </p>
-        <h2 id="briefing-title" style={{ fontSize: '1.15rem', marginTop: 4 }}>
-          {briefing.primaryAction}
-        </h2>
-        <ul style={{ margin: '10px 0 0', paddingLeft: 18 }}>
-          {briefing.bullets.map((b) => (
-            <li key={b} className="muted" style={{ marginBottom: 6, fontSize: '0.92rem' }}>
-              {b}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <p className="greeting">
+        <strong>{timeGreeting()}.</strong> {daysLeft} days to your birthday mission — one honest
+        day at a time.
+      </p>
 
       <header className="panel hero">
         <div className="hero-top">
@@ -82,7 +89,7 @@ export function Dashboard() {
               <span className="hero-brand-num">85</span>
             </h1>
             <p className="hero-meta muted">
-              {settings.startDate} → {settings.deadline} · {daysLeft} days left
+              {settings.startDate} → {settings.deadline}
             </p>
           </div>
           <ProgressRing
@@ -113,7 +120,7 @@ export function Dashboard() {
             <div className="value">{progress.lostKg} kg</div>
           </div>
           <div className="metric">
-            <div className="label">Remaining</div>
+            <div className="label">To go</div>
             <div className="value">{progress.remainingKg} kg</div>
           </div>
         </div>
@@ -121,7 +128,7 @@ export function Dashboard() {
         <div className="hero-progress">
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
             <span className="muted" style={{ fontSize: '0.85rem' }}>
-              Actual weight-loss progress
+              Actual progress (not a projection)
             </span>
             <span className="mono muted">{progress.percentComplete}%</span>
           </div>
@@ -136,16 +143,13 @@ export function Dashboard() {
             <div className="progress-fill" style={{ width: `${progress.percentComplete}%` }} />
           </div>
           <p className="dim" style={{ fontSize: '0.75rem', marginTop: 8 }}>
-            Required loss from {settings.startingWeightKg} kg → {settings.targetWeightKg} kg ={' '}
-            {progress.requiredLossKg} kg. Projection lives on Progress — never confused with actual.
+            From {settings.startingWeightKg} → {settings.targetWeightKg} kg (
+            {progress.requiredLossKg} kg).
             {weeklyHint != null && (
               <>
                 {' '}
-                Arithmetic pace if linear: ~{weeklyHint} kg/week — informational only, not a
-                prescription
-                {Number(weeklyHint) > 0.9
-                  ? ' (faster than common 0.45–0.9 kg/week public-health guidance — stay sustainable).'
-                  : '.'}
+                Linear pace would be ~{weeklyHint} kg/week — a guide only
+                {Number(weeklyHint) > 0.9 ? ', and on the ambitious side.' : '.'}
               </>
             )}
           </p>
@@ -155,12 +159,57 @@ export function Dashboard() {
         </div>
       </header>
 
+      <section className="panel briefing" aria-labelledby="briefing-title">
+        <p className="briefing-kicker">Do this next</p>
+        <h2 id="briefing-title" className="briefing-title">
+          {briefing.primaryAction}
+        </h2>
+        <ul className="briefing-list">
+          {briefing.bullets.slice(0, 4).map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+      </section>
+
       <section className="panel">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: '1.1rem' }}>Today’s scorecard</h2>
-          <span className={`badge ${STATUS_CLASS[status]}`}>{status.replace(/_/g, ' ')}</span>
+        <div className="section-head">
+          <h2>Quick log</h2>
+          <p className="muted">Thumb-friendly shortcuts</p>
         </div>
-        <div className="grid-metrics" style={{ marginTop: 12 }}>
+        <div className="quick-grid">
+          <Link className="btn btn-primary" to="/log?tab=food">
+            Food
+          </Link>
+          <Link className="btn" to="/log?tab=steps">
+            Steps
+          </Link>
+          <Link className="btn" to="/log?tab=water">
+            Water
+          </Link>
+          <Link className="btn" to="/log?tab=weight">
+            Weight
+          </Link>
+          <Link className="btn" to="/log?tab=workout">
+            Workout
+          </Link>
+          <Link className="btn" to="/log?tab=smoking">
+            Cigarettes
+          </Link>
+          <button type="button" className="btn" onClick={() => setNightlyOpen(true)}>
+            Nightly check
+          </button>
+          <Link className="btn" to="/discipline">
+            Review
+          </Link>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="section-head">
+          <h2>Today’s scorecard</h2>
+          <span className={`badge ${STATUS_CLASS[status]}`}>{STATUS_FRIENDLY[status]}</span>
+        </div>
+        <div className="grid-metrics">
           <ScoreMetric
             label="Steps"
             value={`${agg.steps ?? '—'} / ${settings.stepsTarget}`}
@@ -168,17 +217,26 @@ export function Dashboard() {
           />
           <ScoreMetric
             label="Calories"
-            value={`${Math.round(agg.calories)} / ${settings.calorieTarget}`}
+            value={
+              agg.foodEntryCount === 0
+                ? 'Not logged'
+                : `${Math.round(agg.calories)} / ${settings.calorieTarget}`
+            }
             done={agg.foodEntryCount > 0 && agg.honestyAnswered}
+            provisional={agg.foodEntryCount > 0 && !agg.honestyAnswered}
           />
           <ScoreMetric
             label="Protein"
-            value={`${Math.round(agg.proteinG)} / ${settings.proteinTargetG} g`}
+            value={
+              agg.foodEntryCount === 0
+                ? '—'
+                : `${Math.round(agg.proteinG)} / ${settings.proteinTargetG} g`
+            }
             done={agg.proteinG >= settings.proteinTargetG * 0.9}
           />
           <ScoreMetric
             label="Water"
-            value={`${agg.waterMl} / ${settings.waterTargetMl} ml`}
+            value={`${agg.waterMl || '—'} / ${settings.waterTargetMl} ml`}
             done={agg.waterMl >= settings.waterTargetMl}
           />
           <ScoreMetric
@@ -197,34 +255,24 @@ export function Dashboard() {
             done={agg.cigarettesLogged && agg.cigaretteCount <= settings.cigaretteTarget}
           />
           <ScoreMetric
-            label="Adherence"
+            label="Score"
             value={`${score?.total ?? 0} / 100`}
             done={(score?.total ?? 0) >= 70}
           />
         </div>
         <p className="dim" style={{ fontSize: '0.8rem', marginTop: 12 }}>
-          Incomplete log ≠ success. Low calories alone never mark a day complete.
+          Blank logs stay blank — never counted as a perfect day. Honesty always beats looking
+          “on target.”
         </p>
       </section>
 
-      <section className="panel">
-        <h2 style={{ fontSize: '1.1rem' }}>What should I do next?</h2>
-        <ul style={{ margin: '12px 0 0', paddingLeft: 18 }}>
-          {actions.map((a) => (
-            <li key={a} style={{ marginBottom: 8 }}>
-              {a}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {(score?.status === 'NEEDS_ATTENTION' || score?.status === 'INCOMPLETE_LOG') && (
+      {showRecovery && (
         <section className="panel">
-          <h2 style={{ fontSize: '1.1rem' }}>Recovery — not reset</h2>
-          <p className="dim" style={{ fontSize: '0.85rem', marginTop: 0 }}>
-            Missed targets get a practical adjustment. Previous progress stays.
-          </p>
-          <div className="stack" style={{ marginTop: 8 }}>
+          <div className="section-head">
+            <h2>Gentle recovery</h2>
+            <p className="muted">No reset. No shame.</p>
+          </div>
+          <div className="stack">
             {recovery.map((r) => (
               <div key={r.id} className="metric">
                 <strong>{r.title}</strong>
@@ -236,36 +284,6 @@ export function Dashboard() {
           </div>
         </section>
       )}
-
-      <section className="panel">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Quick actions</h2>
-        <div className="quick-grid">
-          <Link className="btn" to="/log?tab=food">
-            Log food
-          </Link>
-          <Link className="btn" to="/log?tab=steps">
-            Add steps
-          </Link>
-          <Link className="btn" to="/log?tab=water">
-            Add water
-          </Link>
-          <Link className="btn" to="/log?tab=weight">
-            Record weight
-          </Link>
-          <Link className="btn" to="/log?tab=workout">
-            Log workout
-          </Link>
-          <Link className="btn" to="/log?tab=smoking">
-            Log cigarettes
-          </Link>
-          <button type="button" className="btn btn-primary" onClick={() => setNightlyOpen(true)}>
-            Nightly Truth Check
-          </button>
-          <Link className="btn btn-primary" to="/discipline">
-            Finish daily review
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }
@@ -274,10 +292,12 @@ function ScoreMetric({
   label,
   value,
   done,
+  provisional,
 }: {
   label: string;
   value: string;
   done: boolean;
+  provisional?: boolean;
 }) {
   return (
     <div className="metric">
@@ -285,8 +305,11 @@ function ScoreMetric({
       <div className="value" style={{ fontSize: '1rem' }}>
         {value}
       </div>
-      <div className={`badge ${done ? 'badge-ok' : 'badge-info'}`} style={{ marginTop: 8 }}>
-        {done ? 'OK' : 'Open'}
+      <div
+        className={`badge ${done ? 'badge-ok' : provisional ? 'badge-warn' : 'badge-info'}`}
+        style={{ marginTop: 8 }}
+      >
+        {done ? 'Done' : provisional ? 'Provisional' : 'Open'}
       </div>
     </div>
   );

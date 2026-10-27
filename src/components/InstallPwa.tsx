@@ -83,11 +83,11 @@ export function InstallPwaBanner() {
   return (
     <div className="install-banner panel" role="region" aria-label="Install app">
       <div>
-        <strong>Install PROJECT 85</strong>
+        <strong>Keep it one tap away</strong>
         <p className="muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
           {iosHint && !deferred
-            ? 'On iPhone: Share → Add to Home Screen for offline mission control.'
-            : 'Install as an app for offline use, home-screen launch, and full-screen logging.'}
+            ? 'iPhone tip: Share → Add to Home Screen. Works offline after that.'
+            : 'Install for a full-screen app icon and offline logging on this device.'}
         </p>
       </div>
       <div className="row" style={{ flexWrap: 'wrap' }}>

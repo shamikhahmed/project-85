@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PwaStatusCard } from '../components/InstallPwa';
 import * as repo from '../data/repository';
 import { useAppStore } from '../store/useAppStore';
@@ -256,6 +256,9 @@ function Field({
   onCommit: (v: string) => void;
 }) {
   const [local, setLocal] = useState(value);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
   return (
     <label>
       <span className="label">{label}</span>

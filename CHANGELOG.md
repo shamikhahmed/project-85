@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-27
+
+### Polish
+- Refined charcoal/orange design tokens, type scale, warmer empty states
+- Friendlier IA: Today / Log / Trend / Review / History / More
+- Dashboard: time-of-day greeting, hero-first, clearer briefing, provisional calorie badge
+- Settings fields sync when values change; softer install copy
+- Feature questionnaire for ChatGPT-driven ideation
+
 ## 0.2.0 — 2026-10-27
 
 ### Added

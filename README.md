@@ -44,6 +44,7 @@ Vite · React 19 · TypeScript · Dexie · Zustand · Recharts · Framer Motion 
 - [RESEARCH_DOSSIER.md](./RESEARCH_DOSSIER.md)
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)
 - [DATA_MODEL.md](./DATA_MODEL.md)
+- [FEATURE_QUESTIONNAIRE.md](./FEATURE_QUESTIONNAIRE.md) — fill / paste into ChatGPT for next features
 - [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
 - [TEST_PLAN.md](./TEST_PLAN.md)
 - [AGENT_WORK_LOG.md](./AGENT_WORK_LOG.md)

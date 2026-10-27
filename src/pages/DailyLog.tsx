@@ -427,7 +427,15 @@ function FoodPanel({
 
       <section className="panel stack">
         <h3 style={{ fontSize: '1rem' }}>Today’s entries</h3>
-        {foods.length === 0 && <p className="empty-state">No food logged yet.</p>}
+        {foods.length === 0 && (
+          <div className="empty-state" style={{ padding: '24px 8px' }}>
+            <h2 style={{ fontSize: '1rem' }}>Nothing logged yet — that’s fine</h2>
+            <p>
+              Add a meal above or tap a library item (tikka, boti, chapati, whey…). Estimates are
+              OK when labelled. Honesty beats a blank perfect-looking day.
+            </p>
+          </div>
+        )}
         {foods.map((f) => (
           <div key={f.id} className="metric" style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
             <div>
