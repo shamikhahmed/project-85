@@ -27,3 +27,4 @@ dev-dist
 qa-*.png
 *.png
 !public/*.png
+!public/brand/*.png
