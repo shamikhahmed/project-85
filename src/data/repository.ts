@@ -27,24 +27,31 @@ export async function ensureInitialized(): Promise<AppSettings> {
       if (!existing) {
         await db.settings.put(createDefaultSettings());
       }
-      const libCount = await db.foodLibrary.count();
-      if (libCount === 0) {
-        const now = new Date().toISOString();
-        await db.foodLibrary.bulkAdd(
-          SEED_FOOD_LIBRARY.map((item) => ({
-            id: newId('lib'),
-            ...item,
-            useCount: 0,
-            updatedAt: now,
-          })),
-        );
-      }
+      await ensureSeedFoodLibrary();
     })();
   }
   await initPromise;
   const settings = await db.settings.get('settings');
   if (!settings) throw new Error('Settings missing after init');
   return settings;
+}
+
+/** Insert any seed foods missing by name so existing installs pick up library updates. */
+export async function ensureSeedFoodLibrary(): Promise<number> {
+  const now = new Date().toISOString();
+  const existing = await db.foodLibrary.toArray();
+  const names = new Set(existing.map((i) => i.name.toLowerCase()));
+  const missing = SEED_FOOD_LIBRARY.filter((item) => !names.has(item.name.toLowerCase()));
+  if (missing.length === 0) return 0;
+  await db.foodLibrary.bulkAdd(
+    missing.map((item) => ({
+      id: newId('lib'),
+      ...item,
+      useCount: 0,
+      updatedAt: now,
+    })),
+  );
+  return missing.length;
 }
 
 export async function getSettings(): Promise<AppSettings> {

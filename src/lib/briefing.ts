@@ -91,7 +91,7 @@ function choosePrimaryAction(settings: AppSettings, agg: DayAggregate): string {
     return 'Complete the food honesty checklist so today’s totals are trustworthy.';
   }
   if (agg.primaryWeightKg == null) {
-    return 'Record this morning’s weight (or mark an estimate).';
+    return 'Record today’s weight when you can (morning preferred; estimates are OK if labelled).';
   }
   if (agg.steps == null) {
     return `Log today’s steps (manual total — target ${settings.stepsTarget.toLocaleString()}).`;
