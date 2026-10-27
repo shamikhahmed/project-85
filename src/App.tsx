@@ -37,7 +37,7 @@ export default function App() {
     return (
       <div className="empty-state">
         <h2>PROJECT 85</h2>
-        <p>Warming up your local mission control…</p>
+        <p>Opening your private mission…</p>
       </div>
     );
   }

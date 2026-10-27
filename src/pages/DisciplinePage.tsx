@@ -27,11 +27,11 @@ export function DisciplinePage() {
 
   return (
     <div className="stack">
-      <header className="panel">
+      <header className="panel page-header">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '1.4rem' }}>Review</h1>
-            <p className="muted" style={{ margin: 0 }}>
+            <h1>Review</h1>
+            <p className="muted">
               Firm, direct, supportive — missed targets are information, not a verdict
             </p>
           </div>

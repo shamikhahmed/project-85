@@ -22,8 +22,8 @@ export default defineConfig({
         short_name: 'P85',
         description:
           'Personal birthday transformation mission control — fat loss, steps, discipline.',
-        theme_color: '#0a0b0d',
-        background_color: '#0a0b0d',
+        theme_color: '#0B0D10',
+        background_color: '#0B0D10',
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait-primary',
@@ -69,19 +69,6 @@ export default defineConfig({
             options: {
               cacheName: 'p85-fonts',
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'p85-google-fonts-stylesheets' },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'p85-google-fonts-webfonts',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
         ],

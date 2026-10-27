@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { MetricChip } from '../components/MetricChip';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuickLogSheet, type QuickLogMode } from '../components/QuickLogSheet';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import * as repo from '../data/repository';
-import { buildDailyBriefing } from '../lib/briefing';
-import { calendarDaysRemaining, toLocalISODate } from '../lib/dates';
+import { buildDailyBriefing, type QuickActionKind } from '../lib/briefing';
+import { assessComeback, type ComebackState } from '../lib/comeback';
+import { calendarDaysElapsed, calendarDaysRemaining, toLocalISODate } from '../lib/dates';
 import { buildRecoveryPlan } from '../lib/recovery';
 import { assessWeightTrend } from '../lib/weightTrend';
 import { useAppStore, useWeightProgress } from '../store/useAppStore';
@@ -31,21 +33,28 @@ function timeGreeting(d = new Date()): string {
   return 'Good evening';
 }
 
+function mapQuick(kind: QuickActionKind): Exclude<QuickLogMode, null> | 'nightly' | 'workout' {
+  if (kind === 'shake') return 'meal';
+  if (kind === 'nightly') return 'nightly';
+  if (kind === 'workout') return 'workout';
+  return kind;
+}
+
 function focusPriorities(
   settings: NonNullable<ReturnType<typeof useAppStore.getState>['settings']>,
   agg: NonNullable<ReturnType<typeof useAppStore.getState>['todayAgg']>,
   primary: string,
 ): string[] {
   const items: string[] = [primary];
-  if (agg.foodEntryCount === 0) items.push('Log lunch or a library meal via Quick Log');
+  if (agg.foodEntryCount === 0) items.push('Log a meal via Quick Log');
   else if (!agg.honestyAnswered) items.push('Finish the honesty checklist tonight');
   if (agg.steps == null || agg.steps < settings.stepsTarget) {
     items.push(
-      `Close the gap toward ${settings.stepsTarget.toLocaleString()} steps when it fits — don’t sacrifice sleep`,
+      `Move toward ${settings.stepsTarget.toLocaleString()} steps when it fits — don’t sacrifice sleep`,
     );
   }
   if (agg.proteinG < settings.proteinTargetG * 0.85 && agg.foodEntryCount > 0) {
-    items.push('Hit protein with tikka, boti, daal + egg, or whey');
+    items.push('Hit protein with tikka, boti, daal, or whey');
   }
   if (settings.shoulderCaution && agg.workoutTypes.includes('strength')) {
     items.push('Protect the shoulder — skip painful presses');
@@ -55,12 +64,15 @@ function focusPriorities(
 
 export function Dashboard() {
   const settings = useAppStore((s) => s.settings);
+  const ready = useAppStore((s) => s.ready);
   const agg = useAppStore((s) => s.todayAgg);
   const score = useAppStore((s) => s.todayScore);
   const setNightlyOpen = useAppStore((s) => s.setNightlyOpen);
   const progress = useWeightProgress();
+  const navigate = useNavigate();
   const today = toLocalISODate();
   const [weightSeries, setWeightSeries] = useState<{ date: string; weightKg: number }[]>([]);
+  const [comeback, setComeback] = useState<ComebackState | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickMode, setQuickMode] = useState<QuickLogMode>('meal');
 
@@ -73,6 +85,15 @@ export function Dashboard() {
     })();
   }, [agg?.primaryWeightKg]);
 
+  useEffect(() => {
+    if (!settings) return;
+    void (async () => {
+      const start = settings.startDate;
+      const days = await repo.loadAggregatesInRange(start, today);
+      setComeback(assessComeback(days, today));
+    })();
+  }, [settings, today, agg?.loggingCompleteness, agg?.foodEntryCount, agg?.steps]);
+
   const trend = useMemo(() => assessWeightTrend(weightSeries), [weightSeries]);
   const briefing = useMemo(() => {
     if (!settings || !agg) return null;
@@ -83,21 +104,23 @@ export function Dashboard() {
     return buildRecoveryPlan(score.breakdown, settings);
   }, [settings, score]);
 
-  if (!settings || !agg || !progress || !briefing) {
+  if (!ready || !settings || !agg || !progress || !briefing) {
     return (
       <div className="empty-state">
-        <h2>Your next chapter starts with today’s data.</h2>
-        <p>Log your first weight, meal or steps. You don’t need a perfect day to make progress.</p>
+        <h2>Opening PROJECT 85…</h2>
+        <p className="muted">Loading your private mission data on this device.</p>
       </div>
     );
   }
 
   const daysLeft = calendarDaysRemaining(settings.deadline, today);
+  const daysIn = calendarDaysElapsed(settings.startDate, today);
   const status = score?.status ?? 'INCOMPLETE_LOG';
   const weeklyHint =
     daysLeft > 0 ? (progress.remainingKg / (daysLeft / 7)).toFixed(2) : null;
   const showRecovery =
-    score?.status === 'NEEDS_ATTENTION' || score?.status === 'INCOMPLETE_LOG';
+    !comeback &&
+    (score?.status === 'NEEDS_ATTENTION' || score?.status === 'INCOMPLETE_LOG');
   const focus = settings.focusMode;
   const priorities = focusPriorities(settings, agg, briefing.primaryAction);
 
@@ -106,15 +129,45 @@ export function Dashboard() {
     setQuickOpen(true);
   };
 
+  const doPrimary = () => {
+    const mapped = mapQuick(briefing.quickAction);
+    if (mapped === 'nightly') {
+      setNightlyOpen(true);
+      return;
+    }
+    if (mapped === 'workout') {
+      void navigate('/log?tab=workout');
+      return;
+    }
+    openQuick(mapped);
+  };
+
   return (
     <div className="stack" style={{ gap: 16 }}>
       <p className="greeting">
-        <strong>{timeGreeting()}.</strong> {daysLeft} days to your birthday mission — one honest
-        day at a time.
+        <strong>{timeGreeting()}.</strong> Day {daysIn + 1} · {daysLeft} days to 15 Jan 2027 ·{' '}
+        {trend.status === 'insufficient_data'
+          ? 'Small actions. Consistent progress.'
+          : 'Your next useful step starts here.'}
       </p>
 
+      {comeback && comeback.missedDays >= 2 && (
+        <section className="panel comeback-panel stack" aria-labelledby="comeback-title">
+          <h2 id="comeback-title" style={{ fontSize: 'var(--text-lg)' }}>
+            {comeback.message}
+          </h2>
+          <p className="muted" style={{ margin: 0 }}>
+            {comeback.missedDays} days since your last log
+            {comeback.lastLoggedDate ? ` (${comeback.lastLoggedDate})` : ''}. {comeback.nextStep}
+          </p>
+          <button type="button" className="btn btn-primary" onClick={doPrimary}>
+            Take the next useful step
+          </button>
+        </section>
+      )}
+
       {!focus && (
-        <header className="panel hero">
+        <header className="panel panel-hero hero">
           <div className="hero-top">
             <div className="hero-copy">
               <p className="hero-eyebrow">Birthday transformation</p>
@@ -123,14 +176,15 @@ export function Dashboard() {
                 <span className="hero-brand-num">85</span>
               </h1>
               <p className="hero-meta muted">
-                {settings.startDate} → {settings.deadline}
+                {settings.startDate} → {settings.deadline} · {daysLeft} days left
               </p>
             </div>
             <ProgressRing
               value={progress.percentComplete}
               label={`${progress.percentComplete}%`}
               sublabel="to 85 kg"
-              size={112}
+              size={120}
+              stroke={10}
             />
           </div>
 
@@ -139,7 +193,7 @@ export function Dashboard() {
               <div className="label">Current</div>
               <div className="value">
                 {agg.primaryWeightKg ?? '—'}
-                <span className="dim" style={{ fontSize: '0.85rem' }}>
+                <span className="dim" style={{ fontSize: 'var(--text-sm)' }}>
                   {' '}
                   kg
                 </span>
@@ -161,8 +215,8 @@ export function Dashboard() {
 
           <div className="hero-progress">
             <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-              <span className="muted" style={{ fontSize: '0.85rem' }}>
-                Actual progress (not a projection)
+              <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
+                Actual progress from {settings.startingWeightKg} kg baseline
               </span>
               <span className="mono muted">{progress.percentComplete}%</span>
             </div>
@@ -176,25 +230,58 @@ export function Dashboard() {
             >
               <div className="progress-fill" style={{ width: `${progress.percentComplete}%` }} />
             </div>
-            <p className="dim" style={{ fontSize: '0.75rem', marginTop: 8 }}>
-              From {settings.startingWeightKg} → {settings.targetWeightKg} kg (
-              {progress.requiredLossKg} kg).
+            <p className="dim" style={{ fontSize: 'var(--text-caption)', marginTop: 8 }}>
               {weeklyHint != null && (
                 <>
-                  {' '}
-                  Linear pace would be ~{weeklyHint} kg/week — a guide only
-                  {Number(weeklyHint) > 0.9 ? ', and on the ambitious side.' : '.'}
+                  Linear pace ~{weeklyHint} kg/week — guide only
+                  {Number(weeklyHint) > 0.9 ? '; ambitious — never crash diet to force it.' : '.'}{' '}
                 </>
               )}
-            </p>
-            <p className="muted" style={{ fontSize: '0.85rem', marginTop: 10 }} aria-live="polite">
-              <strong>Trend:</strong> {trend.message}
+              <span aria-live="polite">{trend.message}</span>
             </p>
           </div>
         </header>
       )}
 
-      {focus ? (
+      {/* Daily Command Centre — one next action */}
+      <section className="panel briefing" aria-labelledby="command-title">
+        <p className="briefing-kicker">Right now</p>
+        <h2 id="command-title" className="briefing-title">
+          {briefing.primaryAction}
+        </h2>
+        <p className="briefing-narrative">{briefing.narrative}</p>
+        <button type="button" className="btn btn-primary" style={{ marginTop: 14 }} onClick={doPrimary}>
+          Do this now
+        </button>
+        <div className="command-remain" aria-label="Remaining today">
+          <MetricChip
+            label={
+              briefing.foodProvisional || briefing.caloriesRemaining == null
+                ? 'Calories left · est.'
+                : 'Calories left'
+            }
+            value={briefing.caloriesRemaining == null ? '—' : String(briefing.caloriesRemaining)}
+            status={briefing.foodProvisional ? 'provisional' : 'open'}
+          />
+          <MetricChip
+            label="Protein left"
+            value={
+              briefing.proteinRemaining == null
+                ? '—'
+                : `${Math.max(0, briefing.proteinRemaining)} g`
+            }
+          />
+          <MetricChip
+            label="Steps left"
+            value={
+              briefing.stepsRemaining == null ? '—' : briefing.stepsRemaining.toLocaleString()
+            }
+          />
+          <MetricChip label="Water left" value={`${briefing.waterRemaining} ml`} />
+        </div>
+      </section>
+
+      {focus && (
         <section className="panel stack" aria-labelledby="focus-title">
           <div className="section-head">
             <div>
@@ -213,44 +300,13 @@ export function Dashboard() {
               </li>
             ))}
           </ol>
-          <p className="muted" style={{ fontSize: '0.85rem', margin: 0 }}>
-            {agg.primaryWeightKg == null
-              ? 'No measurement yet. Add your morning weight when you’re ready.'
-              : `Morning weight ${agg.primaryWeightKg} kg · ${trend.message}`}
-          </p>
-          <div className="quick-grid">
-            <button type="button" className="btn btn-primary" onClick={() => openQuick('meal')}>
-              Quick meal
-            </button>
-            <button type="button" className="btn" onClick={() => openQuick('water')}>
-              Water
-            </button>
-            <button type="button" className="btn" onClick={() => openQuick('steps')}>
-              Steps
-            </button>
-            <button type="button" className="btn" onClick={() => openQuick('weight')}>
-              Weight
-            </button>
-          </div>
-        </section>
-      ) : (
-        <section className="panel briefing" aria-labelledby="briefing-title">
-          <p className="briefing-kicker">Do this next</p>
-          <h2 id="briefing-title" className="briefing-title">
-            {briefing.primaryAction}
-          </h2>
-          <ul className="briefing-list">
-            {briefing.bullets.slice(0, 4).map((b) => (
-              <li key={b}>{b}</li>
-            ))}
-          </ul>
         </section>
       )}
 
       <section className="panel">
         <div className="section-head">
           <h2>Quick log</h2>
-          <p className="muted">≈2–4 taps for a saved meal</p>
+          <p className="muted">Thumb reach · few taps</p>
         </div>
         <div className="quick-grid">
           <button type="button" className="btn btn-primary" onClick={() => openQuick('meal')}>
@@ -274,8 +330,8 @@ export function Dashboard() {
           <button type="button" className="btn" onClick={() => setNightlyOpen(true)}>
             Nightly check
           </button>
-          <Link className="btn" to="/discipline">
-            Review
+          <Link className="btn" to="/progress">
+            Progress proof
           </Link>
         </div>
       </section>
@@ -283,63 +339,87 @@ export function Dashboard() {
       {!focus && (
         <section className="panel">
           <div className="section-head">
-            <h2>Today’s scorecard</h2>
+            <h2>Today</h2>
             <span className={`badge ${STATUS_CLASS[status]}`}>{STATUS_FRIENDLY[status]}</span>
           </div>
           <div className="grid-metrics">
-            <ScoreMetric
+            <MetricChip
               label="Steps"
               value={`${agg.steps ?? '—'} / ${settings.stepsTarget}`}
-              done={agg.steps != null && agg.steps >= settings.stepsTarget}
+              progress={agg.steps == null ? null : agg.steps / settings.stepsTarget}
+              status={agg.steps != null && agg.steps >= settings.stepsTarget ? 'done' : 'open'}
             />
-            <ScoreMetric
+            <MetricChip
               label="Calories"
               value={
                 agg.foodEntryCount === 0
                   ? 'Not logged'
                   : `${Math.round(agg.calories)} / ${settings.calorieTarget}`
               }
-              done={agg.foodEntryCount > 0 && agg.honestyAnswered}
-              provisional={agg.foodEntryCount > 0 && !agg.honestyAnswered}
+              progress={
+                agg.foodEntryCount === 0 ? null : Math.min(1, agg.calories / settings.calorieTarget)
+              }
+              status={
+                agg.foodEntryCount === 0
+                  ? 'open'
+                  : agg.honestyAnswered
+                    ? 'done'
+                    : 'provisional'
+              }
+              detail={agg.foodEntryCount > 0 && !agg.honestyAnswered ? 'Honesty check open' : undefined}
             />
-            <ScoreMetric
+            <MetricChip
               label="Protein"
               value={
                 agg.foodEntryCount === 0
                   ? '—'
                   : `${Math.round(agg.proteinG)} / ${settings.proteinTargetG} g`
               }
-              done={agg.proteinG >= settings.proteinTargetG * 0.9}
+              progress={
+                agg.foodEntryCount === 0
+                  ? null
+                  : Math.min(1, agg.proteinG / settings.proteinTargetG)
+              }
+              status={agg.proteinG >= settings.proteinTargetG * 0.9 ? 'done' : 'open'}
             />
-            <ScoreMetric
+            <MetricChip
               label="Water"
               value={`${agg.waterMl || '—'} / ${settings.waterTargetMl} ml`}
-              done={agg.waterMl >= settings.waterTargetMl}
+              progress={agg.waterMl === 0 ? null : Math.min(1, agg.waterMl / settings.waterTargetMl)}
+              status={agg.waterMl >= settings.waterTargetMl ? 'done' : 'open'}
             />
-            <ScoreMetric
+            <MetricChip
               label="Workout"
               value={agg.workoutTypes.length ? agg.workoutTypes.join(', ') : 'Not logged'}
-              done={agg.workoutTypes.length > 0}
+              status={agg.workoutTypes.length > 0 ? 'done' : 'open'}
             />
-            <ScoreMetric
+            <MetricChip
               label="Sleep"
               value={agg.sleepHours != null ? `${agg.sleepHours} h` : 'Not logged'}
-              done={agg.sleepHours != null && agg.sleepHours >= settings.sleepTargetHours * 0.85}
+              status={
+                agg.sleepHours != null && agg.sleepHours >= settings.sleepTargetHours * 0.85
+                  ? 'done'
+                  : 'open'
+              }
             />
-            <ScoreMetric
+            <MetricChip
               label="Cigarettes"
               value={agg.cigarettesLogged ? String(agg.cigaretteCount) : 'Not logged'}
-              done={agg.cigarettesLogged && agg.cigaretteCount <= settings.cigaretteTarget}
+              status={
+                agg.cigarettesLogged && agg.cigaretteCount <= settings.cigaretteTarget
+                  ? 'done'
+                  : 'open'
+              }
             />
-            <ScoreMetric
+            <MetricChip
               label="Score"
               value={`${score?.total ?? 0} / 100`}
-              done={(score?.total ?? 0) >= 70}
+              progress={(score?.total ?? 0) / 100}
+              status={(score?.total ?? 0) >= 70 ? 'done' : 'open'}
             />
           </div>
-          <p className="dim" style={{ fontSize: '0.8rem', marginTop: 12 }}>
-            Blank logs stay blank — never counted as a perfect day. An honest estimate beats a
-            perfect-looking guess.
+          <p className="dim" style={{ fontSize: 'var(--text-caption)', marginTop: 12 }}>
+            Blank logs stay blank. An honest estimate beats a perfect-looking guess.
           </p>
         </section>
       )}
@@ -347,14 +427,14 @@ export function Dashboard() {
       {showRecovery && (
         <section className="panel">
           <div className="section-head">
-            <h2>Welcome back energy</h2>
-            <p className="muted">Your previous effort still counts.</p>
+            <h2>Gentle recovery</h2>
+            <p className="muted">Information, not a verdict</p>
           </div>
           <div className="stack">
             {recovery.map((r) => (
               <div key={r.id} className="metric">
                 <strong>{r.title}</strong>
-                <p className="muted" style={{ margin: '4px 0 0', fontSize: '0.9rem' }}>
+                <p className="muted" style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)' }}>
                   {r.description}
                 </p>
               </div>
@@ -374,29 +454,3 @@ export function Dashboard() {
   );
 }
 
-function ScoreMetric({
-  label,
-  value,
-  done,
-  provisional,
-}: {
-  label: string;
-  value: string;
-  done: boolean;
-  provisional?: boolean;
-}) {
-  return (
-    <div className="metric">
-      <div className="label">{label}</div>
-      <div className="value" style={{ fontSize: '1rem' }}>
-        {value}
-      </div>
-      <div
-        className={`badge ${done ? 'badge-ok' : provisional ? 'badge-warn' : 'badge-info'}`}
-        style={{ marginTop: 8 }}
-      >
-        {done ? 'Done' : provisional ? 'Provisional' : 'Open'}
-      </div>
-    </div>
-  );
-}

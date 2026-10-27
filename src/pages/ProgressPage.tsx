@@ -124,29 +124,80 @@ export function ProgressPage() {
 
   return (
     <div className="stack">
-      <header className="panel">
-        <h1 style={{ fontSize: '1.4rem' }}>Progress</h1>
-        <p className="muted" style={{ margin: 0 }}>
-          Missing dates stay missing — never fabricated as zero.
+      <header className="panel page-header">
+        <h1>Progress proof</h1>
+        <p className="muted">
+          Longer-term evidence for days when the scale is noisy. Missing dates stay missing —
+          never fabricated as zero.
         </p>
       </header>
 
-      <section className="panel">
-        <h2 style={{ fontSize: '1.05rem' }}>Weight</h2>
-        <div style={{ width: '100%', height: 260 }}>
+      <section className="panel stack" aria-labelledby="milestones-title">
+        <h2 id="milestones-title">Milestones & consistency</h2>
+        <div className="stack" style={{ gap: 12 }}>
+          {habits.foodDays >= 7 && (
+            <div className="proof-win">
+              <strong>Honest tracking week</strong>
+              <p className="muted" style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)' }}>
+                {habits.foodDays} days with food logged in the recent window — effort that
+                compounds.
+              </p>
+            </div>
+          )}
+          {habits.workoutDays >= 3 && (
+            <div className="proof-win">
+              <strong>Training consistency</strong>
+              <p className="muted" style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)' }}>
+                {habits.workoutDays} training or recovery sessions logged recently.
+              </p>
+            </div>
+          )}
+          {waists.length >= 2 && (
+            <div className="proof-win">
+              <strong>Waist trend started</strong>
+              <p className="muted" style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)' }}>
+                {waists.length} waist measurements — useful when weight alone is noisy.
+              </p>
+            </div>
+          )}
+          {habits.foodDays < 7 && habits.workoutDays < 3 && waists.length < 2 && (
+            <p className="muted" style={{ margin: 0 }}>
+              Milestones appear as you collect honest logs — returning after a hard week counts
+              too.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="panel chart-panel">
+        <h2>Weight</h2>
+        <p className="dim" style={{ fontSize: 'var(--text-footnote)', margin: '0 0 12px' }}>
+          Daily weigh-ins vs 7-day average (average only when enough points exist).
+        </p>
+        <div style={{ width: '100%', height: 280 }}>
           {chartData.length === 0 ? (
             <p className="empty-state">Log morning weights to see the chart.</p>
           ) : (
             <ResponsiveContainer>
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
-                <XAxis dataKey="date" stroke="var(--text-dim)" fontSize={11} />
-                <YAxis domain={['auto', 'auto']} stroke="var(--text-dim)" fontSize={11} unit=" kg" />
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" stroke="var(--text-dim)" fontSize={11} tickLine={false} />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  stroke="var(--text-dim)"
+                  fontSize={11}
+                  unit=" kg"
+                  width={48}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
                   contentStyle={{
-                    background: 'var(--bg-elevated)',
+                    background: 'var(--bg-panel)',
                     border: '1px solid var(--border)',
+                    borderRadius: 12,
                   }}
+                  labelStyle={{ color: 'var(--text-muted)' }}
                 />
                 <ReferenceLine
                   y={settings.targetWeightKg}
@@ -159,8 +210,22 @@ export function ProgressPage() {
                   stroke="var(--text-dim)"
                   strokeDasharray="2 4"
                 />
-                <Line type="monotone" dataKey="weight" stroke="var(--text)" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="avg7" stroke="var(--info)" strokeWidth={1.5} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="var(--text-muted)"
+                  strokeWidth={1.5}
+                  dot={{ r: 2.5, fill: 'var(--text-dim)' }}
+                  name="Daily"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="avg7"
+                  stroke="var(--accent)"
+                  strokeWidth={2.5}
+                  dot={false}
+                  name="7-day avg"
+                />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -262,7 +327,7 @@ export function ProgressPage() {
         <h2 style={{ fontSize: '1.05rem' }}>Habit consistency</h2>
         <div className="grid-metrics">
           <div className="metric">
-            <div className="label">10k steps hit</div>
+            <div className="label">Step target hit</div>
             <div className="value">
               {habits.stepDays
                 ? `${Math.round((habits.stepHit / habits.stepDays) * 100)}%`

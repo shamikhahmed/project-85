@@ -49,13 +49,11 @@ export function DailyLog() {
 
   return (
     <div className="stack">
-      <header className="panel">
+      <header className="panel page-header">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: '1.4rem' }}>Daily Log</h1>
-            <p className="muted" style={{ margin: 0 }}>
-              Honest tracking · autosaves to this device
-            </p>
+            <h1>Daily Log</h1>
+            <p className="muted">Honest tracking · autosaves to this device</p>
           </div>
           <label>
             <span className="sr-only">Log date</span>

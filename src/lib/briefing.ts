@@ -6,111 +6,228 @@ export interface BriefingInput {
   agg: DayAggregate;
   score: DayScore | null;
   weightTrend?: WeightTrendAssessment | null;
+  hour?: number;
 }
+
+export type QuickActionKind = 'meal' | 'water' | 'steps' | 'weight' | 'workout' | 'nightly' | 'shake';
 
 export interface DailyBriefing {
   primaryAction: string;
+  narrative: string;
   bullets: string[];
+  quickAction: QuickActionKind;
+  caloriesRemaining: number | null;
+  proteinRemaining: number | null;
+  stepsRemaining: number | null;
+  waterRemaining: number;
+  foodProvisional: boolean;
 }
 
 /**
- * Data-driven mission briefing. Every bullet must come from real aggregates.
- * Never invent history. Never advise compensating for food with exercise or
- * sacrificing sleep for steps.
+ * Daily Command Centre briefing from real aggregates only.
+ * Never invent history. Never advise exercise to “burn off” food or sacrifice sleep.
  */
 export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const { settings, agg, score, weightTrend } = input;
+  const hour = input.hour ?? new Date().getHours();
   const bullets: string[] = [];
+  const foodProvisional =
+    agg.foodEntryCount > 0 && (!agg.honestyAnswered || agg.loggingCompleteness < 0.6);
+
+  const caloriesRemaining =
+    agg.foodEntryCount === 0
+      ? null
+      : Math.round(settings.calorieTarget - agg.calories);
+  const proteinRemaining =
+    agg.foodEntryCount === 0
+      ? null
+      : Math.round(settings.proteinTargetG - agg.proteinG);
+  const stepsRemaining =
+    agg.steps == null ? null : Math.max(0, settings.stepsTarget - agg.steps);
+  const waterRemaining = Math.max(0, settings.waterTargetMl - agg.waterMl);
 
   if (agg.primaryWeightKg == null) {
-    bullets.push('You have not recorded a morning weight yet.');
-  } else {
-    bullets.push(`Morning weight logged at ${agg.primaryWeightKg} kg.`);
-  }
-
-  if (agg.steps == null) {
-    bullets.push(`Steps not logged yet (target ${settings.stepsTarget.toLocaleString()}).`);
-  } else if (agg.steps < settings.stepsTarget) {
     bullets.push(
-      `You have logged ${agg.steps.toLocaleString()} of ${settings.stepsTarget.toLocaleString()} steps — finish when it fits; do not sacrifice sleep.`,
+      hour < 12
+        ? 'No morning weight yet — add it when you’re ready.'
+        : 'No measurement yet for today.',
     );
   } else {
-    bullets.push(`Step target met (${agg.steps.toLocaleString()}).`);
+    bullets.push(`Morning weight ${agg.primaryWeightKg} kg.`);
   }
 
   if (agg.foodEntryCount === 0) {
-    bullets.push('Food logging has not started — calorie totals are unknown, not zero.');
-  } else if (!agg.honestyAnswered || agg.loggingCompleteness < 0.6) {
+    bullets.push('Food not logged — calorie totals are unknown, not zero.');
+  } else if (foodProvisional) {
     bullets.push(
-      `Your food total may be incomplete (${agg.foodEntryCount} entries). Remember oil, sauces, drinks and little bites — today’s ${Math.round(agg.calories)} kcal is provisional.`,
+      `Food total may be incomplete (${Math.round(agg.calories)} kcal logged). Oil, sauces and bites count.`,
     );
   } else {
     bullets.push(
-      `Calories logged: ${Math.round(agg.calories)} / ${settings.calorieTarget} (honesty check answered).`,
+      `Calories ${Math.round(agg.calories)} / ${settings.calorieTarget}${
+        caloriesRemaining != null && caloriesRemaining > 0
+          ? ` · ~${caloriesRemaining} remaining (estimate)`
+          : ''
+      }.`,
     );
   }
 
-  if (agg.foodEntryCount > 0 && agg.proteinG < settings.proteinTargetG) {
-    const gap = Math.round(settings.proteinTargetG - agg.proteinG);
-    bullets.push(`Protein is about ${gap} g below your ${settings.proteinTargetG} g target.`);
+  if (agg.foodEntryCount > 0 && proteinRemaining != null && proteinRemaining > 0) {
+    bullets.push(`About ${proteinRemaining} g protein left toward ${settings.proteinTargetG} g.`);
+  }
+
+  if (agg.steps == null) {
+    bullets.push(`Steps not logged (target ${settings.stepsTarget.toLocaleString()}).`);
+  } else if (stepsRemaining != null && stepsRemaining > 0) {
+    bullets.push(
+      `${agg.steps.toLocaleString()} steps · ~${stepsRemaining.toLocaleString()} to go — finish when it fits; don’t sacrifice sleep.`,
+    );
+  } else if (agg.steps != null) {
+    bullets.push(`Step target met (${agg.steps.toLocaleString()}).`);
   }
 
   if (agg.waterMl === 0) {
     bullets.push('Water not logged yet.');
-  } else if (agg.waterMl < settings.waterTargetMl) {
-    bullets.push(
-      `Water ${agg.waterMl} / ${settings.waterTargetMl} ml — sip steadily; no chugging.`,
-    );
+  } else if (waterRemaining > 0) {
+    bullets.push(`Water ${agg.waterMl} / ${settings.waterTargetMl} ml — sip steadily.`);
   }
 
-  if (agg.workoutTypes.length === 0) {
-    bullets.push('No workout or recovery day logged.');
+  if (agg.workoutTypes.length > 0) {
+    bullets.push(`Logged: ${agg.workoutTypes.join(', ')}.`);
+  } else if (hour >= 17) {
+    bullets.push('No workout or recovery day logged yet.');
   }
 
-  if (weightTrend && weightTrend.status !== 'insufficient_data') {
-    bullets.push(weightTrend.message);
-  } else if (weightTrend?.status === 'insufficient_data') {
+  if (weightTrend) {
     bullets.push(weightTrend.message);
   }
 
   if (score) {
-    bullets.push(`Accountability score so far: ${score.total}/100 (${score.status.replace(/_/g, ' ').toLowerCase()}).`);
+    bullets.push(`Score so far ${score.total}/100.`);
   }
 
+  const { primaryAction, quickAction, narrative } = choosePrimary(
+    settings,
+    agg,
+    hour,
+    proteinRemaining,
+    stepsRemaining,
+  );
+
   return {
-    primaryAction: choosePrimaryAction(settings, agg),
+    primaryAction,
+    narrative,
     bullets: bullets.slice(0, 6),
+    quickAction,
+    caloriesRemaining,
+    proteinRemaining,
+    stepsRemaining,
+    waterRemaining,
+    foodProvisional,
   };
 }
 
-function choosePrimaryAction(settings: AppSettings, agg: DayAggregate): string {
+function choosePrimary(
+  settings: AppSettings,
+  agg: DayAggregate,
+  hour: number,
+  proteinRemaining: number | null,
+  stepsRemaining: number | null,
+): { primaryAction: string; quickAction: QuickActionKind; narrative: string } {
+  // Morning: weight first
+  if (hour < 11 && agg.primaryWeightKg == null) {
+    return {
+      primaryAction: 'Record this morning’s weight',
+      quickAction: 'weight',
+      narrative: 'A single number starts today’s trend — estimates are fine if labelled.',
+    };
+  }
+
+  // Meal times
+  if (agg.foodEntryCount === 0 && hour >= 11 && hour < 16) {
+    return {
+      primaryAction: 'Log lunch (or your first meal)',
+      quickAction: 'meal',
+      narrative: 'You don’t need a perfect day — an honest estimate beats a blank page.',
+    };
+  }
+
   if (agg.foodEntryCount === 0) {
-    return 'Log your first meal — you don’t need a perfect day to make progress.';
+    return {
+      primaryAction: 'Log your first meal',
+      quickAction: 'meal',
+      narrative: 'Open Quick Log and tap a saved meal — usually two to four taps.',
+    };
   }
-  if (!agg.honestyAnswered) {
-    return 'Complete the food honesty checklist so today’s totals are trustworthy.';
+
+  if (!agg.honestyAnswered && hour >= 18) {
+    return {
+      primaryAction: 'Close the food honesty checklist',
+      quickAction: 'nightly',
+      narrative: 'Oil, sauces, drinks and unplanned bites — then tomorrow’s briefing is trustworthy.',
+    };
   }
-  if (agg.primaryWeightKg == null) {
-    return 'Record today’s weight when you can (morning preferred; estimates are OK if labelled).';
+
+  // Pre-gym evening (7–9pm profile)
+  if (hour >= 18 && hour < 21 && agg.workoutTypes.length === 0) {
+    return {
+      primaryAction: 'Log tonight’s gym, swim, or recovery',
+      quickAction: 'workout',
+      narrative: settings.shoulderCaution
+        ? 'Protect the shoulder — skip painful presses; machines and swim still count.'
+        : 'Mark what you did so consistency shows up on Progress.',
+    };
   }
-  if (agg.steps == null) {
-    return `Log today’s steps (manual total — target ${settings.stepsTarget.toLocaleString()}).`;
+
+  if (
+    proteinRemaining != null &&
+    proteinRemaining >= 25 &&
+    hour >= 16 &&
+    hour < 22
+  ) {
+    return {
+      primaryAction: `Cover ~${proteinRemaining} g protein still open`,
+      quickAction: 'shake',
+      narrative:
+        'A short walk and a protein-focused dinner (tikka, boti, whey) would make a useful difference.',
+    };
   }
-  if (agg.steps < settings.stepsTarget) {
-    const left = settings.stepsTarget - agg.steps;
-    return `Take a short walk when you can — about ${left.toLocaleString()} steps remaining.`;
+
+  if (stepsRemaining != null && stepsRemaining > 1500 && hour >= 12) {
+    return {
+      primaryAction: `Close ~${stepsRemaining.toLocaleString()} steps when it fits`,
+      quickAction: 'steps',
+      narrative: 'Karachi heat: walk early, late, or indoors — don’t trade sleep for steps.',
+    };
   }
-  if (agg.proteinG < settings.proteinTargetG * 0.9 && agg.foodEntryCount > 0) {
-    return 'Add a protein-forward meal or shake next.';
+
+  if (agg.waterMl < settings.waterTargetMl * 0.4) {
+    return {
+      primaryAction: 'Add a glass of water',
+      quickAction: 'water',
+      narrative: 'Sip across the day — no chugging to hit a number.',
+    };
   }
-  if (agg.waterMl < settings.waterTargetMl * 0.5) {
-    return 'Add a glass of water and keep sipping.';
+
+  if (!agg.reviewCompleted && hour >= 20) {
+    return {
+      primaryAction: 'Finish tonight’s Truth Check',
+      quickAction: 'nightly',
+      narrative: 'Under a minute: what went well, what was hard, one easier step for tomorrow.',
+    };
   }
-  if (agg.workoutTypes.length === 0) {
-    return 'Log training or mark a planned recovery day.';
+
+  if (agg.workoutTypes.length === 0 && hour >= 12) {
+    return {
+      primaryAction: 'Log training or a planned recovery day',
+      quickAction: 'workout',
+      narrative: 'Rest days count when you name them honestly.',
+    };
   }
-  if (!agg.reviewCompleted) {
-    return 'Finish the evening review or Nightly Truth Check.';
-  }
-  return 'Day looks solid — protect sleep and stay consistent tomorrow.';
+
+  return {
+    primaryAction: 'Day looks solid — protect sleep',
+    quickAction: 'nightly',
+    narrative: 'Stay consistent tomorrow. No need to open the app twenty times.',
+  };
 }

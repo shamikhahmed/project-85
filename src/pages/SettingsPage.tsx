@@ -50,9 +50,9 @@ export function SettingsPage() {
 
   return (
     <div className="stack">
-      <header className="panel">
-        <h1 style={{ fontSize: '1.4rem' }}>Settings</h1>
-        <p className="muted" style={{ margin: 0 }}>
+      <header className="panel page-header">
+        <h1>Settings</h1>
+        <p className="muted">
           Local-only on this device. Clearing browser storage or uninstalling can erase data —
           export backups regularly. No cloud sync.
         </p>

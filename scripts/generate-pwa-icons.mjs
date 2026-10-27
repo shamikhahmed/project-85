@@ -19,9 +19,9 @@ function iconSvg(size, { maskable = false } = {}) {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
-  <rect width="${size}" height="${size}" rx="${Math.round(size * 0.18)}" fill="#0A0B0D"/>
-  <path d="M${left} ${baseY} L${cx} ${top} L${right} ${baseY} Z" stroke="#FF6A1A" stroke-width="${stroke}" stroke-linejoin="round" fill="none"/>
-  <text x="${cx}" y="${baseY + fontSize * 0.15}" text-anchor="middle" fill="#F4F5F7" font-family="Arial Black, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700">85</text>
+  <rect width="${size}" height="${size}" rx="${Math.round(size * 0.18)}" fill="#0B0D10"/>
+  <path d="M${left} ${baseY} L${cx} ${top} L${right} ${baseY} Z" stroke="#C4F36B" stroke-width="${stroke}" stroke-linejoin="round" fill="none"/>
+  <text x="${cx}" y="${baseY + fontSize * 0.15}" text-anchor="middle" fill="#F5F7FA" font-family="system-ui,Helvetica,sans-serif" font-size="${fontSize}" font-weight="700">85</text>
 </svg>`;
 }
 

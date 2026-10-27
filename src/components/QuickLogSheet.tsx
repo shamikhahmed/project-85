@@ -195,18 +195,26 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
                   <span className="sr-only">Search meals</span>
                   <input
                     className="input"
-                    placeholder="Search library (tikka, chapati…)"
+                    placeholder="Search your food memory (tikka, chapati…)"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     autoComplete="off"
                   />
                 </label>
-                <p className="dim" style={{ margin: 0, fontSize: '0.8rem' }}>
-                  One tap logs the saved meal as-is. Estimates stay labelled estimated.
+                <p className="dim" style={{ margin: 0, fontSize: 'var(--text-footnote)' }}>
+                  Your meals rise with use. One tap logs as-is — estimates stay labelled. Editing
+                  today’s entry never changes the template.
                 </p>
+                {!query.trim() && meals.some((m) => m.useCount > 0) && (
+                  <p className="briefing-kicker" style={{ marginTop: 4 }}>
+                    Your frequent meals
+                  </p>
+                )}
                 <div className="ql-meal-list">
                   {meals.length === 0 && (
-                    <p className="muted">No matching meals — add one in the Log → Food library.</p>
+                    <p className="muted">
+                      No matching meals — add templates in Settings → Food library.
+                    </p>
                   )}
                   {meals.map((item) => (
                     <button
@@ -217,8 +225,9 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
                       onClick={() => logMeal(item)}
                     >
                       <span className="ql-meal-name">{item.name}</span>
-                      <span className="dim" style={{ fontSize: '0.75rem' }}>
+                      <span className="dim" style={{ fontSize: 'var(--text-caption)' }}>
                         {item.calories} kcal · P{item.proteinG} · {item.confidence}
+                        {item.useCount > 0 ? ` · used ${item.useCount}×` : ''}
                       </span>
                     </button>
                   ))}

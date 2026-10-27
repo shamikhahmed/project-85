@@ -79,8 +79,8 @@ export function HistoryPage() {
 
   return (
     <div className="stack">
-      <header className="panel">
-        <h1 style={{ fontSize: '1.4rem' }}>History</h1>
+      <header className="panel page-header">
+        <h1>History</h1>
         <p className="muted" style={{ margin: 0 }}>
           {settings.startDate} → {settings.deadline}. Tap a day to inspect or edit.
         </p>

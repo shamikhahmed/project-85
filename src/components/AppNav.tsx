@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 const LINKS = [
   { to: '/', label: 'Today', short: 'Today', icon: '◆' },
   { to: '/log', label: 'Log', short: 'Log', icon: '✎' },
-  { to: '/progress', label: 'Progress', short: 'Trend', icon: '↗' },
+  { to: '/progress', label: 'Progress', short: 'Proof', icon: '↗' },
   { to: '/discipline', label: 'Review', short: 'Review', icon: '▣' },
   { to: '/history', label: 'History', short: 'History', icon: '▦' },
   { to: '/settings', label: 'Settings', short: 'More', icon: '⚙' },
@@ -18,7 +18,7 @@ export function AppNav() {
             PROJECT <span style={{ color: 'var(--accent)' }}>85</span>
           </span>
           <span className="dim" style={{ fontSize: '0.75rem' }}>
-            Your private mission control
+            Local · private · offline
           </span>
         </div>
         <nav className="sidebar-nav">
@@ -59,6 +59,7 @@ export function AppNav() {
           background: var(--bg-elevated);
           border-right: 1px solid var(--border-subtle);
           padding: var(--space-6) var(--space-4);
+          padding-top: calc(var(--space-6) + var(--safe-top));
           position: sticky;
           top: 0;
           height: 100dvh;

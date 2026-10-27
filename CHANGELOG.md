@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.6.0 — 2026-10-27
+
+### Premium dark UI (production visual language)
+- Art direction: layered charcoal (`#0B0D10` / `#12151A` / `#191D24`) + lime accent `#C4F36B`
+- System typography throughout (SF on Apple); Google Fonts removed
+- Dashboard: hero progress ring, MetricChip daily metrics with bars, Command Centre
+- Polished Progress charts (daily vs 7-day avg), History calendar tones, all page headers
+- PWA icons / favicon / theme-color updated to lime charcoal identity
+- Comeback mechanic, food memory Quick Log, Focus Mode retained
+
+### Production readiness
+- Local-first IndexedDB preserved; merge-safe backup restore
+- Vitest + typecheck + production build verified for this release
+
+## 0.5.0 — 2026-10-27
+
+### Typography & engagement foundations
+- System font stack; Command Centre briefing; comeback; progress proof milestones
+
 ## 0.4.0 — 2026-10-27
 
 ### Added
