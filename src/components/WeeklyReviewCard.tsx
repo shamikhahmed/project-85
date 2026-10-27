@@ -24,7 +24,17 @@ export function WeeklyReviewCard() {
     return () => {
       cancelled = true;
     };
-  }, [settings, todayAgg?.date, todayAgg?.loggingCompleteness, todayAgg?.calories, todayAgg?.steps]);
+  }, [
+    settings,
+    todayAgg?.date,
+    todayAgg?.loggingCompleteness,
+    todayAgg?.calories,
+    todayAgg?.steps,
+    todayAgg?.proteinG,
+    todayAgg?.primaryWeightKg,
+    todayAgg?.workoutTypes,
+    todayAgg?.honestyAnswered,
+  ]);
 
   if (!settings) return null;
 
@@ -91,8 +101,8 @@ export function WeeklyReviewCard() {
         </div>
       </div>
       <p className="dim" style={{ fontSize: '0.8rem', margin: 0 }}>
-        Weight change is week-start vs week-end among logged mornings only — not a fat-gain
-        verdict. Prefer the 7-day average on Trend.
+        Weight Δ is first vs last logged morning in this window (missing days are not invented) —
+        not a fat-gain verdict. Prefer the 7-day average on Trend.
       </p>
       <div>
         <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>One or two adjustments</h3>

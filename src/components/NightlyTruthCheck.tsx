@@ -109,7 +109,7 @@ export function NightlyTruthCheck() {
             <p className="muted" style={{ fontSize: '0.9rem' }}>
               Close the day honestly. Start tomorrow clearly. Check oil, sauces, drinks and
               unplanned bites — then fix totals with Quick Log if needed. Never skip meals,
-              dehydrate, punish with workouts, lose sleep, or pay money penalties.
+              force dehydration, punish with workouts, lose sleep, or pay money penalties.
             </p>
 
             <Q label="Did I log everything I ate — including oil, sauces, snacks and unplanned meals?">

@@ -45,10 +45,13 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
 
   const meals = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const sorted = [...library].sort((a, b) => b.useCount - a.useCount || a.name.localeCompare(b.name));
+    let sorted = [...library].sort((a, b) => b.useCount - a.useCount || a.name.localeCompare(b.name));
+    if (settings?.avoidChai) {
+      sorted = sorted.filter((m) => !/\bchai\b/i.test(m.name));
+    }
     if (!q) return sorted.slice(0, 16);
     return sorted.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 16);
-  }, [library, query]);
+  }, [library, query, settings?.avoidChai]);
 
   const run = async (fn: () => Promise<void>, okMsg: string) => {
     if (savingRef.current) return;
@@ -226,7 +229,7 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
             {mode === 'water' && (
               <div className="stack">
                 <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-                  Today: {agg?.waterMl ?? 0} / {settings?.waterTargetMl ?? 3000} ml
+                  {selectedDate}: {agg?.waterMl ?? 0} / {settings?.waterTargetMl ?? 3000} ml
                 </p>
                 <div className="quick-grid">
                   {WATER_QUICK_ADDS.map((ml) => (
@@ -247,7 +250,8 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
             {mode === 'steps' && (
               <div className="stack">
                 <p className="dim" style={{ margin: 0, fontSize: '0.85rem' }}>
-                  Enter today’s total — this replaces the saved number (does not add).
+                  Enter the day’s total for {selectedDate} — this replaces the saved number (does
+                  not add).
                 </p>
                 <label>
                   <span className="label">Steps</span>

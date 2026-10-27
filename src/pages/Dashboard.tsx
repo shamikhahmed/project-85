@@ -40,7 +40,9 @@ function focusPriorities(
   if (agg.foodEntryCount === 0) items.push('Log lunch or a library meal via Quick Log');
   else if (!agg.honestyAnswered) items.push('Finish the honesty checklist tonight');
   if (agg.steps == null || agg.steps < settings.stepsTarget) {
-    items.push(`Close the gap toward ${settings.stepsTarget.toLocaleString()} steps`);
+    items.push(
+      `Close the gap toward ${settings.stepsTarget.toLocaleString()} steps when it fits — don’t sacrifice sleep`,
+    );
   }
   if (agg.proteinG < settings.proteinTargetG * 0.85 && agg.foodEntryCount > 0) {
     items.push('Hit protein with tikka, boti, daal + egg, or whey');

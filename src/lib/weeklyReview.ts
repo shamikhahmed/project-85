@@ -84,7 +84,7 @@ export function buildWeeklyReview(
         ) / 100;
 
   const suggestions: string[] = [];
-  if ((stepHitRate ?? 0) < 70) {
+  if (stepHitRate != null && stepHitRate < 70) {
     suggestions.push('Plan three short walking breaks on office days — Karachi heat: walk early/late or indoors.');
   }
   if ((avgProtein ?? 0) < settings.proteinTargetG * 0.85 && foodDays.length > 0) {
@@ -101,7 +101,9 @@ export function buildWeeklyReview(
     suggestions.push('Use Quick Log after lunch and after the gym so evenings aren’t a blank page.');
   }
   if (suggestions.length === 0) {
-    suggestions.push('Keep one habit rock-solid: honest food logging or the evening 10k walk.');
+    suggestions.push(
+      `Keep one habit rock-solid: honest food logging or a realistic walk toward ${settings.stepsTarget.toLocaleString()} steps.`,
+    );
   }
 
   let headline = 'Review the trend, not just the highlights.';

@@ -567,10 +567,8 @@ export async function restoreBackup(
 
       // merge_keep_newer (default)
       const localSettings = await db.settings.get('settings');
-      if (
-        !localSettings ||
-        rowTimestamp(data.settings) > rowTimestamp(localSettings)
-      ) {
+      // Same tie-break as mergeRowsKeepNewer: local wins when local timestamp >= backup.
+      if (!localSettings || rowTimestamp(localSettings) < rowTimestamp(data.settings)) {
         await db.settings.put(migrateSettings(data.settings));
         imported += 1;
       } else {

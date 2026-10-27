@@ -43,8 +43,13 @@ export function FoodLibraryManager() {
     const proteinG = Number(form.proteinG) || 0;
     const carbsG = Number(form.carbsG) || 0;
     const fatG = Number(form.fatG) || 0;
+    const fibreParsed = form.fibreG.trim() === '' ? undefined : Number(form.fibreG);
     if (!form.name.trim() || !Number.isFinite(calories) || calories < 0) {
       setToast('Name and valid calories required');
+      return;
+    }
+    if (fibreParsed != null && !Number.isFinite(fibreParsed)) {
+      setToast('Fibre must be a valid number');
       return;
     }
     const payload = {
@@ -54,7 +59,7 @@ export function FoodLibraryManager() {
       proteinG,
       carbsG,
       fatG,
-      fibreG: form.fibreG ? Number(form.fibreG) : undefined,
+      fibreG: fibreParsed,
       confidence: form.confidence,
       category: form.category,
     };
