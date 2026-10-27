@@ -1,23 +1,28 @@
 # Test Plan
 
-## Calculation suites (`src/lib/**/*.test.ts`)
+## Automated (`npm test`) — last run 2026-10-27: **40 passed / 9 files**
 - [x] 96.5 → 85 = 11.5 kg remaining; % progress bounded 0–100
-- [x] Countdown uses local calendar date to 2027-01-15
-- [x] Food totals after add/edit/delete
-- [x] Estimated foods remain labelled estimated
-- [x] Steps: documented replace-total rule; no double-count
-- [ ] Water undo restores prior total
-- [x] Sleep across midnight duration
+- [x] Countdown / local calendar helpers
+- [x] Food totals + estimated labelling
+- [x] Steps replace-total rule
+- [x] Sleep across midnight
 - [x] Daily score: missing ≠ success; starvation not rewarded
-- [x] Streaks skip unlogged/missed days correctly
-- [x] Export CSV/JSON shape; restore preserves history
-- [x] Corrupted backup rejected safely
+- [x] Macro success gated on honesty + completeness
+- [x] Streaks skip missed days
+- [x] Backup CSV + corrupted restore reject
+- [x] Briefing provisional-calories language
+- [x] Weight trend insufficient-data / calm labels
+- [x] Recovery plan constructive only
 
-## Manual QA
-- [x] Full day log → refresh → data present (browser smoke)
-- [x] Offline after install (SW activated on preview)
-- [x] Keyboard + 44px touch targets
-- [ ] Light/dark theme
-- [ ] Nightly Truth Check flow
+## Quality gates — last run 2026-10-27
+- [x] `npm run typecheck`
+- [x] `npm run build` (PWA SW + manifest)
+- [x] PWA: SW activated on preview; manifest 192/512 icons
+- [x] iPhone 16 Simulator Safari open + screenshot (`qa-sim-iphone16.png` local)
+- [x] Playwright iPhone 390×844 viewport smoke
 
-**Last run:** `npm test` → 27 passed · `npm run typecheck` · `npm run build` OK
+## Manual / remaining
+- [ ] Water undo unit test
+- [ ] Light theme visual pass
+- [ ] Add to Home Screen install on physical iPhone (needs HTTPS or LAN host)
+- [ ] Full Nightly Truth end-to-end on device
