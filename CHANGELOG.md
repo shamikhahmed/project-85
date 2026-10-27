@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 — 2026-10-27
+
+### Added
+- Quick Log sheet — saved meals / water / steps / weight in ≤4 taps
+- Focus Mode (Settings) — three daily priorities + quick actions
+- Weekly review card — 7-day averages, hit rates, 1–2 adjustments
+- Food library CRUD (create / edit / duplicate / delete) in Settings
+- Safer backup restore: merge-keep-newer by default; full replace requires typing REPLACE
+- Profile flags: shoulder caution, avoid chai, focus mode
+- Green tea seed (chai removed for GI profile)
+
+### Copy / safety
+- Friendlier empty / incomplete / recovery language
+- Nightly Truth prompts for oil, sauces, unplanned meals
+- Streak messaging preserves historical achievements
+
 ## 0.3.0 — 2026-10-27
 
 ### Polish

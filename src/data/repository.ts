@@ -4,6 +4,7 @@ import type {
   BackupPayload,
   CigaretteEntry,
   DailyNotes,
+  DayAggregate,
   DayScore,
   FoodEntry,
   FoodLibraryItem,
@@ -13,7 +14,9 @@ import type {
   WeightEntry,
   WorkoutEntry,
 } from '../domain/types';
-import { validateBackupPayload } from './backup';
+import { buildDayAggregate } from '../lib/aggregates';
+import { eachISODate } from '../lib/dates';
+import { mergeRowsKeepNewer, rowTimestamp, validateBackupPayload } from './backup';
 import { db, newId } from './db';
 
 export { backupToCsv, validateBackupPayload } from './backup';
@@ -26,6 +29,8 @@ export async function ensureInitialized(): Promise<AppSettings> {
       const existing = await db.settings.get('settings');
       if (!existing) {
         await db.settings.put(createDefaultSettings());
+      } else {
+        await db.settings.put(migrateSettings(existing));
       }
       await ensureSeedFoodLibrary();
     })();
@@ -33,7 +38,20 @@ export async function ensureInitialized(): Promise<AppSettings> {
   await initPromise;
   const settings = await db.settings.get('settings');
   if (!settings) throw new Error('Settings missing after init');
-  return settings;
+  return migrateSettings(settings);
+}
+
+function migrateSettings(raw: AppSettings): AppSettings {
+  const defaults = createDefaultSettings(raw.createdAt);
+  return {
+    ...defaults,
+    ...raw,
+    focusMode: raw.focusMode ?? defaults.focusMode,
+    shoulderCaution: raw.shoulderCaution ?? defaults.shoulderCaution,
+    avoidChai: raw.avoidChai ?? defaults.avoidChai,
+    personalRewards: raw.personalRewards ?? [],
+    scoreWeights: { ...defaults.scoreWeights, ...raw.scoreWeights },
+  };
 }
 
 /** Insert any seed foods missing by name so existing installs pick up library updates. */
@@ -185,6 +203,43 @@ export async function saveFoodToLibrary(
   };
   await db.foodLibrary.add(next);
   return next;
+}
+
+export async function updateFoodLibraryItem(
+  id: string,
+  patch: Partial<Omit<FoodLibraryItem, 'id' | 'useCount'>>,
+): Promise<FoodLibraryItem> {
+  const prev = await db.foodLibrary.get(id);
+  if (!prev) throw new Error('Library item not found');
+  const next: FoodLibraryItem = {
+    ...prev,
+    ...patch,
+    id,
+    useCount: prev.useCount,
+    updatedAt: new Date().toISOString(),
+  };
+  await db.foodLibrary.put(next);
+  return next;
+}
+
+export async function deleteFoodLibraryItem(id: string): Promise<void> {
+  await db.foodLibrary.delete(id);
+}
+
+export async function duplicateFoodLibraryItem(id: string): Promise<FoodLibraryItem> {
+  const prev = await db.foodLibrary.get(id);
+  if (!prev) throw new Error('Library item not found');
+  return saveFoodToLibrary({
+    name: `${prev.name} (copy)`,
+    defaultPortion: prev.defaultPortion,
+    calories: prev.calories,
+    proteinG: prev.proteinG,
+    carbsG: prev.carbsG,
+    fatG: prev.fatG,
+    fibreG: prev.fibreG,
+    confidence: prev.confidence,
+    category: prev.category,
+  });
 }
 
 /* ---------------- Steps (REPLACE TOTAL rule) ---------------- */
@@ -391,11 +446,11 @@ export async function getScoreByDate(date: string): Promise<DayScore | undefined
 /* ---------------- Backup / Export ---------------- */
 
 export async function createBackup(): Promise<BackupPayload> {
-  await ensureInitialized();
+  const settings = await ensureInitialized();
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
-    settings: (await db.settings.get('settings'))!,
+    settings,
     weights: await db.weights.toArray(),
     foods: await db.foods.toArray(),
     foodLibrary: await db.foodLibrary.toArray(),
@@ -411,8 +466,41 @@ export async function createBackup(): Promise<BackupPayload> {
   };
 }
 
-export async function restoreBackup(payload: unknown): Promise<void> {
+export type RestoreMode = 'merge_keep_newer' | 'replace';
+
+export interface RestoreResult {
+  mode: RestoreMode;
+  keptLocalNewer: number;
+  imported: number;
+  unchanged: number;
+}
+
+/**
+ * Merge backup into local DB without silently discarding newer local records.
+ * Same id: keep whichever has the later updatedAt/createdAt.
+ * Local-only ids are always preserved. Backup-only ids are added.
+ */
+async function mergeTableKeepNewer<T extends { id: string }>(
+  table: { toArray: () => Promise<T[]>; clear: () => Promise<unknown>; bulkPut: (rows: T[]) => Promise<unknown> },
+  backupRows: T[],
+): Promise<{ keptLocalNewer: number; imported: number; unchanged: number }> {
+  const local = await table.toArray();
+  const { rows, keptLocalNewer, imported, unchanged } = mergeRowsKeepNewer(local, backupRows);
+  await table.clear();
+  if (rows.length) await table.bulkPut(rows);
+  return { keptLocalNewer, imported, unchanged };
+}
+
+export async function restoreBackup(
+  payload: unknown,
+  options: { mode?: RestoreMode } = {},
+): Promise<RestoreResult> {
+  const mode: RestoreMode = options.mode ?? 'merge_keep_newer';
   const data = validateBackupPayload(payload);
+
+  let keptLocalNewer = 0;
+  let imported = 0;
+  let unchanged = 0;
 
   await db.transaction(
     'rw',
@@ -432,37 +520,125 @@ export async function restoreBackup(payload: unknown): Promise<void> {
       db.achievements,
     ],
     async () => {
-      await Promise.all([
-        db.settings.clear(),
-        db.weights.clear(),
-        db.foods.clear(),
-        db.foodLibrary.clear(),
-        db.steps.clear(),
-        db.water.clear(),
-        db.workouts.clear(),
-        db.sleep.clear(),
-        db.cigarettes.clear(),
-        db.notes.clear(),
-        db.scores.clear(),
-        db.xp.clear(),
-        db.achievements.clear(),
-      ]);
-      await db.settings.put(data.settings);
-      if (data.weights.length) await db.weights.bulkAdd(data.weights);
-      if (data.foods.length) await db.foods.bulkAdd(data.foods);
-      if (data.foodLibrary.length) await db.foodLibrary.bulkAdd(data.foodLibrary);
-      if (data.steps.length) await db.steps.bulkAdd(data.steps);
-      if (data.water.length) await db.water.bulkAdd(data.water);
-      if (data.workouts.length) await db.workouts.bulkAdd(data.workouts);
-      if (data.sleep.length) await db.sleep.bulkAdd(data.sleep);
-      if (data.cigarettes.length) await db.cigarettes.bulkAdd(data.cigarettes);
-      if (data.notes.length) await db.notes.bulkAdd(data.notes);
-      if (data.scores.length) await db.scores.bulkAdd(data.scores);
-      if (data.xp.length) await db.xp.bulkAdd(data.xp);
-      if (data.achievements.length) await db.achievements.bulkAdd(data.achievements);
+      if (mode === 'replace') {
+        await Promise.all([
+          db.settings.clear(),
+          db.weights.clear(),
+          db.foods.clear(),
+          db.foodLibrary.clear(),
+          db.steps.clear(),
+          db.water.clear(),
+          db.workouts.clear(),
+          db.sleep.clear(),
+          db.cigarettes.clear(),
+          db.notes.clear(),
+          db.scores.clear(),
+          db.xp.clear(),
+          db.achievements.clear(),
+        ]);
+        await db.settings.put(migrateSettings(data.settings));
+        if (data.weights.length) await db.weights.bulkAdd(data.weights);
+        if (data.foods.length) await db.foods.bulkAdd(data.foods);
+        if (data.foodLibrary.length) await db.foodLibrary.bulkAdd(data.foodLibrary);
+        if (data.steps.length) await db.steps.bulkAdd(data.steps);
+        if (data.water.length) await db.water.bulkAdd(data.water);
+        if (data.workouts.length) await db.workouts.bulkAdd(data.workouts);
+        if (data.sleep.length) await db.sleep.bulkAdd(data.sleep);
+        if (data.cigarettes.length) await db.cigarettes.bulkAdd(data.cigarettes);
+        if (data.notes.length) await db.notes.bulkAdd(data.notes);
+        if (data.scores.length) await db.scores.bulkAdd(data.scores);
+        if (data.xp.length) await db.xp.bulkAdd(data.xp);
+        if (data.achievements.length) await db.achievements.bulkAdd(data.achievements);
+        imported =
+          data.weights.length +
+          data.foods.length +
+          data.foodLibrary.length +
+          data.steps.length +
+          data.water.length +
+          data.workouts.length +
+          data.sleep.length +
+          data.cigarettes.length +
+          data.notes.length +
+          data.scores.length +
+          data.xp.length +
+          data.achievements.length;
+        return;
+      }
+
+      // merge_keep_newer (default)
+      const localSettings = await db.settings.get('settings');
+      if (
+        !localSettings ||
+        rowTimestamp(data.settings) > rowTimestamp(localSettings)
+      ) {
+        await db.settings.put(migrateSettings(data.settings));
+        imported += 1;
+      } else {
+        keptLocalNewer += 1;
+      }
+
+      const rWeights = await mergeTableKeepNewer(db.weights, data.weights);
+      const rFoods = await mergeTableKeepNewer(db.foods, data.foods);
+      const rLib = await mergeTableKeepNewer(db.foodLibrary, data.foodLibrary);
+      const rSteps = await mergeTableKeepNewer(db.steps, data.steps);
+      const rWater = await mergeTableKeepNewer(db.water, data.water);
+      const rWork = await mergeTableKeepNewer(db.workouts, data.workouts);
+      const rSleep = await mergeTableKeepNewer(db.sleep, data.sleep);
+      const rCig = await mergeTableKeepNewer(db.cigarettes, data.cigarettes);
+      const rNotes = await mergeTableKeepNewer(db.notes, data.notes);
+      const rScores = await mergeTableKeepNewer(db.scores, data.scores);
+      const rXp = await mergeTableKeepNewer(db.xp, data.xp);
+      const rAch = await mergeTableKeepNewer(db.achievements, data.achievements);
+      for (const r of [
+        rWeights,
+        rFoods,
+        rLib,
+        rSteps,
+        rWater,
+        rWork,
+        rSleep,
+        rCig,
+        rNotes,
+        rScores,
+        rXp,
+        rAch,
+      ]) {
+        keptLocalNewer += r.keptLocalNewer;
+        imported += r.imported;
+        unchanged += r.unchanged;
+      }
     },
   );
   initPromise = null;
+  return { mode, keptLocalNewer, imported, unchanged };
+}
+
+/** Build day aggregates for an inclusive date range (for weekly review). */
+export async function loadAggregatesInRange(
+  start: string,
+  end: string,
+): Promise<DayAggregate[]> {
+  const dates = eachISODate(start, end);
+  const out: DayAggregate[] = [];
+  for (const date of dates) {
+    const bundle = await loadDayBundle(date);
+    out.push(
+      buildDayAggregate({
+        date,
+        settings: bundle.settings,
+        weights: bundle.weights,
+        foods: bundle.foods,
+        steps: bundle.steps,
+        water: bundle.water,
+        workouts: bundle.workouts,
+        sleep: bundle.sleep,
+        cigarettes: bundle.cigarettes,
+        notes: bundle.notes,
+        score: bundle.score,
+      }),
+    );
+  }
+  return out;
 }
 
 export async function clearAllData(): Promise<void> {

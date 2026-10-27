@@ -538,3 +538,117 @@ button {
   margin: 0;
   font-size: var(--text-sm);
 }
+
+.focus-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.focus-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.focus-num {
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.ql-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.72);
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+}
+
+.ql-sheet {
+  width: min(560px, 100%);
+  max-height: min(88dvh, 720px);
+  overflow: auto;
+  margin-bottom: var(--safe-bottom);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ql-modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.ql-mode {
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 650;
+  font-size: 0.85rem;
+}
+
+.ql-mode.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+
+.ql-meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ql-meal {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  min-height: var(--touch);
+}
+
+.ql-meal:hover:not(:disabled),
+.ql-meal:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.ql-meal:disabled {
+  opacity: 0.6;
+}
+
+.ql-meal-name {
+  font-weight: 700;
+  word-break: break-word;
+}
+
+@media (min-width: 900px) {
+  .ql-backdrop {
+    place-items: center;
+  }
+  .ql-sheet {
+    margin-bottom: 0;
+  }
+}

@@ -107,11 +107,12 @@ export function NightlyTruthCheck() {
               </button>
             </div>
             <p className="muted" style={{ fontSize: '0.9rem' }}>
-              Be as accurate as you can. Gaps get one practical action for tomorrow — never
-              skip meals, dehydration, extra punishment workouts, lost sleep, or money penalties.
+              Close the day honestly. Start tomorrow clearly. Check oil, sauces, drinks and
+              unplanned bites — then fix totals with Quick Log if needed. Never skip meals,
+              dehydrate, punish with workouts, lose sleep, or pay money penalties.
             </p>
 
-            <Q label="Did I log everything I ate today, including the little things?">
+            <Q label="Did I log everything I ate — including oil, sauces, snacks and unplanned meals?">
               <YesNo value={honestFood} onChange={setHonestFood} />
             </Q>
             <Q
@@ -140,11 +141,12 @@ export function NightlyTruthCheck() {
             <Q label="Did I train or follow my planned recovery day?">
               <YesNo value={trained} onChange={setTrained} />
             </Q>
-            <Q label="What is one thing I need to do better tomorrow?">
+            <Q label="What went well? What was difficult? What’s one thing you can make easier tomorrow?">
               <textarea
                 className="textarea"
                 value={better}
                 onChange={(e) => setBetter(e.target.value)}
+                placeholder="One practical improvement — not a punishment plan"
               />
             </Q>
 

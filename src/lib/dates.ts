@@ -35,6 +35,23 @@ export function eachISODate(start: ISODate, end: ISODate): ISODate[] {
   return out;
 }
 
+/** Inclusive week window ending on `end` (default today), length days (default 7). */
+export function rollingWeekBounds(
+  end: ISODate = toLocalISODate(),
+  length = 7,
+): { weekStart: ISODate; weekEnd: ISODate } {
+  const endDate = parseLocalDate(end);
+  const startDate = new Date(
+    endDate.getFullYear(),
+    endDate.getMonth(),
+    endDate.getDate() - (length - 1),
+  );
+  return {
+    weekStart: format(startDate, 'yyyy-MM-dd'),
+    weekEnd: end,
+  };
+}
+
 /** Sleep duration in hours; handles sessions that cross midnight. */
 export function sleepDurationHours(bedtimeIso: string, wakeIso: string): number {
   const bed = new Date(bedtimeIso);

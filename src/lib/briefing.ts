@@ -42,7 +42,7 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     bullets.push('Food logging has not started — calorie totals are unknown, not zero.');
   } else if (!agg.honestyAnswered || agg.loggingCompleteness < 0.6) {
     bullets.push(
-      `Food logging is incomplete (${agg.foodEntryCount} entries), so today’s ${Math.round(agg.calories)} kcal total is provisional.`,
+      `Your food total may be incomplete (${agg.foodEntryCount} entries). Remember oil, sauces, drinks and little bites — today’s ${Math.round(agg.calories)} kcal is provisional.`,
     );
   } else {
     bullets.push(
@@ -85,7 +85,7 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
 
 function choosePrimaryAction(settings: AppSettings, agg: DayAggregate): string {
   if (agg.foodEntryCount === 0) {
-    return 'Log your first meal — honesty beats a blank day.';
+    return 'Log your first meal — you don’t need a perfect day to make progress.';
   }
   if (!agg.honestyAnswered) {
     return 'Complete the food honesty checklist so today’s totals are trustworthy.';

@@ -37,7 +37,7 @@ describe('assessWeightTrend', () => {
     const vals = [95, 95.1, 95, 95.2, 95.1, 95, 95.1, 95.6, 95.7, 95.8, 95.6, 95.7, 95.8, 95.7];
     const r = assessWeightTrend(series(vals));
     expect(r.status).toBe('trending_up');
-    expect(r.message).toMatch(/watch another few days/i);
+    expect(r.message).toMatch(/longer trend|before changing the plan/i);
     expect(r.message).not.toMatch(/fail/i);
   });
 

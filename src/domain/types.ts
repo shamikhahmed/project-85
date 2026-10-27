@@ -59,6 +59,12 @@ export interface AppSettings {
   rewardsEnabled: boolean;
   scoreWeights: ScoreWeights;
   personalRewards: string[];
+  /** Concise three-priority dashboard */
+  focusMode: boolean;
+  /** Profile: recurrent shoulder issues — coaching must not prescribe unsafe presses */
+  shoulderCaution: boolean;
+  /** Profile: chai triggers GI discomfort */
+  avoidChai: boolean;
   createdAt: string;
   updatedAt: string;
 }

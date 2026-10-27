@@ -121,7 +121,7 @@ export function assessWeightTrend(
   if (change >= o.stableBandKg) {
     return {
       status: 'trending_up',
-      message: `7-day average is up ~${abs} kg versus the week before. Often water, salt, or logging gaps — check your food log honestly and watch another few days before changing the plan.`,
+      message: `One measurement doesn’t tell the whole story. 7-day average is up ~${abs} kg versus the week before — often water, salt, or logging gaps. Check the longer trend before changing the plan.`,
       avg7ChangeKg: change,
     };
   }

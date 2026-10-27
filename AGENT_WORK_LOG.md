@@ -12,9 +12,10 @@ Access date for research: 2026-10-27.
 | 2026-10-27 | [Trend+briefing](133628eb-d5cb-48ee-9afa-976967e38aab) | Data/FE | weightTrend + briefing/recovery/food/Dash | integrated; follow-up: seed top-up by name |
 | 2026-10-27 | [Research dossier](55ddbd5c-743a-4760-b46c-42752454fecb) | Research | Expanded RESEARCH_DOSSIER.md | done (replaced earlier stub) |
 | 2026-10-27 | Main | Release | GitHub push + iPhone 16 sim Safari QA | done → https://github.com/shamikhahmed/project-85 |
+| 2026-10-27 | Main | Product | Profile backlog 0.4.0: Quick Log, Focus, Weekly Review, food CRUD, safer restore | shipping |
 
 ## Environment notes
 - Bright Data MCP: HTTP 401 — research fallback to Cursor WebSearch/WebFetch.
-- Baseline: 27 Vitest tests green; typecheck/build green; PWA SW verified on preview.
+- Baseline: Vitest green; typecheck/build green; PWA SW verified on preview.
 - GitHub CLI authenticated as `shamikhahmed`.
 - iOS Simulator available (iPhone 16 / 17 / 18 Pro families).

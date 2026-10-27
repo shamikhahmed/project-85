@@ -63,6 +63,61 @@ export function validateBackupPayload(payload: unknown): BackupPayload {
   };
 }
 
+export type TimedRow = {
+  id: string;
+  updatedAt?: string;
+  createdAt?: string;
+  unlockedAt?: string;
+};
+
+export function rowTimestamp(row: TimedRow): string {
+  return row.updatedAt ?? row.createdAt ?? row.unlockedAt ?? '';
+}
+
+/**
+ * Pure merge: same id keeps the newer timestamp; local-only preserved; backup-only imported.
+ */
+export function mergeRowsKeepNewer<T extends TimedRow>(
+  localRows: T[],
+  backupRows: T[],
+): { rows: T[]; keptLocalNewer: number; imported: number; unchanged: number } {
+  const localMap = new Map(localRows.map((r) => [r.id, r]));
+  const backupMap = new Map(backupRows.map((r) => [r.id, r]));
+  const merged = new Map<string, T>();
+  let keptLocalNewer = 0;
+  let imported = 0;
+  let unchanged = 0;
+
+  for (const [id, loc] of localMap) {
+    const bak = backupMap.get(id);
+    if (!bak) {
+      merged.set(id, loc);
+      unchanged += 1;
+      continue;
+    }
+    if (rowTimestamp(loc) >= rowTimestamp(bak)) {
+      merged.set(id, loc);
+      keptLocalNewer += 1;
+    } else {
+      merged.set(id, bak);
+      imported += 1;
+    }
+  }
+  for (const [id, bak] of backupMap) {
+    if (!merged.has(id)) {
+      merged.set(id, bak);
+      imported += 1;
+    }
+  }
+
+  return {
+    rows: [...merged.values()],
+    keptLocalNewer,
+    imported,
+    unchanged,
+  };
+}
+
 export function backupToCsv(payload: BackupPayload): string {
   const lines = ['type,date,detail,value'];
   for (const w of payload.weights) {

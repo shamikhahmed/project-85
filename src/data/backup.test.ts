@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultSettings } from '../domain/defaults';
 import type { BackupPayload, DayScoreBreakdown } from '../domain/types';
-import { backupToCsv, validateBackupPayload } from './backup';
+import { backupToCsv, mergeRowsKeepNewer, validateBackupPayload } from './backup';
 import { restoreBackup } from './repository';
 
 const ISO = '2026-10-27T12:00:00.000Z';
@@ -192,5 +192,27 @@ describe('restoreBackup', () => {
     await expect(restoreBackup({ version: 1 })).rejects.toThrow(
       'Invalid or unsupported backup file',
     );
+  });
+
+});
+
+describe('mergeRowsKeepNewer', () => {
+  it('keeps newer local row instead of silently overwriting', () => {
+    const local = [
+      { id: 'w1', weightKg: 95, updatedAt: '2026-10-28T10:00:00.000Z' },
+      { id: 'w2', weightKg: 94, updatedAt: '2026-10-27T10:00:00.000Z' },
+    ];
+    const backup = [
+      { id: 'w1', weightKg: 96.5, updatedAt: '2026-10-27T12:00:00.000Z' },
+      { id: 'w3', weightKg: 97, updatedAt: '2026-10-26T12:00:00.000Z' },
+    ];
+    const result = mergeRowsKeepNewer(local, backup);
+    const byId = Object.fromEntries(result.rows.map((r) => [r.id, r]));
+    expect(byId.w1.weightKg).toBe(95);
+    expect(byId.w2.weightKg).toBe(94);
+    expect(byId.w3.weightKg).toBe(97);
+    expect(result.keptLocalNewer).toBe(1);
+    expect(result.imported).toBe(1);
+    expect(result.unchanged).toBe(1);
   });
 });

@@ -30,9 +30,9 @@ export function DisciplinePage() {
       <header className="panel">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '1.4rem' }}>Discipline</h1>
+            <h1 style={{ fontSize: '1.4rem' }}>Review</h1>
             <p className="muted" style={{ margin: 0 }}>
-              Accountability coach — not a shame machine
+              Firm, direct, supportive — missed targets are information, not a verdict
             </p>
           </div>
           <ProgressRing
@@ -130,8 +130,8 @@ export function DisciplinePage() {
       <section className="panel">
         <h2 style={{ fontSize: '1.05rem' }}>Achievements & streaks</h2>
         <p className="dim" style={{ fontSize: '0.85rem' }}>
-          Streaks require logged success days. Unlogged or missed days break the streak — previous
-          progress is never erased.
+          Welcome back anytime — previous effort still counts. Missed days may pause a streak
+          counter, but historical achievements are never wiped.
         </p>
         <div className="grid-metrics" style={{ marginTop: 12 }}>
           <div className="metric">
