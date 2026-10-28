@@ -88,4 +88,21 @@ await writeFile(
 </svg>`,
 );
 
+// Capacitor iOS App Icon (single 1024 universal asset)
+const iosIconDir = path.join(
+  root,
+  'ios/App/App/Assets.xcassets/AppIcon.appiconset',
+);
+try {
+  await access(iosIconDir);
+  const iosIcon = path.join(iosIconDir, 'AppIcon-512@2x.png');
+  await sharp(master)
+    .resize(1024, 1024, { kernel: sharp.kernel.lanczos3, fit: 'cover' })
+    .png({ compressionLevel: 9 })
+    .toFile(iosIcon);
+  console.log('wrote iOS AppIcon-512@2x.png (1024×1024)');
+} catch {
+  console.log('ios/ AppIcon set not present — skipped native icon');
+}
+
 console.log('PWA icons ready (from 4K master)');

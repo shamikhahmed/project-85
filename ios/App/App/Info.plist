@@ -70,5 +70,16 @@
 	<string>PROJECT 85 reads steps, heart, sleep and body metrics you already keep in Apple Health to show honest progress — never sold or uploaded.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>PROJECT 85 only writes health data when you explicitly choose to save a measurement back to Apple Health.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.capricorn.project85</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>project85</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const LINKS: {
   to: string;
@@ -155,6 +155,7 @@ const LINKS: {
 ];
 
 export function AppNav() {
+  const location = useLocation();
   const mobile = LINKS.filter((l) => !l.desktopOnly);
   return (
     <>
@@ -188,7 +189,13 @@ export function AppNav() {
             key={l.to}
             to={l.to}
             end={l.to === '/'}
-            className={({ isActive }) => `bottom-item${isActive ? ' active' : ''}`}
+            className={({ isActive }) => {
+              // Body tab covers Physique + Body Intelligence
+              const bodyActive =
+                l.to === '/physique' &&
+                (location.pathname === '/physique' || location.pathname === '/body');
+              return `bottom-item${isActive || bodyActive ? ' active' : ''}`;
+            }}
             aria-label={l.label}
           >
             <span className="bottom-icon">{l.icon}</span>

@@ -123,12 +123,16 @@ export function DailyLog() {
 
       <style>{`
         .tab-row {
-          display: flex; gap: 6px; overflow-x: auto; margin-top: 16px; padding-bottom: 4px;
+          display: flex; gap: 6px; max-width: 100%;
+          overflow-x: auto; overflow-y: hidden; margin-top: 16px; padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
         }
         .tab {
+          flex: 0 0 auto;
           min-height: 40px; padding: 0 12px; border-radius: 999px;
           border: 1px solid var(--border); background: transparent;
           color: var(--text-muted); text-transform: capitalize; white-space: nowrap;
+          font-size: max(16px, 0.875rem);
         }
         .tab.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
       `}</style>

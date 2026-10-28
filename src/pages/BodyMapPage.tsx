@@ -409,7 +409,7 @@ export function BodyMapPage() {
             ['overview', 'Overview'],
             ['log', 'Log session'],
             ['guide', 'Body guide'],
-            ['data', 'Table & charts'],
+            ['data', 'Charts'],
           ] as const
         ).map(([id, label]) => (
           <button

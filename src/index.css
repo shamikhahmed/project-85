@@ -9,12 +9,16 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Stop iOS from zooming the whole page when a wide child overflows */
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 html,
 body,
 #root {
   min-height: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -32,6 +36,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
 }
 
 h1,
@@ -70,6 +76,8 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+  /* iOS zooms focused inputs under 16px — keeps other screens from “blowing up” */
+  font-size: max(16px, 1em);
 }
 
 button {
@@ -84,6 +92,8 @@ button {
 .app-shell {
   display: grid;
   min-height: 100dvh;
+  max-width: 100%;
+  min-width: 0;
   grid-template-rows: 1fr auto;
 }
 
@@ -98,9 +108,13 @@ button {
   padding: var(--inset);
   padding-top: calc(var(--inset) + var(--safe-top));
   padding-bottom: calc(var(--nav-total-height) + var(--space-6));
-  max-width: 980px;
+  padding-left: max(var(--inset), var(--safe-left));
+  padding-right: max(var(--inset), var(--safe-right));
+  max-width: min(980px, 100%);
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  overflow-x: clip;
 }
 
 @media (min-width: 900px) {
@@ -110,6 +124,13 @@ button {
     max-width: 1120px;
     margin: 0;
   }
+}
+
+.main-content > *,
+.panel,
+.stack {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel {
@@ -301,12 +322,17 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .grid-2 {
@@ -1139,22 +1165,21 @@ button {
   background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
 }
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 520px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
 .table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  /* Keep wide tables inside the page — don’t widen the whole viewport */
+  contain: inline-size;
 }
 .data-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
   border-collapse: collapse;
   font-size: var(--text-sm);
 }
@@ -1228,9 +1253,13 @@ button {
 .physique-tabs {
   display: flex;
   gap: 6px;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   padding-bottom: 2px;
+  scrollbar-width: thin;
 }
 .physique-tabs button {
   flex: 0 0 auto;
@@ -1338,8 +1367,17 @@ button {
 
 .chart-frame {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 260px;
+  overflow: hidden;
 }
 .chart-frame-tall {
   height: 300px;
+}
+
+/* Recharts / SVG parents — never expand past the phone width */
+.recharts-responsive-container,
+.recharts-wrapper {
+  max-width: 100% !important;
 }

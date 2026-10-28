@@ -8,7 +8,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   ios: {
-    contentInset: 'automatic',
+    // CSS owns safe-area insets — automatic inset + our padding double-shrinks / skews width
+    contentInset: 'never',
     preferredContentMode: 'mobile',
     scheme: 'Project 85',
   },

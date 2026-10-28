@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppNav } from './components/AppNav';
+import { CapDeepLinks } from './components/CapDeepLinks';
 import { InstallPwaBanner } from './components/InstallPwa';
 import { NightlyTruthCheck } from './components/NightlyTruthCheck';
 import { Dashboard } from './pages/Dashboard';
@@ -74,6 +75,7 @@ export default function App() {
   return (
     <Router basename={routerBasename}>
       <div className="app-shell">
+        <CapDeepLinks />
         <AppNav />
         <main className="main-content">
           <InstallPwaBanner />
