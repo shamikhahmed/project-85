@@ -1,0 +1,15 @@
+---
+description: Always commit (and push) completed work without waiting to be asked
+alwaysApply: true
+---
+
+# Always commit
+
+When meaningful work on this repo is finished in a turn (features, fixes, docs, audits):
+
+1. **Commit** the relevant changes before ending — do not leave a dirty working tree for completed work.
+2. **Push** to the tracked remote branch after a successful commit unless the user explicitly said not to push.
+3. Follow the normal git safety protocol (no force-push to main, no secrets, HEREDOC commit messages, verify with `git status` after).
+4. Do not ask “want me to commit?” — just commit (and push) when the task’s code/docs changes are done.
+
+Unrelated WIP the user is mid-editing may stay unstaged; only stage files belonging to the completed task.
