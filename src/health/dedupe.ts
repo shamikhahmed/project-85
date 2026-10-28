@@ -35,11 +35,13 @@ export function mergeHealthRecords(
   }
 
   for (const row of incoming) {
-    if (row.kind === 'calculated' || row.kind === 'estimated') {
-      // Only insert calculated rows that don't collide with an imported original id
+    // Calculated rows never overwrite imported/manual originals by id.
+    if (row.kind === 'calculated') {
       if (!byId.has(row.id)) byId.set(row.id, row);
       continue;
     }
+    // Estimated (e.g. manual estimate weigh-ins) still update by id / sourceRecordId
+    // so corrections do not leave stale kg in healthRecords.
     if (row.sourceRecordId) {
       const key = `${row.provider}:${row.sourceRecordId}`;
       const prev = bySource.get(key);
@@ -53,6 +55,8 @@ export function mergeHealthRecords(
       }
       bySource.set(key, row);
     }
+    const prevById = byId.get(row.id);
+    if (prevById && row.updatedAt < prevById.updatedAt) continue;
     byId.set(row.id, row);
   }
 

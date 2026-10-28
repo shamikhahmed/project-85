@@ -4,6 +4,7 @@
  */
 
 import { db, newId } from '../data/db';
+import { sleepDurationHours } from '../lib/dates';
 import type { HealthMetricRecord, HealthProvider } from './types';
 import { mergeHealthRecords } from './dedupe';
 import {
@@ -136,13 +137,12 @@ export async function syncManualIntoHealthStore(): Promise<number> {
     }
 
     for (const row of incoming.filter((r) => r.metricId === 'sleep_asleep')) {
-      const start = Date.parse(row.startAt);
-      const end = row.endAt ? Date.parse(row.endAt) : NaN;
-      if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
-        const mins = Math.round((end - start) / 60000);
-        row.value = mins;
-        row.originalValue = mins;
-      }
+      if (!row.endAt) continue;
+      const hours = sleepDurationHours(row.startAt, row.endAt);
+      if (hours == null) continue;
+      const mins = Math.round(hours * 60);
+      row.value = mins;
+      row.originalValue = mins;
     }
 
     const waterByDate = new Map<string, number>();

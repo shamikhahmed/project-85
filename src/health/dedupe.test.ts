@@ -27,6 +27,28 @@ function row(over: Partial<HealthMetricRecord> & Pick<HealthMetricRecord, 'id' |
 }
 
 describe('mergeHealthRecords', () => {
+  it('updates estimated rows by id when corrected', () => {
+    const a = row({
+      id: 'manual_weight_1',
+      provider: 'manual',
+      value: 97,
+      kind: 'estimated',
+      sourceRecordId: 'w1',
+      updatedAt: '2026-10-28T08:00:00.000Z',
+    });
+    const b = row({
+      id: 'manual_weight_1',
+      provider: 'manual',
+      value: 96.2,
+      kind: 'estimated',
+      sourceRecordId: 'w1',
+      updatedAt: '2026-10-28T09:00:00.000Z',
+    });
+    const merged = mergeHealthRecords([a], [b]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].value).toBe(96.2);
+  });
+
   it('updates same sourceRecordId with newer row', () => {
     const a = row({
       id: '1',

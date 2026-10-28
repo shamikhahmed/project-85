@@ -333,8 +333,17 @@ export async function setStepsForDate(
   });
 }
 
+/** Prefer newest REPLACE-total row when duplicates exist for one date. */
+export function pickLatestStepEntry(rows: StepEntry[]): StepEntry | undefined {
+  if (rows.length === 0) return undefined;
+  return [...rows].sort((a, b) =>
+    (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt),
+  )[0];
+}
+
 export async function getStepsByDate(date: string): Promise<StepEntry | undefined> {
-  return db.steps.where('date').equals(date).first();
+  const rows = await db.steps.where('date').equals(date).toArray();
+  return pickLatestStepEntry(rows);
 }
 
 export async function getStepsInRange(start: string, end: string): Promise<StepEntry[]> {
