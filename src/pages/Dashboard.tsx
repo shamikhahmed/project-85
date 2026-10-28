@@ -183,7 +183,7 @@ export function Dashboard() {
       : trend.message;
 
   return (
-    <div className="stack" style={{ gap: 14 }}>
+    <div className="stack page">
       <p className="greeting">
         <strong>{timeGreeting()}.</strong> Day {daysIn + 1} · {daysLeft} days left
       </p>

@@ -48,9 +48,9 @@ export function DailyLog() {
   const setTab = (t: Tab) => setParams({ tab: t });
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
-        <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div className="page-toolbar">
           <div>
             <h1>Daily Log</h1>
             <p className="muted">Honest tracking · autosaves to this device</p>
@@ -64,7 +64,6 @@ export function DailyLog() {
               min={settings?.startDate}
               max={settings?.deadline}
               onChange={(e) => void setDate(e.target.value)}
-              style={{ width: 160 }}
             />
           </label>
         </div>
@@ -121,21 +120,6 @@ export function DailyLog() {
         <NotesPanel date={selectedDate} onSaved={refreshDay} toast={setToast} />
       )}
 
-      <style>{`
-        .tab-row {
-          display: flex; gap: 6px; max-width: 100%;
-          overflow-x: auto; overflow-y: hidden; margin-top: 16px; padding-bottom: 4px;
-          -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
-        }
-        .tab {
-          flex: 0 0 auto;
-          min-height: 40px; padding: 0 12px; border-radius: 999px;
-          border: 1px solid var(--border); background: transparent;
-          color: var(--text-muted); text-transform: capitalize; white-space: nowrap;
-          font-size: max(16px, 0.875rem);
-        }
-        .tab.active { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
-      `}</style>
     </div>
   );
 }

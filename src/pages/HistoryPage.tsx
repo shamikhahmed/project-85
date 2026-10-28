@@ -78,7 +78,7 @@ export function HistoryPage() {
   }, {});
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <h1>History</h1>
         <p className="muted" style={{ margin: 0 }}>
@@ -201,31 +201,6 @@ export function HistoryPage() {
         </section>
       )}
 
-      <style>{`
-        .cal-grid {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(0, 1fr));
-          gap: 6px;
-        }
-        .cal-cell {
-          min-height: 52px;
-          border-radius: 8px;
-          border: 1px solid var(--border-subtle);
-          background: var(--bg);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 2px;
-          padding: 4px;
-        }
-        .cal-day { font-size: 0.85rem; font-weight: 700; }
-        .cal-meta { font-size: 0.65rem; color: var(--text-dim); }
-        .cal-cell.good { border-color: var(--success); background: rgba(61,214,140,0.08); }
-        .cal-cell.mid { border-color: var(--accent); }
-        .cal-cell.miss { border-color: var(--warning); background: rgba(245,197,66,0.06); }
-        .cal-cell.empty { opacity: 0.55; }
-      `}</style>
     </div>
   );
 }

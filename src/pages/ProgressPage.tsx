@@ -134,7 +134,7 @@ export function ProgressPage() {
   });
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <h1>Progress proof</h1>
         <p className="muted">
@@ -203,11 +203,11 @@ export function ProgressPage() {
         <p className="dim" style={{ fontSize: 'var(--text-footnote)', margin: '0 0 12px' }}>
           Daily weigh-ins vs 7-day average (average only when enough points exist).
         </p>
-        <div style={{ width: '100%', height: 280 }}>
+        <div className="chart-frame chart-frame-tall">
           {chartData.length === 0 ? (
             <p className="empty-state">Log morning weights to see the chart.</p>
           ) : (
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="date" stroke="var(--text-dim)" fontSize={11} tickLine={false} />
@@ -270,8 +270,8 @@ export function ProgressPage() {
       {waists.length > 0 && (
         <section className="panel">
           <h2 style={{ fontSize: '1.05rem' }}>Waist (cm)</h2>
-          <div style={{ width: '100%', height: 200 }}>
-            <ResponsiveContainer>
+          <div className="chart-frame">
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={waists.map((w) => ({ date: w.date.slice(5), waist: w.waistCm }))}>
                 <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                 <XAxis dataKey="date" stroke="var(--text-dim)" fontSize={11} />
@@ -291,8 +291,8 @@ export function ProgressPage() {
 
       <section className="panel">
         <h2 style={{ fontSize: '1.05rem' }}>Steps (recent)</h2>
-        <div style={{ width: '100%', height: 220 }}>
-          <ResponsiveContainer>
+        <div className="chart-frame">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={steps.slice(-14).map((s) => ({
                 date: s.date.slice(5),
@@ -321,8 +321,8 @@ export function ProgressPage() {
         <p className="dim" style={{ fontSize: '0.8rem' }}>
           Gaps = no log (not zero intake).
         </p>
-        <div style={{ width: '100%', height: 220 }}>
-          <ResponsiveContainer>
+        <div className="chart-frame">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={nutrition.map((n) => ({
                 date: n.date.slice(5),

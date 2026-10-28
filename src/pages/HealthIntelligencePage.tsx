@@ -170,7 +170,7 @@ export function HealthIntelligencePage() {
   if (!settings || !profile) return null;
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <p className="briefing-kicker">Health Intelligence</p>
         <h1>Today’s health briefing</h1>
@@ -296,7 +296,29 @@ export function HealthIntelligencePage() {
       <section className="panel stack">
         <h2>Metric catalogue</h2>
         <p className="muted">Honest availability — not live device values unless imported.</p>
-        <div className="table-wrap">
+        <div className="metric-catalogue-cards">
+          {METRIC_REGISTRY.map((m) => {
+            const local =
+              (m.id === 'steps' && agg?.steps != null) ||
+              (m.id === 'weight' && (agg?.primaryWeightKg != null || weights.length > 0)) ||
+              (m.id === 'sleep_asleep' && (agg?.sleepHours != null || sleepAvg != null)) ||
+              (m.id === 'hydration' && (agg?.waterMl ?? 0) > 0) ||
+              (m.id === 'nutrition_import' && (agg?.foodEntryCount ?? 0) > 0);
+            const avail = metricAvailability(m.id, connections, local);
+            return (
+              <div key={m.id} className="metric-catalogue-card">
+                <div className="row">
+                  <strong>{m.label}</strong>
+                  <span className="badge badge-info">{avail}</span>
+                </div>
+                <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
+                  {m.category} · {m.nature}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="table-wrap metric-catalogue-table">
           <table className="data-table">
             <thead>
               <tr>

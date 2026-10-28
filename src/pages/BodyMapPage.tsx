@@ -378,7 +378,7 @@ export function BodyMapPage() {
   const guideDefs = region ? defsForRegion(region) : MEASUREMENT_CATALOGUE;
 
   return (
-    <div className="stack physique">
+    <div className="stack page physique">
       <header className="panel page-header">
         <p className="briefing-kicker">My Physique</p>
         <h1>Measurements</h1>
@@ -741,7 +741,7 @@ export function BodyMapPage() {
               <p className="muted">Nothing to graph yet.</p>
             ) : (
               <div className="chart-frame chart-frame-tall">
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={snapshotBars} margin={{ left: 4, right: 8, top: 8, bottom: 48 }}>
                     <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                     <XAxis
@@ -798,7 +798,7 @@ export function BodyMapPage() {
               <p className="muted">Need readings across at least two dates for these sites.</p>
             ) : (
               <div className="chart-frame">
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={multiLineData.data}>
                     <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                     <XAxis dataKey="date" tick={{ fill: 'var(--text-dim)', fontSize: 11 }} />
@@ -836,7 +836,7 @@ export function BodyMapPage() {
               <p className="muted">Log left and/or right limb sites to compare.</p>
             ) : (
               <div className="chart-frame">
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={leftRightBars}>
                     <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                     <XAxis dataKey="name" tick={{ fill: 'var(--text-dim)', fontSize: 11 }} />
@@ -931,7 +931,7 @@ export function BodyMapPage() {
                 </div>
                 {deltaBarData.length > 0 && (
                   <div className="chart-frame">
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={deltaBarData} margin={{ bottom: 40 }}>
                         <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                         <XAxis
@@ -985,7 +985,7 @@ export function BodyMapPage() {
               <p className="muted">Need 2+ readings on this exact site.</p>
             ) : (
               <div className="chart-frame">
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
                     <XAxis dataKey="date" tick={{ fill: 'var(--text-dim)', fontSize: 11 }} />

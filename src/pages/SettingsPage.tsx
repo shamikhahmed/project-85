@@ -50,7 +50,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <h1>Settings</h1>
         <p className="muted">

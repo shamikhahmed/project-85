@@ -196,7 +196,7 @@ export function MotivationPage() {
   if (!settings) return null;
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <p className="briefing-kicker">Private · local only</p>
         <h1>Motivation Centre</h1>

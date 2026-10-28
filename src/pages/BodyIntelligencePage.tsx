@@ -84,7 +84,7 @@ export function BodyIntelligencePage() {
   if (!settings || !bi || !progress) return null;
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <p className="briefing-kicker">PROJECT 85 · Body Intelligence</p>
         <h1>Your numbers, explained.</h1>

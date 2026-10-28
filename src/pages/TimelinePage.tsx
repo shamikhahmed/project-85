@@ -100,7 +100,7 @@ export function TimelinePage() {
   if (!settings) return null;
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
         <p className="briefing-kicker">Transformation</p>
         <h1>Timeline</h1>

@@ -26,9 +26,9 @@ export function DisciplinePage() {
   );
 
   return (
-    <div className="stack">
+    <div className="stack page">
       <header className="panel page-header">
-        <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div className="page-toolbar">
           <div>
             <h1>Review</h1>
             <p className="muted">
