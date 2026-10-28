@@ -195,6 +195,10 @@ export interface AppSettings {
   shoulderCaution: boolean;
   /** Profile: chai triggers GI discomfort */
   avoidChai: boolean;
+  /** Saturday −50 kcal, rest days −400 kcal (carbs carry the difference). Default on. */
+  dayTypeCalories?: boolean;
+  /** Plan migrations applied (2 = Project New Me, 3 Nov 2026). */
+  planVersion?: number;
   createdAt: string;
   updatedAt: string;
 }

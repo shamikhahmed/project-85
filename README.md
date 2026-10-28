@@ -2,7 +2,7 @@
 
 Personal birthday transformation mission control. Local-first **PWA** for one person.
 
-**Mission:** 27 Oct 2026 → 15 Jan 2027 · **Target:** 85.0 kg · **Start:** 96.5 kg (11.5 kg to lose)
+**Mission:** 3 Nov 2026 → 15 Jan 2027 · **Target:** 85.0 kg · **Start:** 96.0 kg (11 kg to lose)
 
 **Live PWA:** https://shamikhahmed.github.io/project-85/  
 (iPhone Safari → Share → **Add to Home Screen**)
@@ -23,7 +23,11 @@ npm run preview
 GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 ```
 
-## What’s in v0.9
+## What’s in v0.10
+
+New: **Train** tab with the full Project New Me plan, weekly missions, Sunday checkpoints, Sunday check-in for Claude, and the PDF plan library (`public/plan/`). Day-specific calories.
+
+### Earlier (v0.9)
 
 | Area | Status |
 |------|--------|

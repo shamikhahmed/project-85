@@ -113,7 +113,7 @@ describe('buildDailyBriefing', () => {
       score: null,
       hour: 19,
     });
-    expect(b.proteinRemaining).toBe(60);
+    expect(b.proteinRemaining).toBe(140);
     expect(b.primaryAction.toLowerCase()).toMatch(/protein/);
     expect(b.narrative.toLowerCase()).toMatch(/protein|walk|dinner/);
   });

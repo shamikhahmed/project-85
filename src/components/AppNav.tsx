@@ -36,6 +36,21 @@ const LINKS: {
     ),
   },
   {
+    to: '/train',
+    label: 'Train',
+    short: 'Train',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+        <path
+          d="M3 10h14M5.5 6.5v7M14.5 6.5v7M3 8v4M17 8v4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
     to: '/physique',
     label: 'Physique',
     short: 'Body',
@@ -56,6 +71,7 @@ const LINKS: {
     to: '/health',
     label: 'Health',
     short: 'Health',
+    desktopOnly: true,
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
         <path

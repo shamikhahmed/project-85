@@ -64,7 +64,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2,webmanifest,pdf}'],
         // Brand masters are source assets for icon generation — not runtime-needed.
         globIgnores: ['**/brand/**'],
         navigateFallback: `${base}index.html`,

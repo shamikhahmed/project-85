@@ -51,7 +51,28 @@ export async function ensureInitialized(): Promise<AppSettings> {
   return migrateSettings(settings);
 }
 
-function migrateSettings(raw: AppSettings): AppSettings {
+/** One-time move to the Project New Me plan (3 Nov 2026, 96 kg, 240 g protein, day-specific kcal). */
+export function applyPlanV2(raw: AppSettings): AppSettings {
+  if ((raw.planVersion ?? 0) >= 2) return raw;
+  return {
+    ...raw,
+    startDate: '2026-11-03',
+    deadline: '2027-01-15',
+    startingWeightKg: 96,
+    targetWeightKg: 85,
+    calorieTarget: 2150,
+    proteinTargetG: 240,
+    carbsTargetG: 151,
+    fatTargetG: 65,
+    sleepTargetHours: 7,
+    stepsTarget: Math.max(raw.stepsTarget ?? 10000, 10000),
+    dayTypeCalories: true,
+    planVersion: 2,
+  };
+}
+
+function migrateSettings(input: AppSettings): AppSettings {
+  const raw = applyPlanV2(input);
   const defaults = createDefaultSettings(raw.createdAt);
   return {
     ...defaults,

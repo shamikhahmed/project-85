@@ -1,0 +1,2078 @@
+{
+ "days": {
+  "push": [
+   {
+    "code": "1",
+    "name": "Smith incline press",
+    "muscle": "Upper chest, front delts",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "10 kg/side (22 lb/side)"
+     ],
+     [
+      "Set 2",
+      "8",
+      "12.5 kg/side (27.6 lb/side)"
+     ],
+     [
+      "Top set",
+      "6-8, 1 short",
+      "15 kg/side (33 lb/side)"
+     ],
+     [
+      "Back-off",
+      "10-12",
+      "10 kg/side (22 lb/side)"
+     ]
+    ],
+    "rest": "2-3 min.",
+    "cues": [
+     "Bench about 30 degrees",
+     "Bar to upper chest, elbows 45 degrees",
+     "Stop 1 rep short on the top set"
+    ],
+    "why": "Upper chest is your top chest priority, so it goes first on Push day while you're strongest. The heavy top set is the main growth signal.",
+    "alts": [
+     "Incline chest press machine",
+     "Incline dumbbell press"
+    ],
+    "advanced": "Back-off set: lower for 3 seconds on every rep.",
+    "blockB": "Incline dumbbell press",
+    "demo": "https://www.youtube.com/results?search_query=smith+machine+incline+press+form+tutorial",
+    "warmupSet": false,
+    "note": "First exercise: one ramp set at 50%.",
+    "pair": null
+   },
+   {
+    "code": "2",
+    "name": "Smith flat bench press",
+    "muscle": "Chest, triceps",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "15 kg/side (33 lb/side)"
+     ],
+     [
+      "Top set",
+      "6-8, 1 short",
+      "17.5 kg/side (39 lb/side)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "12.5 kg/side (27.6 lb/side)"
+     ]
+    ],
+    "rest": "2-3 min.",
+    "cues": [
+     "Shoulder blades pinched",
+     "Lower to mid-chest in 2 sec"
+    ],
+    "why": "Loads the whole chest heavy. It comes second so incline gets your freshest effort.",
+    "alts": [
+     "Dumbbell flat press",
+     "Chest press machine"
+    ],
+    "advanced": "None. Barbell-style lifts stay clean.",
+    "blockB": "Barbell bench press (if shoulder feels 100%)",
+    "demo": "https://www.youtube.com/results?search_query=smith+machine+bench+press+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "3",
+    "name": "Machine shoulder press",
+    "muscle": "Delts, triceps",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "45 lb (20.4 kg)"
+     ],
+     [
+      "Top set",
+      "6-8, failure",
+      "55 lb (24.9 kg)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "40 lb (18.1 kg)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Handles start at ear height",
+     "Don't lock out hard",
+     "Stop if the joint clunks"
+    ],
+    "why": "Shoulder mass for width. Machine path keeps your shoulder safe at failure. Third because chest pressing already warmed the delts.",
+    "alts": [
+     "Landmine press",
+     "Smith seated press, light"
+    ],
+    "advanced": "Back-off set: rest-pause, 2 rounds.",
+    "blockB": "Seated dumbbell press, light",
+    "demo": "https://www.youtube.com/results?search_query=machine+shoulder+press+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "4A",
+    "name": "High-to-low cable fly",
+    "muscle": "Lower + middle chest",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "10 kg (22 lb) per side"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "12.5 kg (27.6 lb) per side"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "12.5 kg (27.6 lb) per side"
+     ]
+    ],
+    "rest": "45 sec, then 4B.",
+    "cues": [
+     "Pulleys high, step forward, slight lean",
+     "Sweep hands down and together to belly-button height",
+     "Squeeze 1 sec, control back up"
+    ],
+    "why": "Lower chest is the bottom edge that makes the chest look full and square in a T-shirt. The incline press hit the upper fibres and the flat bench the middle; this finishes the lower ones. Paired with laterals because they use different muscles.",
+    "alts": [
+     "Pec deck, hands set low",
+     "Decline Smith press, light"
+    ],
+    "advanced": "Last set: drop set, -30%, twice.",
+    "blockB": "Decline chest press machine",
+    "demo": "https://www.youtube.com/results?search_query=high+to+low+cable+fly+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 4B)"
+   },
+   {
+    "code": "4B",
+    "name": "Cable lateral raise",
+    "muscle": "Side delts",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 4",
+      "12-15, failure",
+      "5 kg (11 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 4A.",
+    "cues": [
+     "Lead with the elbow",
+     "Stop at shoulder height"
+    ],
+    "why": "Side delts are your biggest V-taper lever, so they get 4 hard sets.",
+    "alts": [
+     "Dumbbell lateral raise",
+     "Lateral raise machine"
+    ],
+    "advanced": "Last set: drop set, 3 drops.",
+    "blockB": "Lean-away single-arm lateral raise",
+    "demo": "https://www.youtube.com/results?search_query=cable+lateral+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 4A)"
+   },
+   {
+    "code": "5A",
+    "name": "Rope pushdown",
+    "muscle": "Triceps",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "65 lb (29.5 kg)"
+     ],
+     [
+      "Top set",
+      "6-8, failure",
+      "80 lb (36.3 kg)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "55 lb (24.9 kg)"
+     ]
+    ],
+    "rest": "45 sec, then 5B.",
+    "cues": [
+     "Elbows pinned",
+     "Split the rope"
+    ],
+    "why": "Triceps are about two-thirds of arm size, and they're already warm from pressing.",
+    "alts": [
+     "Triceps extension machine",
+     "Straight-bar pushdown"
+    ],
+    "advanced": "Back-off set: drop set, -30%.",
+    "blockB": "V-bar pushdown",
+    "demo": "https://www.youtube.com/results?search_query=rope+tricep+pushdown+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 5B)"
+   },
+   {
+    "code": "5B",
+    "name": "Cable crunch",
+    "muscle": "Abs",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "25 kg (55 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "25 kg (55 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "27.5 kg (61 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 5A.",
+    "cues": [
+     "Round the spine, hips still"
+    ],
+    "why": "Loaded abs build thickness so they show when fat drops. Pairs with pushdowns at the same cable station.",
+    "alts": [
+     "Ab crunch machine",
+     "Decline crunch"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=cable+crunch+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 5A)"
+   },
+   {
+    "code": "6",
+    "name": "Overhead cable triceps extension",
+    "muscle": "Triceps long head",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "20 lb (9.1 kg)"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "20 lb (9.1 kg)"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "25 lb (11.3 kg)"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Elbows forward",
+     "Full stretch behind the head"
+    ],
+    "why": "The long head is the biggest triceps part and only fully stretches overhead.",
+    "alts": [
+     "Dumbbell overhead extension",
+     "Dumbbell overhead extension, light"
+    ],
+    "advanced": "Last set: rest-pause, 2 rounds.",
+    "blockB": "EZ bar skull crusher, light",
+    "demo": "https://www.youtube.com/results?search_query=overhead+cable+triceps+extension+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   }
+  ],
+  "pull": [
+   {
+    "code": "1",
+    "name": "Lat pulldown, wide grip",
+    "muscle": "Lats (width)",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "50 kg (110 lb)"
+     ],
+     [
+      "Set 2",
+      "8",
+      "55 kg (121 lb)"
+     ],
+     [
+      "Top set",
+      "6-8, failure",
+      "60 kg (132 lb)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "45 kg (99 lb)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Pull to upper chest, never behind the neck",
+     "Elbows drive down"
+    ],
+    "why": "Lat width is the V in V-taper. First on Pull day so it gets the heaviest work.",
+    "alts": [
+     "Assisted pull-up machine",
+     "Assisted pull-up, wide grip"
+    ],
+    "advanced": "Back-off set: after failure, do 5 half-reps from the top (lengthened partials).",
+    "blockB": "Wide-grip pull-up or assisted pull-up",
+    "demo": "https://www.youtube.com/results?search_query=wide+grip+lat+pulldown+form+tutorial",
+    "warmupSet": false,
+    "note": "First exercise: one ramp set at 50%.",
+    "pair": null
+   },
+   {
+    "code": "2",
+    "name": "Chest-supported row machine",
+    "muscle": "Mid-back, rear delts",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Top set",
+      "6-8, failure",
+      "47.5 kg (105 lb)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "35 kg (77 lb)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Chest on the pad",
+     "Drive elbows back",
+     "Squeeze 1 sec"
+    ],
+    "why": "Back thickness. The pad lets you go to failure without loading your lower back, which you need fresh for tomorrow's legs.",
+    "alts": [
+     "Seated cable row",
+     "Seated cable row, wide grip"
+    ],
+    "advanced": "Back-off set: 1-sec squeeze plus a drop set (-30%).",
+    "blockB": "T-bar row",
+    "demo": "https://www.youtube.com/results?search_query=chest+supported+row+machine+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "3",
+    "name": "Seated cable row, close grip",
+    "muscle": "Mid-back, lower lats",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "45 kg (99 lb)"
+     ]
+    ],
+    "rest": "75 sec.",
+    "cues": [
+     "Chest up",
+     "Elbows past your body"
+    ],
+    "why": "A third back angle for total thickness.",
+    "alts": [
+     "Single-arm dumbbell row",
+     "Machine row, neutral grip"
+    ],
+    "advanced": "Last set: myo-reps: 12-15, then 15 sec rest, then 3-5 reps, x4.",
+    "blockB": "Single-arm machine row",
+    "demo": "https://www.youtube.com/results?search_query=close+grip+seated+cable+row+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "4A",
+    "name": "Straight-arm cable pulldown",
+    "muscle": "Lats (isolation)",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "20 kg (44 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "22.5 kg (50 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "22.5 kg (50 lb)"
+     ]
+    ],
+    "rest": "45 sec, then 4B.",
+    "cues": [
+     "Arms almost straight",
+     "Bar to thighs"
+    ],
+    "why": "A lat pump with no biceps fatigue.",
+    "alts": [
+     "Dumbbell pullover",
+     "Dumbbell pullover, light"
+    ],
+    "advanced": "Last set: rest-pause: failure, 15 sec rest, failure again, twice.",
+    "blockB": "Dumbbell pullover",
+    "demo": "https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 4B)"
+   },
+   {
+    "code": "4B",
+    "name": "Rear delt fly machine",
+    "muscle": "Rear delts",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "17.5 kg (39 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 4A.",
+    "cues": [
+     "Arms slightly bent",
+     "Squeeze the back of the shoulder"
+    ],
+    "why": "Rounds the shoulder from behind and protects the joint.",
+    "alts": [
+     "Cable reverse fly",
+     "Band pull-apart, 3 x 20"
+    ],
+    "advanced": "Last set: 10 full reps, then partials to failure.",
+    "blockB": "Reverse cable fly",
+    "demo": "https://www.youtube.com/results?search_query=rear+delt+fly+machine+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 4A)"
+   },
+   {
+    "code": "5A",
+    "name": "EZ bar curl",
+    "muscle": "Biceps",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "20 kg (44 lb)"
+     ],
+     [
+      "Top set",
+      "6-8, failure",
+      "27.5 kg (61 lb)"
+     ],
+     [
+      "Back-off",
+      "12",
+      "17.5 kg (39 lb)"
+     ]
+    ],
+    "rest": "60 sec, then 5B.",
+    "cues": [
+     "Elbows still",
+     "3 sec lowering"
+    ],
+    "why": "Heavy biceps work, already warm from all the pulling.",
+    "alts": [
+     "Straight-bar cable curl",
+     "Dumbbell curl, alternating"
+    ],
+    "advanced": "Back-off set: 3-sec lowering every rep.",
+    "blockB": "Barbell curl",
+    "demo": "https://www.youtube.com/results?search_query=ez+bar+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 5B)"
+   },
+   {
+    "code": "5B",
+    "name": "Hanging knee raise",
+    "muscle": "Lower abs, grip",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "Bodyweight"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "Bodyweight"
+     ],
+     [
+      "Set 3",
+      "Max",
+      "Bodyweight"
+     ]
+    ],
+    "rest": "60 sec, then back to 5A.",
+    "cues": [
+     "No swinging",
+     "Curl the pelvis up"
+    ],
+    "why": "Lower abs plus a spine decompression after rows.",
+    "alts": [
+     "Lying leg raise",
+     "Captain's chair knee raise"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=hanging+knee+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 5A)"
+   },
+   {
+    "code": "6",
+    "name": "Incline dumbbell curl",
+    "muscle": "Biceps long head",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "8 kg (17.6 lb) each"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "8 kg (17.6 lb) each"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "8 kg (17.6 lb) each"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Arms hang straight down"
+    ],
+    "why": "A stretched biceps grows more. This builds the peak.",
+    "alts": [
+     "Preacher curl machine",
+     "Bayesian cable curl"
+    ],
+    "advanced": "Last set: mechanical drop: incline curl to failure, then sit up and keep curling.",
+    "blockB": "Bayesian cable curl",
+    "demo": "https://www.youtube.com/results?search_query=incline+dumbbell+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "7",
+    "name": "Dumbbell shrug",
+    "muscle": "Upper traps",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "20 kg (44 lb) each"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "22.5 kg (50 lb) each"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "22.5 kg (50 lb) each"
+     ]
+    ],
+    "rest": "60 sec.",
+    "cues": [
+     "Arms straight, shoulders straight up to ears",
+     "Pause 1 sec, lower slowly",
+     "No rolling the shoulders"
+    ],
+    "why": "Traps fill the line between neck and shoulders. A thicker upper trap makes the shoulders look broader in a T-shirt, and rows and pulldowns don't train them fully.",
+    "alts": [
+     "Smith machine shrug",
+     "Cable shrug"
+    ],
+    "advanced": "Last set: 2-second hold at the top of every rep.",
+    "blockB": "Barbell shrug",
+    "demo": "https://www.youtube.com/results?search_query=dumbbell+shrug+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   }
+  ],
+  "legs": [
+   {
+    "code": "1",
+    "name": "Barbell squat",
+    "muscle": "Quads, glutes",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "25 kg (55 lb)"
+     ],
+     [
+      "Set 2",
+      "8",
+      "30 kg (66 lb)"
+     ],
+     [
+      "Top set",
+      "6-8, 1 short",
+      "32.5 kg (72 lb)"
+     ],
+     [
+      "Back-off",
+      "10",
+      "25 kg (55 lb)"
+     ]
+    ],
+    "rest": "2-3 min.",
+    "cues": [
+     "Brace, chest up",
+     "Use the safety bars"
+    ],
+    "why": "The king leg lift goes first while your technique is sharp. Use what you reached last week. Add 2.5 kg a week.",
+    "alts": [
+     "Smith machine squat",
+     "Goblet squat, heavy"
+    ],
+    "advanced": null,
+    "blockB": "Hack squat",
+    "demo": "https://www.youtube.com/results?search_query=barbell+back+squat+form+tutorial",
+    "warmupSet": false,
+    "note": "First exercise: ramp with the empty bar.",
+    "pair": null
+   },
+   {
+    "code": "2",
+    "name": "Leg press",
+    "muscle": "Quads, glutes",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "150 kg (331 lb)"
+     ],
+     [
+      "Top set",
+      "8-10, failure",
+      "170 kg (375 lb)"
+     ],
+     [
+      "Back-off",
+      "15-20",
+      "130 kg (287 lb)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Feet mid-platform",
+     "Lower back on the pad"
+    ],
+    "why": "Your strongest lift, and safe to take to failure.",
+    "alts": [
+     "Hack squat machine",
+     "Bulgarian split squat"
+    ],
+    "advanced": "Back-off set: 20 reps, rest-pause allowed.",
+    "blockB": "Pendulum or single-leg press",
+    "demo": "https://www.youtube.com/results?search_query=leg+press+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "3A",
+    "name": "Leg extension",
+    "muscle": "Quads",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "45 kg (99 lb)"
+     ]
+    ],
+    "rest": "45 sec, then 3B.",
+    "cues": [
+     "Squeeze 1 sec at the top"
+    ],
+    "why": "Quad detail and pump.",
+    "alts": [
+     "Sissy squat",
+     "Sissy squat, bodyweight"
+    ],
+    "advanced": "Last set: drop set, 2 drops, then 10 sec hold at the top.",
+    "blockB": "Single-leg extension",
+    "demo": "https://www.youtube.com/results?search_query=leg+extension+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 3B)"
+   },
+   {
+    "code": "3B",
+    "name": "Seated leg curl",
+    "muscle": "Hamstrings",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "35 kg (77 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "40 kg (88 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 3A.",
+    "cues": [
+     "Slow 3 sec lowering"
+    ],
+    "why": "Balances the quads. The pair keeps the pace fast.",
+    "alts": [
+     "Lying leg curl",
+     "Stability ball leg curl"
+    ],
+    "advanced": "Last set: lengthened partials, 5 half-reps at the stretch.",
+    "blockB": "Lying leg curl",
+    "demo": "https://www.youtube.com/results?search_query=seated+leg+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 3A)"
+   },
+   {
+    "code": "4",
+    "name": "Dumbbell walking lunge",
+    "muscle": "Quads, glutes",
+    "sets": [
+     [
+      "Set 1",
+      "12 per leg",
+      "10 kg (22 lb) each"
+     ],
+     [
+      "Set 2",
+      "12 per leg",
+      "10 kg (22 lb) each"
+     ]
+    ],
+    "rest": "90 sec.",
+    "cues": [
+     "Long step, upright torso"
+    ],
+    "why": "Sweaty single-leg work that burns a lot of calories.",
+    "alts": [
+     "Reverse lunge on the spot",
+     "Step-ups onto a bench"
+    ],
+    "advanced": null,
+    "blockB": "Bulgarian split squat",
+    "demo": "https://www.youtube.com/results?search_query=dumbbell+walking+lunge+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "5",
+    "name": "Standing calf raise",
+    "muscle": "Calves",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "60 kg (132 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "60 kg (132 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15",
+      "60 kg (132 lb)"
+     ],
+     [
+      "Set 4",
+      "12-15, failure",
+      "60 kg (132 lb)"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Full stretch, pause at the top"
+    ],
+    "why": "Calves respond to frequent hard sets.",
+    "alts": [
+     "Seated calf raise",
+     "Calf press on the leg press"
+    ],
+    "advanced": "Last set: 10 sec stretch pause at the bottom, every rep.",
+    "blockB": "Leg press calf raise",
+    "demo": "https://www.youtube.com/results?search_query=standing+calf+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "6",
+    "name": "Cable woodchop",
+    "muscle": "Obliques, deep core",
+    "sets": [
+     [
+      "Set 1",
+      "12 per side",
+      "10 kg (22 lb)"
+     ],
+     [
+      "Set 2",
+      "12 per side",
+      "12.5 kg (27.6 lb)"
+     ],
+     [
+      "Set 3",
+      "12 per side",
+      "12.5 kg (27.6 lb)"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Arms long, rotate from the ribs, hips facing forward",
+     "High to low, controlled",
+     "Brace like you're about to be punched"
+    ],
+    "why": "Obliques frame the abs and give a tight, athletic midsection. Loaded rotation builds them. Side bends don't thin your waist; fat loss does.",
+    "alts": [
+     "Pallof press",
+     "Russian twist with a plate, slow"
+    ],
+    "advanced": null,
+    "blockB": "Landmine rotation",
+    "demo": "https://www.youtube.com/results?search_query=cable+woodchop+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   }
+  ],
+  "upper": [
+   {
+    "code": "1A",
+    "name": "Incline dumbbell press",
+    "muscle": "Upper chest",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "12 kg (26.5 lb) each"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "12 kg (26.5 lb) each"
+     ],
+     [
+      "Set 3",
+      "10-12, 1 short",
+      "12 kg (26.5 lb) each"
+     ]
+    ],
+    "rest": "60 sec, then 1B.",
+    "cues": [
+     "30 degree bench",
+     "2 sec down"
+    ],
+    "why": "Second chest day of the week. Moderate weight and fast pace, because Monday was the heavy day.",
+    "alts": [
+     "Smith incline press",
+     "Incline chest press machine"
+    ],
+    "advanced": null,
+    "blockB": "Incline chest press machine",
+    "demo": "https://www.youtube.com/results?search_query=incline+dumbbell+press+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 1B)"
+   },
+   {
+    "code": "1B",
+    "name": "Lat pulldown, neutral grip",
+    "muscle": "Lats",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "50 kg (110 lb)"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "50 kg (110 lb)"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "50 kg (110 lb)"
+     ]
+    ],
+    "rest": "60 sec, then back to 1A.",
+    "cues": [
+     "Elbows to hips",
+     "Full stretch"
+    ],
+    "why": "Second lat day, with a different grip for variety.",
+    "alts": [
+     "Assisted pull-up, neutral grip",
+     "Single-arm cable pulldown"
+    ],
+    "advanced": null,
+    "blockB": "Close-grip pulldown",
+    "demo": "https://www.youtube.com/results?search_query=neutral+grip+lat+pulldown+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 1A)"
+   },
+   {
+    "code": "2A",
+    "name": "Low-to-high cable fly",
+    "muscle": "Upper chest",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "10 kg (22 lb) per side"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "10 kg (22 lb) per side"
+     ],
+     [
+      "Set 3",
+      "12-15, failure",
+      "10 kg (22 lb) per side"
+     ]
+    ],
+    "rest": "45 sec, then 2B.",
+    "cues": [
+     "Hands sweep up to chin height",
+     "Squeeze at the top"
+    ],
+    "why": "Upper chest pump.",
+    "alts": [
+     "Pec deck",
+     "Incline pec deck"
+    ],
+    "advanced": "Last set: drop set.",
+    "blockB": "High-to-low cable fly",
+    "demo": "https://www.youtube.com/results?search_query=low+to+high+cable+fly+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 2B)"
+   },
+   {
+    "code": "2B",
+    "name": "Single-arm cable row",
+    "muscle": "Lats, mid-back",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "20 kg (44 lb) per arm"
+     ],
+     [
+      "Set 2",
+      "12",
+      "20 kg (44 lb) per arm"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "20 kg (44 lb) per arm"
+     ]
+    ],
+    "rest": "45 sec, then back to 2A.",
+    "cues": [
+     "Elbow to hip",
+     "No twisting"
+    ],
+    "why": "Fixes left/right differences and adds a back pump.",
+    "alts": [
+     "Machine row, one arm at a time",
+     "Single-arm dumbbell row"
+    ],
+    "advanced": null,
+    "blockB": "Meadows row",
+    "demo": "https://www.youtube.com/results?search_query=single+arm+cable+row+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 2A)"
+   },
+   {
+    "code": "3A",
+    "name": "Cable lateral raise (myo-reps)",
+    "muscle": "Side delts",
+    "sets": [
+     [
+      "Activation",
+      "15-20",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Mini-sets x4",
+      "4-5 each",
+      "5 kg (11 lb), 15 sec rest"
+     ]
+    ],
+    "rest": "Straight to 3B.",
+    "cues": [
+     "One hard set of 15-20, then 15 sec rest, 4-5 reps, repeat 4 times"
+    ],
+    "why": "Three sets' worth of growth in 2 minutes.",
+    "alts": [
+     "Dumbbell lateral raise, myo-reps",
+     "Lateral raise machine, myo-reps"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=myo+reps+lateral+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 3 (with 3B)"
+   },
+   {
+    "code": "3B",
+    "name": "Face pull",
+    "muscle": "Rear delts",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "15 kg (33 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 3A.",
+    "cues": [
+     "Rope to eyes, thumbs back"
+    ],
+    "why": "Rear delts and shoulder health.",
+    "alts": [
+     "Band face pull",
+     "Rear delt fly machine"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=cable+face+pull+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 3 (with 3A)"
+   },
+   {
+    "code": "4A",
+    "name": "Cable curl",
+    "muscle": "Biceps",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "20 kg (44 lb)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "20 kg (44 lb)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "20 kg (44 lb)"
+     ]
+    ],
+    "rest": "No rest, then 4B.",
+    "cues": [
+     "Elbows still"
+    ],
+    "why": "Second biceps day.",
+    "alts": [
+     "EZ bar curl",
+     "Dumbbell curl"
+    ],
+    "advanced": "Last set: 21s (7 bottom-half, 7 top-half, 7 full).",
+    "blockB": "Preacher curl machine",
+    "demo": "https://www.youtube.com/results?search_query=cable+bicep+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 4 (with 4B)"
+   },
+   {
+    "code": "4B",
+    "name": "Straight-bar pushdown",
+    "muscle": "Triceps",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "70 lb (31.8 kg)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "70 lb (31.8 kg)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "70 lb (31.8 kg)"
+     ]
+    ],
+    "rest": "45 sec, then back to 4A.",
+    "cues": [
+     "Elbows tucked"
+    ],
+    "why": "Second triceps day, at the same cable as 4A.",
+    "alts": [
+     "Rope pushdown",
+     "Triceps extension machine"
+    ],
+    "advanced": "Last set: drop set, 2 drops.",
+    "blockB": "Triceps extension machine",
+    "demo": "https://www.youtube.com/results?search_query=cable+tricep+pushdown+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 4 (with 4A)"
+   }
+  ],
+  "lower": [
+   {
+    "code": "1",
+    "name": "Romanian deadlift",
+    "muscle": "Hamstrings, glutes",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "35 kg (77 lb)"
+     ],
+     [
+      "Set 2",
+      "8",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Top set",
+      "8, 1 short",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Back-off",
+      "10",
+      "35 kg (77 lb)"
+     ]
+    ],
+    "rest": "2-3 min.",
+    "cues": [
+     "Hips back, flat back",
+     "Bar close to the legs"
+    ],
+    "why": "Lower day is hinge and glute focused, so the RDL goes first. It builds the back of the legs and glutes, the area you're most self-conscious about.",
+    "alts": [
+     "Dumbbell RDL",
+     "Dumbbell Romanian deadlift"
+    ],
+    "advanced": null,
+    "blockB": "Stiff-leg Smith deadlift",
+    "demo": "https://www.youtube.com/results?search_query=romanian+deadlift+form+tutorial",
+    "warmupSet": false,
+    "note": "First exercise: ramp with the empty bar.",
+    "pair": null
+   },
+   {
+    "code": "2",
+    "name": "Hip thrust",
+    "muscle": "Glutes",
+    "sets": [
+     [
+      "Set 1",
+      "10",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Top set",
+      "8, failure",
+      "55 kg (121 lb)"
+     ],
+     [
+      "Back-off",
+      "15",
+      "40 kg (88 lb)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Chin tucked, ribs down",
+     "1 sec pause at the top"
+    ],
+    "why": "Direct glute shape.",
+    "alts": [
+     "Hip thrust machine",
+     "Glute bridge, barbell"
+    ],
+    "advanced": "Back-off set: 3-sec hold at the top every rep.",
+    "blockB": "Cable pull-through",
+    "demo": "https://www.youtube.com/results?search_query=barbell+hip+thrust+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "3",
+    "name": "Leg press, high feet",
+    "muscle": "Glutes, hamstrings",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "130 kg (287 lb)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "140 kg (309 lb)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "140 kg (309 lb)"
+     ]
+    ],
+    "rest": "2 min.",
+    "cues": [
+     "Feet high and wide",
+     "Deep, controlled"
+    ],
+    "why": "Leg press with more glute and hamstring work than Wednesday's version.",
+    "alts": [
+     "Bulgarian split squat",
+     "Hack squat, feet high"
+    ],
+    "advanced": "Back-off set: 20 reps, rest-pause allowed.",
+    "blockB": "Hip thrust machine",
+    "demo": "https://www.youtube.com/results?search_query=leg+press+high+feet+glutes+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "4",
+    "name": "Seated leg curl",
+    "muscle": "Hamstrings",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "35 kg (77 lb)"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "40 kg (88 lb)"
+     ]
+    ],
+    "rest": "60 sec.",
+    "cues": [
+     "Slow 3 sec lowering"
+    ],
+    "why": "Hamstrings at the knee, which complements the RDL's work at the hip.",
+    "alts": [
+     "Lying leg curl",
+     "Stability ball leg curl"
+    ],
+    "advanced": "Last set: lengthened partials, 5 half-reps at the stretch.",
+    "blockB": "Lying leg curl",
+    "demo": "https://www.youtube.com/results?search_query=seated+leg+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "5",
+    "name": "Back extension",
+    "muscle": "Lower back, glutes",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "Bodyweight"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "5 kg (11 lb) plate"
+     ],
+     [
+      "Set 3",
+      "12-15",
+      "10 kg (22 lb) plate"
+     ]
+    ],
+    "rest": "60 sec.",
+    "cues": [
+     "Round down, squeeze glutes up",
+     "Don't over-arch at the top"
+    ],
+    "why": "Builds a strong, thick lower back. It can't burn the fat over your love handles, but a strong lower back looks and performs better as the fat comes off.",
+    "alts": [
+     "Cable pull-through",
+     "Good morning, light barbell"
+    ],
+    "advanced": "Last set: hold 2 sec at the top every rep.",
+    "blockB": "45-degree back extension, weighted",
+    "demo": "https://www.youtube.com/results?search_query=45+degree+back+extension+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "6A",
+    "name": "Hip abductor machine",
+    "muscle": "Glute medius (upper, outer glute)",
+    "sets": [
+     [
+      "Set 1",
+      "15-20",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Set 2",
+      "15-20",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Set 3",
+      "15-20, failure",
+      "45 kg (99 lb)"
+     ]
+    ],
+    "rest": "No rest, then 6B.",
+    "cues": [
+     "Sit tall, lean slightly forward for more glute",
+     "Push knees out, 1 sec hold",
+     "Slow return"
+    ],
+    "why": "The glute medius rounds the upper, outer glute and keeps the knees stable on squats and lunges. Hip thrusts mostly train the big glute.",
+    "alts": [
+     "Cable hip abduction",
+     "Banded side walks, 3 x 15 steps each way"
+    ],
+    "advanced": "Last set: 10 full reps, then partials to failure.",
+    "blockB": "Cable hip abduction",
+    "demo": "https://www.youtube.com/results?search_query=hip+abductor+machine+glute+form+tutorial",
+    "warmupSet": true,
+    "note": null,
+    "pair": "Pair 1 (with 6B)"
+   },
+   {
+    "code": "6B",
+    "name": "Hip adductor machine",
+    "muscle": "Inner thighs (adductors)",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "40 kg (88 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "45 kg (99 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "45 kg (99 lb)"
+     ]
+    ],
+    "rest": "60 sec, then back to 6A.",
+    "cues": [
+     "Controlled squeeze",
+     "Don't let the weight slam back"
+    ],
+    "why": "The adductors are a big muscle group most people skip. They fill out the inner thigh and protect the groin during squats.",
+    "alts": [
+     "Cable hip adduction",
+     "Copenhagen plank on knees, 3 x 20 sec"
+    ],
+    "advanced": null,
+    "blockB": "Cable hip adduction",
+    "demo": "https://www.youtube.com/results?search_query=hip+adductor+machine+form+tutorial",
+    "warmupSet": true,
+    "note": null,
+    "pair": "Pair 1 (with 6A)"
+   },
+   {
+    "code": "7",
+    "name": "Seated calf raise",
+    "muscle": "Calves (soleus)",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "30 kg (66 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "30 kg (66 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "30 kg (66 lb)"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Pause at the stretch"
+    ],
+    "why": "A different calf muscle from Wednesday.",
+    "alts": [
+     "Standing calf raise machine",
+     "Calf press on the leg press"
+    ],
+    "advanced": null,
+    "blockB": "Leg press calf raise",
+    "demo": "https://www.youtube.com/results?search_query=seated+calf+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "8",
+    "name": "Cable lateral raise, leg day",
+    "muscle": "Side delts",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "5 kg (11 lb)"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Strict"
+    ],
+    "why": "Delts recover fast, so a third weekly hit on leg day speeds up your V-taper.",
+    "alts": [
+     "Dumbbell lateral raise",
+     "Lateral raise machine"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=cable+lateral+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   },
+   {
+    "code": "9",
+    "name": "Farmer carry",
+    "muscle": "Grip, core, conditioning",
+    "sets": [
+     [
+      "Round 1",
+      "30 m",
+      "20 kg (44 lb) each hand"
+     ],
+     [
+      "Round 2",
+      "30 m",
+      "20 kg (44 lb) each hand"
+     ],
+     [
+      "Round 3",
+      "30 m",
+      "20 kg (44 lb) each hand"
+     ]
+    ],
+    "rest": "45 sec.",
+    "cues": [
+     "Tall, short fast steps"
+    ],
+    "why": "A sweaty finisher for grip and core.",
+    "alts": [
+     "Dead hang",
+     "Dead hang, 3 x 30 sec"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=farmer+carry+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   }
+  ],
+  "arms": [
+   {
+    "code": "1A",
+    "name": "Preacher curl machine",
+    "muscle": "Biceps",
+    "sets": [
+     [
+      "Set 1",
+      "10-12",
+      "20 kg (44 lb)"
+     ],
+     [
+      "Set 2",
+      "10-12",
+      "22.5 kg (50 lb)"
+     ],
+     [
+      "Set 3",
+      "10-12, failure",
+      "22.5 kg (50 lb)"
+     ]
+    ],
+    "rest": "45 sec, then 1B.",
+    "cues": [
+     "Elbows on the pad",
+     "3 sec lowering"
+    ],
+    "why": "Arms are a priority, so a third hit makes them grow faster.",
+    "alts": [
+     "Dumbbell curl, alternating",
+     "EZ bar preacher curl"
+    ],
+    "advanced": "Last set: drop set, 2 drops.",
+    "blockB": "Spider curl",
+    "demo": "https://www.youtube.com/results?search_query=preacher+curl+machine+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 1B)"
+   },
+   {
+    "code": "1B",
+    "name": "Rope pushdown",
+    "muscle": "Triceps",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "60 lb (27.2 kg)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "65 lb (29.5 kg)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "65 lb (29.5 kg)"
+     ]
+    ],
+    "rest": "45 sec, then back to 1A.",
+    "cues": [
+     "Elbows pinned"
+    ],
+    "why": "Third triceps hit.",
+    "alts": [
+     "Triceps extension machine",
+     "Straight-bar pushdown"
+    ],
+    "advanced": "Back-off set: drop set, -30%.",
+    "blockB": "V-bar pushdown",
+    "demo": "https://www.youtube.com/results?search_query=rope+tricep+pushdown+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 1 (with 1A)"
+   },
+   {
+    "code": "2A",
+    "name": "Cable lateral raise",
+    "muscle": "Side delts",
+    "sets": [
+     [
+      "Set 1",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 2",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 3",
+      "12-15",
+      "5 kg (11 lb)"
+     ],
+     [
+      "Set 4",
+      "12-15, failure",
+      "5 kg (11 lb)"
+     ]
+    ],
+    "rest": "45 sec, then 2B.",
+    "cues": [
+     "Lead with the elbow"
+    ],
+    "why": "Fourth weekly side-delt hit: your V-taper day.",
+    "alts": [
+     "Dumbbell lateral raise",
+     "Lateral raise machine"
+    ],
+    "advanced": "Last set: drop set, 3 drops.",
+    "blockB": "Lean-away single-arm lateral raise",
+    "demo": "https://www.youtube.com/results?search_query=cable+lateral+raise+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 2B)"
+   },
+   {
+    "code": "2B",
+    "name": "Rear delt fly machine",
+    "muscle": "Rear delts",
+    "sets": [
+     [
+      "Set 1",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 2",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 3",
+      "15, failure",
+      "15 kg (33 lb)"
+     ]
+    ],
+    "rest": "45 sec, then back to 2A.",
+    "cues": [
+     "Squeeze"
+    ],
+    "why": "A 3D shoulder.",
+    "alts": [
+     "Cable reverse fly",
+     "Band pull-apart, 3 x 20"
+    ],
+    "advanced": "Last set: 10 full reps, then partials to failure.",
+    "blockB": "Reverse cable fly",
+    "demo": "https://www.youtube.com/results?search_query=rear+delt+fly+machine+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 2 (with 2A)"
+   },
+   {
+    "code": "3A",
+    "name": "Rope hammer curl",
+    "muscle": "Brachialis, forearm",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "17.5 kg (39 lb)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "17.5 kg (39 lb)"
+     ]
+    ],
+    "rest": "45 sec, then 3B.",
+    "cues": [
+     "Neutral grip"
+    ],
+    "why": "Arm thickness.",
+    "alts": [
+     "Dumbbell hammer curl",
+     "Cross-body dumbbell hammer curl"
+    ],
+    "advanced": "Last set: rest-pause, 2 rounds.",
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=cable+rope+hammer+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 3 (with 3B)"
+   },
+   {
+    "code": "3B",
+    "name": "Overhead rope extension",
+    "muscle": "Triceps long head",
+    "sets": [
+     [
+      "Set 1",
+      "12",
+      "20 lb (9.1 kg)"
+     ],
+     [
+      "Set 2",
+      "12",
+      "20 lb (9.1 kg)"
+     ],
+     [
+      "Set 3",
+      "12, failure",
+      "25 lb (11.3 kg)"
+     ]
+    ],
+    "rest": "45 sec, then back to 3A.",
+    "cues": [
+     "Full stretch"
+    ],
+    "why": "Long head size.",
+    "alts": [
+     "Dumbbell overhead extension",
+     "Dumbbell overhead extension, light"
+    ],
+    "advanced": "Last set: lengthened partials at the stretch.",
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=overhead+rope+triceps+extension+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": "Pair 3 (with 3A)"
+   },
+   {
+    "code": "4",
+    "name": "Wrist curl and reverse curl",
+    "muscle": "Forearms",
+    "sets": [
+     [
+      "Wrist curl",
+      "15-20",
+      "10 kg (22 lb) bar"
+     ],
+     [
+      "Wrist curl",
+      "15-20",
+      "10 kg (22 lb) bar"
+     ],
+     [
+      "Reverse curl",
+      "15",
+      "15 kg (33 lb)"
+     ],
+     [
+      "Reverse curl",
+      "15",
+      "15 kg (33 lb)"
+     ]
+    ],
+    "rest": "30 sec.",
+    "cues": [
+     "Forearms on a bench"
+    ],
+    "why": "Forearm size and the vein look.",
+    "alts": [
+     "Farmer carry",
+     "Dead hang, 3 x 30 sec"
+    ],
+    "advanced": null,
+    "blockB": null,
+    "demo": "https://www.youtube.com/results?search_query=wrist+curl+reverse+curl+form+tutorial",
+    "warmupSet": false,
+    "note": null,
+    "pair": null
+   }
+  ]
+ },
+ "cardio": {
+  "push": {
+   "title": "Incline treadmill, 12 min",
+   "how": [
+    "Speed 5.0-5.5 km/h (3.1-3.4 mph), incline 10%",
+    "Heart rate 120-140",
+    "If taken: bike 12 min or stair machine slow 10 min"
+   ]
+  },
+  "pull": {
+   "title": "Bike intervals, 12 min",
+   "how": [
+    "2 min easy, 8 x (30 sec hard / 30 sec easy), 2 min easy",
+    "Hard = you can't talk",
+    "If taken: rower same intervals or incline walk 12 min"
+   ]
+  },
+  "legs": {
+   "title": "Bike sprints, 8 min",
+   "how": [
+    "2 min easy, then 6 x (20 sec all-out / 40 sec easy)",
+    "If taken: rower sprints or incline walk 10 min"
+   ]
+  },
+  "upper": {
+   "title": "Incline treadmill, 12 min",
+   "how": [
+    "Speed 5.0-5.5 km/h, incline 10%",
+    "If taken: bike 12 min or elliptical 12 min"
+   ]
+  },
+  "lower": {
+   "title": "Incline walk, 10 min",
+   "how": [
+    "Speed 5.0 km/h, incline 8%",
+    "If taken: bike 10 min or skip"
+   ]
+  },
+  "arms": {
+   "title": "Incline walk, 15 min",
+   "how": [
+    "Speed 5.0-5.5 km/h, incline 10%",
+    "If taken: bike 15 min or elliptical 15 min"
+   ]
+  }
+ },
+ "warmupBase": [
+  [
+   "Easy bike or treadmill",
+   "3 min",
+   "Light pace, just get warm."
+  ],
+  [
+   "Neck mobility",
+   "5 each way",
+   "Chin tucks, ear-to-shoulder tilts, look left and right. No full head circles."
+  ],
+  [
+   "Arm circles",
+   "10 each way",
+   "Small to big, forward then back."
+  ],
+  [
+   "Cat-cow",
+   "8 reps",
+   "Round your back up, then let it sag. Breathe with it."
+  ]
+ ],
+ "warmupUpper": [
+  [
+   "Band pull-apart",
+   "15 reps",
+   "Arms straight at chest height, pull band to chest. No band: cable reverse fly, very light."
+  ],
+  [
+   "Band external rotation",
+   "12 each arm",
+   "Elbow pinned to your side, rotate out slowly. No band: cable, very light."
+  ],
+  [
+   "Band face pull",
+   "15 reps",
+   "Pull to eye level, thumbs back."
+  ],
+  [
+   "Wall scap push-up",
+   "10 reps",
+   "Arms straight, only the shoulder blades move."
+  ]
+ ],
+ "warmupLower": [
+  [
+   "Leg swings",
+   "10 each leg",
+   "Front-to-back, then side-to-side."
+  ],
+  [
+   "Bodyweight squat",
+   "10 reps",
+   "Slow, full depth you control."
+  ],
+  [
+   "Glute bridge",
+   "12 reps",
+   "Squeeze 1 sec at the top."
+  ],
+  [
+   "90/90 hip opener",
+   "6 each side",
+   "Rotate knees side to side."
+  ]
+ ],
+ "cooldownUpper": [
+  [
+   "Lat stretch",
+   "30 sec each side"
+  ],
+  [
+   "Overhead triceps stretch",
+   "30 sec each"
+  ],
+  [
+   "Doorway chest stretch, gentle",
+   "30 sec each"
+  ],
+  [
+   "Neck side stretch",
+   "30 sec each"
+  ],
+  [
+   "Child's pose",
+   "45 sec"
+  ]
+ ],
+ "cooldownLower": [
+  [
+   "Kneeling hip flexor stretch",
+   "30 sec each"
+  ],
+  [
+   "Hamstring stretch",
+   "30 sec each"
+  ],
+  [
+   "Standing quad stretch",
+   "30 sec each"
+  ],
+  [
+   "Figure-4 glute stretch",
+   "30 sec each"
+  ],
+  [
+   "Calf stretch on a wall",
+   "30 sec each"
+  ]
+ ],
+ "satOption2": {
+  "title": "Cardio + Core + Mobility",
+  "blocks": [
+   [
+    "Zone 2 cardio, 30 min",
+    "Incline walk 5.0-5.5 km/h at 10-12% or bike 75-85 rpm. Heart rate 120-140."
+   ],
+   [
+    "Core circuit x3",
+    "Cable crunch 15 · Hanging knee raise 12 · Side plank 30 sec/side · Dead bug 10/side · Pallof press 12/side. Rest 60 sec between rounds."
+   ],
+   [
+    "Mobility, 10 min",
+    "Thoracic rotation 8/side · 90/90 hip switch 8/side · World's greatest stretch 5/side · Hip flexor stretch 45 sec · Child's pose 60 sec."
+   ]
+  ]
+ },
+ "pdf": {
+  "push": "1_Mon_Push.pdf",
+  "pull": "2_Tue_Pull.pdf",
+  "legs": "3_Wed_Legs.pdf",
+  "upper": "4_Thu_Upper.pdf",
+  "lower": "5_Fri_Lower.pdf",
+  "arms": "6A_Sat_Option1_Arms_Delts.pdf",
+  "core": "6B_Sat_Option2_Cardio_Core.pdf",
+  "rest": "7_Sun_Rest.pdf"
+ }
+}

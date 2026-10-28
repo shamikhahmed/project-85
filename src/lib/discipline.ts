@@ -8,6 +8,7 @@ import type {
   ScoreWeights,
 } from '../domain/types';
 import { CONSEQUENCE_CATALOG } from '../domain/defaults';
+import { calorieTargetFor } from '../domain/plan';
 
 /** Minimum logging completeness before calorie/protein can score as achieved */
 const MACRO_SUCCESS_LOGGING_MIN = 0.6;
@@ -105,7 +106,7 @@ function scoreCalories(agg: DayAggregate, s: AppSettings): GoalOutcome {
   if (agg.loggingCompleteness < MACRO_SUCCESS_LOGGING_MIN || !agg.honestyAnswered) {
     return agg.foodEntryCount > 0 ? 'missed_honest' : 'not_entered';
   }
-  const ratio = agg.calories / s.calorieTarget;
+  const ratio = agg.calories / calorieTargetFor(s, agg.date);
   // Starvation guard: under 60% of target with "complete" log is NOT success
   if (ratio < 0.6) return 'missed_honest';
   if (ratio <= 1.1) return 'achieved';
@@ -225,7 +226,7 @@ export function nextActions(agg: DayAggregate, settings: AppSettings): string[] 
       `${settings.waterTargetMl - agg.waterMl} ml water remaining — sip steadily.`,
     );
   }
-  if (agg.calories >= settings.calorieTarget) {
+  if (agg.calories >= calorieTargetFor(settings, agg.date)) {
     // Do NOT encourage filling remaining calories
     actions.push('Calorie target reached — no need to “use up” remaining allowance.');
   }

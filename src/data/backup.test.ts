@@ -198,7 +198,7 @@ describe('validateBackupPayload', () => {
     const fixture = backupPayloadFixture();
     const validated = validateBackupPayload(fixture);
     expect(validated.version).toBe(1);
-    expect(validated.settings.startingWeightKg).toBe(96.5);
+    expect(validated.settings.startingWeightKg).toBe(96);
     expect(validated.weights).toHaveLength(1);
   });
 

@@ -17,6 +17,8 @@ import {
 import { buildRecoveryPlan } from '../lib/recovery';
 import { assessWeightTrend } from '../lib/weightTrend';
 import { useAppStore, useWeightProgress } from '../store/useAppStore';
+import { calorieTargetFor, missionFor, planPhase, sessionFor, PLAN_START } from '../domain/plan';
+import type { ISODate } from '../domain/types';
 
 const STATUS_CLASS: Record<string, string> = {
   ON_TRACK: 'badge-ok',
@@ -185,7 +187,10 @@ export function Dashboard() {
   return (
     <div className="stack page">
       <p className="greeting">
-        <strong>{timeGreeting()}.</strong> Day {daysIn + 1} · {daysLeft} days left
+        <strong>{timeGreeting()}.</strong>{' '}
+        {today < settings.startDate
+          ? `Starts in ${calendarDaysElapsed(today, settings.startDate)} days · ${daysLeft} days to the birthday`
+          : `Day ${daysIn + 1} · ${daysLeft} days left`}
       </p>
 
       {comeback && comeback.missedDays >= 2 && (
@@ -281,6 +286,8 @@ export function Dashboard() {
           )}
         </p>
       </header>
+
+      <TodayTrainingPanel date={today} />
 
       <section className="panel" aria-label="Body & health">
         <div className="section-head">
@@ -419,10 +426,10 @@ export function Dashboard() {
               value={
                 agg.foodEntryCount === 0
                   ? 'Not tracked'
-                  : `${Math.round(agg.calories)} / ${settings.calorieTarget}`
+                  : `${Math.round(agg.calories)} / ${calorieTargetFor(settings, agg.date)}`
               }
               progress={
-                agg.foodEntryCount === 0 ? null : Math.min(1, agg.calories / settings.calorieTarget)
+                agg.foodEntryCount === 0 ? null : Math.min(1, agg.calories / calorieTargetFor(settings, agg.date))
               }
               status={
                 agg.foodEntryCount === 0
@@ -498,5 +505,32 @@ export function Dashboard() {
         onClose={() => setQuickOpen(false)}
       />
     </div>
+  );
+}
+
+function TodayTrainingPanel({ date }: { date: ISODate }) {
+  const session = sessionFor(date);
+  const phase = planPhase(date);
+  const mission = missionFor(date < PLAN_START ? PLAN_START : date);
+  return (
+    <section className="panel stack" aria-labelledby="train-today-title">
+      <div className="section-head">
+        <div>
+          <p className="briefing-kicker">
+            {phase.phase === 'Before start' ? 'Starts Tue 3 Nov' : `Week ${phase.week} · ${phase.mode}`}
+          </p>
+          <h2 id="train-today-title" className="briefing-title" style={{ fontSize: '1.25rem' }}>
+            {date < PLAN_START ? 'First session: Push' : session.label}
+            {session.note && date >= PLAN_START ? ` · ${session.note}` : ''}
+          </h2>
+        </div>
+        <Link className="btn btn-primary" to="/train">
+          Open
+        </Link>
+      </div>
+      <p className="muted" style={{ margin: 0 }}>
+        <strong>Week {mission.week} mission:</strong> {mission.text}
+      </p>
+    </section>
   );
 }

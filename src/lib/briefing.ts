@@ -1,6 +1,7 @@
 import type { AppSettings, DayAggregate, DayScore } from '../domain/types';
 import type { WeightTrendAssessment } from './weightTrend';
 import { dailyWeightVsTrendMessage } from './weightTrend';
+import { calorieTargetFor } from '../domain/plan';
 
 export interface BriefingInput {
   settings: AppSettings;
@@ -70,7 +71,7 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const caloriesRemaining =
     agg.foodEntryCount === 0
       ? null
-      : Math.round(settings.calorieTarget - agg.calories);
+      : Math.round(calorieTargetFor(settings, agg.date) - agg.calories);
   const proteinRemaining =
     agg.foodEntryCount === 0
       ? null
@@ -103,7 +104,7 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     );
   } else {
     bullets.push(
-      `Calories ${Math.round(agg.calories)} / ${settings.calorieTarget}${
+      `Calories ${Math.round(agg.calories)} / ${calorieTargetFor(settings, agg.date)}${
         caloriesRemaining != null && caloriesRemaining > 0
           ? ` · ~${caloriesRemaining} remaining (estimate)`
           : ''

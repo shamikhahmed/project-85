@@ -15,6 +15,7 @@ import { BodyIntelligencePage } from './pages/BodyIntelligencePage';
 import { MotivationPage } from './pages/MotivationPage';
 import { TimelinePage } from './pages/TimelinePage';
 import { HealthIntelligencePage } from './pages/HealthIntelligencePage';
+import { TrainingPage } from './pages/TrainingPage';
 import { useAppStore } from './store/useAppStore';
 
 export default function App() {
@@ -82,6 +83,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/log" element={<DailyLog />} />
+            <Route path="/train" element={<TrainingPage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/discipline" element={<DisciplinePage />} />
             <Route path="/physique" element={<BodyMapPage />} />

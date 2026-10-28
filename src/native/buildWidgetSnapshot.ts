@@ -8,6 +8,7 @@ import {
   type WidgetSnapshot,
   type WidgetTrendDirection,
 } from './widgetSnapshot';
+import { calorieTargetFor } from '../domain/plan';
 
 export interface BuildWidgetSnapshotInput {
   settings: AppSettings;
@@ -107,7 +108,7 @@ export function buildWidgetSnapshot(input: BuildWidgetSnapshotInput): WidgetSnap
     ),
     calories: metricProgress(
       agg.foodEntryCount > 0 ? Math.round(agg.calories) : null,
-      settings.calorieTarget,
+      calorieTargetFor(settings, today),
       'kcal',
       'Calories',
       foodProvisional,

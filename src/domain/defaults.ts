@@ -1,11 +1,11 @@
 import type { AppSettings, HonestyChecklist, ScoreWeights } from './types';
 /** Default stature for BMI when user hasn't set height yet — null until confirmed in Settings. */
 
-export const MISSION_START = '2026-10-27';
+export const MISSION_START = '2026-11-03';
 export const MISSION_DEADLINE = '2027-01-15';
-export const DEFAULT_START_WEIGHT = 96.5;
+export const DEFAULT_START_WEIGHT = 96.0;
 export const DEFAULT_TARGET_WEIGHT = 85.0;
-export const DEFAULT_REQUIRED_LOSS = 11.5;
+export const DEFAULT_REQUIRED_LOSS = 11.0;
 
 export const DEFAULT_SCORE_WEIGHTS: ScoreWeights = {
   steps: 15,
@@ -35,14 +35,14 @@ export function createDefaultSettings(now = new Date().toISOString()): AppSettin
     deadline: MISSION_DEADLINE,
     startingWeightKg: DEFAULT_START_WEIGHT,
     targetWeightKg: DEFAULT_TARGET_WEIGHT,
-    calorieTarget: 2200,
-    proteinTargetG: 160,
-    carbsTargetG: null,
-    fatTargetG: null,
+    calorieTarget: 2150,
+    proteinTargetG: 240,
+    carbsTargetG: 151,
+    fatTargetG: 65,
     fibreTargetG: 30,
     waterTargetMl: 3000,
     stepsTarget: 10000,
-    sleepTargetHours: 8,
+    sleepTargetHours: 7,
     cigaretteTarget: 0,
     theme: 'dark',
     units: 'metric',
@@ -62,6 +62,8 @@ export function createDefaultSettings(now = new Date().toISOString()): AppSettin
     focusMode: false,
     shoulderCaution: true,
     avoidChai: true,
+    dayTypeCalories: true,
+    planVersion: 2,
     createdAt: now,
     updatedAt: now,
   };

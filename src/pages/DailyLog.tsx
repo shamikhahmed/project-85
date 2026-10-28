@@ -133,7 +133,7 @@ function WeightPanel({
   onSaved: () => Promise<void>;
   toast: (m: string) => void;
 }) {
-  const [kg, setKg] = useState('96.5');
+  const [kg, setKg] = useState('96');
   const [waist, setWaist] = useState('');
   const [notes, setNotes] = useState('');
   const [estimate, setEstimate] = useState(false);
