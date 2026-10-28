@@ -213,6 +213,14 @@ export function SettingsPage() {
         <label className="row">
           <input
             type="checkbox"
+            checked={settings.dayTypeCalories !== false}
+            onChange={(e) => void save({ dayTypeCalories: e.target.checked })}
+          />
+          Day-specific calories — Saturday −50 kcal, rest days −400 kcal (carbs carry it)
+        </label>
+        <label className="row">
+          <input
+            type="checkbox"
             checked={settings.accountabilityEnabled}
             onChange={(e) => void save({ accountabilityEnabled: e.target.checked })}
           />
