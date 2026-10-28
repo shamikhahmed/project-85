@@ -13,6 +13,13 @@ const BACKUP_ARRAY_KEYS = [
   'scores',
   'xp',
   'achievements',
+  'bodyMeasurements',
+  'motivationItems',
+  'personalLetters',
+  'journalEntries',
+  'progressPhotos',
+  'healthRecords',
+  'healthConnections',
 ] as const satisfies ReadonlyArray<keyof BackupPayload>;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -60,6 +67,13 @@ export function validateBackupPayload(payload: unknown): BackupPayload {
     scores: data.scores ?? [],
     xp: data.xp ?? [],
     achievements: data.achievements ?? [],
+    bodyMeasurements: data.bodyMeasurements ?? [],
+    motivationItems: data.motivationItems ?? [],
+    personalLetters: data.personalLetters ?? [],
+    journalEntries: data.journalEntries ?? [],
+    progressPhotos: data.progressPhotos ?? [],
+    healthRecords: data.healthRecords ?? [],
+    healthConnections: data.healthConnections ?? [],
   };
 }
 
@@ -139,6 +153,9 @@ export function backupToCsv(payload: BackupPayload): string {
   }
   for (const sc of payload.scores) {
     lines.push(`score,${sc.date},${sc.status},${sc.total}`);
+  }
+  for (const m of payload.bodyMeasurements ?? []) {
+    lines.push(`measurement,${m.date},${m.type},${m.valueCm}`);
   }
   return lines.join('\n');
 }

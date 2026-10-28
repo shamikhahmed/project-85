@@ -17,9 +17,14 @@ export function MetricChip({ label, value, detail, progress, status = 'open' }: 
     <div className={`metric-chip metric-chip--${status}`}>
       <div className="metric-chip-top">
         <span className="metric-chip-label">{label}</span>
-        {status !== 'open' && (
-          <span className={`badge badge-${status === 'done' ? 'ok' : status === 'warn' ? 'warn' : 'info'}`}>
-            {status === 'done' ? 'Done' : status === 'provisional' ? 'Est.' : 'Open'}
+        {status === 'provisional' && (
+          <span className="badge badge-warn" style={{ minHeight: 22, padding: '0 8px' }}>
+            Est.
+          </span>
+        )}
+        {status === 'done' && (
+          <span className="dim" style={{ fontSize: 'var(--text-caption)', fontWeight: 600 }}>
+            Done
           </span>
         )}
       </div>

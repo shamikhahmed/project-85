@@ -36,6 +36,127 @@ export type GoalOutcome =
 
 export type ThemeMode = 'dark' | 'light' | 'system';
 
+export type BiologicalSex = 'male' | 'female' | 'unspecified';
+
+export type LengthUnit = 'cm' | 'in';
+
+export type MotivationalTone = 'calm' | 'firm' | 'celebratory';
+
+export type BodyView = 'front' | 'side' | 'back';
+
+export type PhotoPose = 'front' | 'side' | 'back';
+
+/** Stable catalogue keys — left/right and relaxed/flexed are never merged. */
+export type BodyMeasurementType =
+  | 'height'
+  | 'neck'
+  | 'shoulders'
+  | 'chest'
+  | 'upper_chest'
+  | 'waist_natural'
+  | 'waist_navel'
+  | 'abdomen'
+  | 'hips'
+  | 'bicep_left_relaxed'
+  | 'bicep_left_flexed'
+  | 'bicep_right_relaxed'
+  | 'bicep_right_flexed'
+  | 'forearm_left'
+  | 'forearm_right'
+  | 'wrist_left'
+  | 'wrist_right'
+  | 'thigh_left'
+  | 'thigh_right'
+  | 'calf_left'
+  | 'calf_right'
+  | 'ankle_left'
+  | 'ankle_right'
+  | 'custom';
+
+export type MeasurementCondition =
+  | 'morning_fasted'
+  | 'evening'
+  | 'post_workout'
+  | 'other'
+  | 'unspecified';
+
+export interface BodyMeasurement {
+  id: string;
+  type: BodyMeasurementType;
+  /** Display label for custom types */
+  customLabel?: string;
+  /** Always stored in centimetres for length; weight uses WeightEntry */
+  valueCm: number;
+  date: ISODate;
+  /** ISO datetime of capture */
+  measuredAt: string;
+  note?: string;
+  condition: MeasurementCondition;
+  bodyView?: BodyView;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MotivationKind =
+  | 'reason'
+  | 'aspiration'
+  | 'value'
+  | 'reminder'
+  | 'milestone'
+  | 'suggested';
+
+export interface MotivationItem {
+  id: string;
+  kind: MotivationKind;
+  /** User-authored unless kind === 'suggested' */
+  source: 'user' | 'suggested';
+  title: string;
+  body: string;
+  pinned: boolean;
+  hidden: boolean;
+  showOnDashboard: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersonalLetter {
+  id: string;
+  title: string;
+  body: string;
+  /** Local date when letter may be opened */
+  openOn: ISODate;
+  openedAt: string | null;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  date: ISODate;
+  prompt?: string;
+  body: string;
+  /** true when body came from speech recognition */
+  fromVoice: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProgressPhoto {
+  id: string;
+  date: ISODate;
+  pose: PhotoPose;
+  note?: string;
+  /** data: URL — local only; never auto-uploaded */
+  dataUrl: string;
+  mimeType: string;
+  /** Explicit consent before any future AI/external analysis */
+  consentExternalAnalysis: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppSettings {
   id: 'settings';
   startDate: ISODate;
@@ -53,6 +174,15 @@ export interface AppSettings {
   cigaretteTarget: number;
   theme: ThemeMode;
   units: 'metric';
+  /** Length display preference for body measurements */
+  lengthUnit: LengthUnit;
+  /** Profile for BMR/BMI — optional until set */
+  heightCm: number | null;
+  biologicalSex: BiologicalSex;
+  birthYear: number | null;
+  motivationalTone: MotivationalTone;
+  showDailyEncouragement: boolean;
+  measurementRemindersEnabled: boolean;
   remindersEnabled: boolean;
   reminderTimes: string[];
   accountabilityEnabled: boolean;
@@ -278,6 +408,14 @@ export interface BackupPayload {
   scores: DayScore[];
   xp: XpEvent[];
   achievements: Achievement[];
+  bodyMeasurements?: BodyMeasurement[];
+  motivationItems?: MotivationItem[];
+  personalLetters?: PersonalLetter[];
+  journalEntries?: JournalEntry[];
+  progressPhotos?: ProgressPhoto[];
+  /** Canonical imported/calculated health rows (v0.9+) */
+  healthRecords?: import('../health/types').HealthMetricRecord[];
+  healthConnections?: import('../health/types').HealthConnectionState[];
 }
 
 export interface DayAggregate {

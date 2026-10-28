@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assessWeightTrend } from './weightTrend';
+import { assessWeightTrend, dailyWeightVsTrendMessage } from './weightTrend';
 
 const day = (n: number) => `2026-11-${String(n).padStart(2, '0')}`;
 const series = (vals: number[], startDay = 1) =>
@@ -41,11 +41,30 @@ describe('assessWeightTrend', () => {
     expect(r.message).not.toMatch(/fail/i);
   });
 
-  it('calls a flat average stable, not a failure', () => {
+  it('calls a short flat average stable, not a plateau or failure', () => {
     const vals = [95, 95.2, 94.9, 95.1, 95, 95.1, 95.0, 95.1, 94.9, 95, 95.2, 95, 95.1, 95];
     const r = assessWeightTrend(series(vals));
     expect(r.status).toBe('stable');
     expect(r.message).not.toMatch(/plateau|fail/i);
+  });
+
+  it('labels a longer flat span as plateau without panic language', () => {
+    const vals = Array.from({ length: 22 }, (_, i) => 95 + ((i % 3) - 1) * 0.05);
+    const r = assessWeightTrend(series(vals));
+    expect(r.status).toBe('plateau');
+    expect(r.message).toMatch(/flat|plateau/i);
+    expect(r.message).not.toMatch(/fail|punish/i);
+  });
+
+  it('explains daily up vs downward weekly trend', () => {
+    const vals = [97, 96.9, 97.1, 96.8, 96.9, 97, 96.8, 96.2, 96.1, 96.3, 96, 96.1, 96.2, 95.9];
+    const trend = assessWeightTrend(series(vals));
+    const msg = dailyWeightVsTrendMessage({
+      todayKg: 96.5,
+      previousKg: 95.9,
+      trend,
+    });
+    expect(msg).toMatch(/up|don’t panic|longer-term/i);
   });
 
   it('labels big day-to-day swings as noisy', () => {

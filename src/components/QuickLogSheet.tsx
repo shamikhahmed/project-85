@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WATER_QUICK_ADDS } from '../domain/defaults';
-import type { FoodLibraryItem } from '../domain/types';
+import type { FoodEntry, FoodLibraryItem } from '../domain/types';
 import * as repo from '../data/repository';
-import { toLocalISODate } from '../lib/dates';
+import { previousISODate, toLocalISODate } from '../lib/dates';
 import { useAppStore } from '../store/useAppStore';
 
 export type QuickLogMode = 'meal' | 'water' | 'steps' | 'weight' | null;
@@ -32,6 +32,7 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
   const [steps, setSteps] = useState('');
   const [weight, setWeight] = useState('');
   const [query, setQuery] = useState('');
+  const [recentFoods, setRecentFoods] = useState<FoodEntry[]>([]);
   const savingRef = useRef(false);
 
   useEffect(() => {
@@ -42,6 +43,34 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
     setSteps(agg?.steps != null ? String(agg.steps) : '');
     setWeight(agg?.primaryWeightKg != null ? String(agg.primaryWeightKg) : '');
   }, [open, initialMode, agg?.steps, agg?.primaryWeightKg]);
+
+  useEffect(() => {
+    if (!open || mode !== 'meal') return;
+    void (async () => {
+      const y = previousISODate(selectedDate);
+      const y2 = previousISODate(y);
+      const [a, b] = await Promise.all([repo.getFoodsByDate(y), repo.getFoodsByDate(y2)]);
+      const seen = new Set<string>();
+      const merged: FoodEntry[] = [];
+      for (const f of [...a, ...b]) {
+        const key = `${f.name}|${f.portion ?? ''}|${f.calories}|${f.proteinG}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(f);
+        if (merged.length >= 8) break;
+      }
+      setRecentFoods(merged);
+    })();
+  }, [open, mode, selectedDate]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, busy, onClose]);
 
   const meals = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -90,6 +119,26 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
         enteredLate: selectedDate !== toLocalISODate(),
       });
     }, `Logged ${item.name}`);
+
+  const logRecent = (entry: FoodEntry) =>
+    void run(async () => {
+      await repo.addFood({
+        date: selectedDate,
+        category: entry.category,
+        name: entry.name,
+        portion: entry.portion,
+        calories: entry.calories,
+        proteinG: entry.proteinG,
+        carbsG: entry.carbsG,
+        fatG: entry.fatG,
+        fibreG: entry.fibreG,
+        confidence: entry.confidence,
+        libraryItemId: entry.libraryItemId,
+        calorieRangeMin: entry.calorieRangeMin,
+        calorieRangeMax: entry.calorieRangeMax,
+        enteredLate: selectedDate !== toLocalISODate(),
+      });
+    }, `Logged ${entry.name} again`);
 
   const addWater = (ml: number) =>
     void run(async () => {
@@ -202,16 +251,40 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
                   />
                 </label>
                 <p className="dim" style={{ margin: 0, fontSize: 'var(--text-footnote)' }}>
-                  Your meals rise with use. One tap logs as-is — estimates stay labelled. Editing
-                  today’s entry never changes the template.
+                  One tap logs as-is — estimates stay labelled. Editing today’s entry never changes
+                  the template.
                 </p>
+                {!query.trim() && recentFoods.length > 0 && (
+                  <>
+                    <p className="briefing-kicker" style={{ marginTop: 4 }}>
+                      Recent (re-log)
+                    </p>
+                    <div className="ql-meal-list">
+                      {recentFoods.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          className="ql-meal"
+                          disabled={busy}
+                          onClick={() => logRecent(entry)}
+                        >
+                          <span className="ql-meal-name">{entry.name}</span>
+                          <span className="dim" style={{ fontSize: 'var(--text-caption)' }}>
+                            {entry.calories} kcal · P{entry.proteinG} · {entry.confidence} · from{' '}
+                            {entry.date}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
                 {!query.trim() && meals.some((m) => m.useCount > 0) && (
                   <p className="briefing-kicker" style={{ marginTop: 4 }}>
                     Your frequent meals
                   </p>
                 )}
                 <div className="ql-meal-list">
-                  {meals.length === 0 && (
+                  {meals.length === 0 && recentFoods.length === 0 && (
                     <p className="muted">
                       No matching meals — add templates in Settings → Food library.
                     </p>

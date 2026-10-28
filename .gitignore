@@ -28,3 +28,13 @@ qa-*.png
 *.png
 !public/*.png
 !public/brand/*.png
+!ios/App/App/public/**/*.png
+!ios/App/App/Assets.xcassets/**/*.png
+
+# Capacitor / Xcode
+ios/App/Pods
+ios/App/App/public/hot
+ios/DerivedData
+**/xcuserdata/
+*.xcuserstate
+.DS_Store

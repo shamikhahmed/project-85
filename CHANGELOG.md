@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.9.0 — 2026-10-28
+
+### Health Intelligence + Body Map / Motivation / Timeline
+- Canonical health model, metric registry, provider adapters with honest connection states (`HEALTH_INTELLIGENCE.md`)
+- Health Profile domain scores; **numerical biological age explicitly not implemented**
+- Dexie v2/v3: body measurements, motivation, letters, journal, progress photos, health records/connections
+- Screens: `/physique`, `/body`, `/health`, `/motivation`, `/timeline`
+- Body metrics: BMI, Mifflin–St Jeor BMR, TDEE estimate, optional Navy BF% estimate (labelled)
+- Zero-effort: calories/water show **Not tracked** when empty; no invented hydration
+- Backup/restore includes new tables; PWA remains functional without HealthKit
+- Manual logs mirror into `healthRecords` on init + Health **Sync now**; Apple Connect button uses Capgo bridge
+- Capacitor `ios/` shell added; HealthKit usage strings in Info.plist (`NATIVE_HEALTHKIT.md`)
+- Physique: measurement systems separated + Table & charts (CSV, bars, site history)
+
+### Not live (documented blockers)
+- Apple HealthKit **live samples** still need signed Xcode build + HealthKit capability on device
+- Google Health OAuth, Zepp Open Platform, WidgetKit device install
+
+## 0.8.0 — 2026-10-28
+
+### Product intelligence (Phase 1)
+- Evidence-based audit + roadmap: `PRODUCT_ROADMAP.md`
+- **Daily Mission**: day-kind labels, sleep-adaptive copy, mission title on Today
+- **Trend Truth Engine**: plateau status (≥21-day flat), daily-vs-trend calm messaging, birthday forecast with estimated arrival
+- **Quick Log**: re-log recent meals from the last two days in one tap
+- **Comeback**: two-tap restart actions (meal / weight / suggested / water)
+- Widget JSON contract scaffolding retained under `src/native/` — **not device-tested**; no fake “connected” UI
+
+### Tests
+- 55 Vitest tests passing; typecheck + production build green
+
+## 0.7.0 — 2026-10-28
+
+### Visual audit → premium polish
+- Honest hero: dashed “awaiting scale” ring when no weigh-in (no fake 0% failure state)
+- Flattened hero metrics (start / now / target / to go) — removed nested card grid + duplicate progress bar
+- Command Centre + focused Quick Log (4 primary actions; secondary text links)
+- Compact “This week” teaser on Today; full weekly review on Progress
+- Today metrics trimmed to steps / calories / protein / water (secondary status line for the rest)
+- SVG nav icons; quieter lime (less glow/gradient chrome); system font enforced on charts/tooltips
+- Boot / loading branded with lime **85**; install banner quieter
+- Food library dedupe by name on init (keeps highest-use template; does not wipe logs)
+- PWA build: exclude `public/brand/**` masters from Workbox precache
+
+### Already present (retained)
+- Quick Log sheet, Focus Mode, Nightly Truth, Pakistani food library, weight trend honesty gates, backup/restore, IndexedDB persistence
+
 ## 0.6.0 — 2026-10-27
 
 ### Premium dark UI (production visual language)

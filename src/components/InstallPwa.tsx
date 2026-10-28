@@ -126,9 +126,9 @@ export function InstallPwaBanner() {
           justify-content: space-between;
           gap: 12px;
           flex-wrap: wrap;
-          margin-bottom: 16px;
-          border-color: var(--accent);
-          background: linear-gradient(135deg, var(--accent-soft), var(--bg-elevated));
+          margin-bottom: 14px;
+          border-color: rgba(196, 243, 107, 0.28);
+          background: var(--bg-elevated);
         }
       `}</style>
     </div>

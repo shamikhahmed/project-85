@@ -61,6 +61,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       const latestWeightKg = await loadLatestPrimaryWeight();
       set({ settings, foodLibrary, latestWeightKg, ready: true, error: null });
       await get().refreshDay();
+      // Mirror manual logs into canonical health store (non-blocking)
+      void import('../health/syncEngine')
+        .then((m) => m.syncManualIntoHealthStore())
+        .catch(() => undefined);
     } catch (e) {
       set({
         error: e instanceof Error ? e.message : 'Storage unavailable',

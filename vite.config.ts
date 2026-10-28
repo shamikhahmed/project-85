@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const base = process.env.GITHUB_PAGES === '1' ? '/project-85/' : '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -29,8 +32,8 @@ export default defineConfig({
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait-primary',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         lang: 'en',
         categories: ['health', 'fitness', 'lifestyle'],
         icons: [
@@ -62,7 +65,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2,webmanifest}'],
-        navigateFallback: '/index.html',
+        // Brand masters are source assets for icon generation — not runtime-needed.
+        globIgnores: ['**/brand/**'],
+        navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {

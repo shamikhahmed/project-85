@@ -4,6 +4,9 @@ Personal birthday transformation mission control. Local-first **PWA** for one pe
 
 **Mission:** 27 Oct 2026 → 15 Jan 2027 · **Target:** 85.0 kg · **Start:** 96.5 kg (11.5 kg to lose)
 
+**Live PWA:** https://shamikhahmed.github.io/project-85/  
+(iPhone Safari → Share → **Add to Home Screen**)
+
 ## Quick start
 
 ```bash
@@ -16,42 +19,52 @@ npm run dev
 ```bash
 npm run build
 npm run preview
+# GitHub Pages (hash routes):
+GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 ```
 
-- **Chrome/Edge:** install from the address bar or the in-app Install banner  
-- **iPhone Safari:** Share → **Add to Home Screen**
+## What’s in v0.9
 
-After first load, the service worker caches the app shell. Logs live in IndexedDB on this device only — export backups from Settings.
+| Area | Status |
+|------|--------|
+| Today / Log / Progress / Review / History / Settings | Working |
+| Physique (separate measurement systems + table & charts) | Working |
+| Body Intelligence (BMI / BMR / TDEE estimates) | Working |
+| Health Intelligence (profile + honest source status + sync mirror) | Working |
+| Motivation / Timeline | Working |
+| Manual → `healthRecords` sync | Working in PWA |
+| Apple HealthKit live read | **Native Capacitor app only** — see `NATIVE_HEALTHKIT.md` |
+| Google Health / Fitbit Air API | **Blocked** — needs OAuth backend (`INTEGRATION_MATRIX.md`) |
+| Biological age in years | **Not implemented** (Health Profile only) |
+| WidgetKit | Scaffold only (`NATIVE_WIDGETS.md`) |
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Dev server (SW enabled for smoke tests) |
+| `npm run dev` | Dev server |
 | `npm run build` | Icons + typecheck + production build |
 | `npm run preview` | Serve production build |
-| `npm test` | Vitest (40 tests) |
+| `npm test` | Vitest |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | Oxlint |
+| `npx cap sync ios` | Sync web build into native shell (after `cap add ios`) |
 
 ## Stack
 
-Vite · React 19 · TypeScript · Dexie · Zustand · Recharts · Framer Motion · vite-plugin-pwa
+Vite · React 19 · TypeScript · Dexie · Zustand · Recharts · Framer Motion · vite-plugin-pwa · Capacitor (+ `@capgo/capacitor-health`)
 
 ## Docs
 
-- [PROJECT_SPEC.md](./PROJECT_SPEC.md)
-- [RESEARCH_DOSSIER.md](./RESEARCH_DOSSIER.md)
-- [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)
+- [HEALTH_INTELLIGENCE.md](./HEALTH_INTELLIGENCE.md)
+- [NATIVE_HEALTHKIT.md](./NATIVE_HEALTHKIT.md)
+- [INTEGRATION_MATRIX.md](./INTEGRATION_MATRIX.md)
+- [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md)
 - [DATA_MODEL.md](./DATA_MODEL.md)
-- [FEATURE_QUESTIONNAIRE.md](./FEATURE_QUESTIONNAIRE.md) — fill / paste into ChatGPT for next features
-- [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
-- [TEST_PLAN.md](./TEST_PLAN.md)
-- [AGENT_WORK_LOG.md](./AGENT_WORK_LOG.md)
 - [CHANGELOG.md](./CHANGELOG.md)
 
 ## Important limitations
 
-- Manual steps only — no Apple Health / Fitbit / Google Fit until a real integration is built  
+- Clearing browser storage or uninstalling can erase local data — export backups from Settings  
 - No cloud sync across devices  
-- Clearing browser storage or uninstalling can erase local data  
+- Wearable imports need native/OAuth work documented above — the app will **not** fake a connection  

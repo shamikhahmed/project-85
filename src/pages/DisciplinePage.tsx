@@ -42,10 +42,9 @@ export function DisciplinePage() {
             color={score.total >= 70 ? 'var(--success)' : 'var(--accent)'}
           />
         </div>
-        <p className="dim" style={{ fontSize: '0.8rem', marginTop: 12 }}>
-          Formula: each category weight W → achieved/N/A = W · honest miss = ⌊W×0.35⌋ · not
-          entered = 0. Missing data is never treated as success. Starvation (&lt;60% calories with
-          complete honesty) cannot score as calorie success. Total capped at 100.
+        <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 12 }}>
+          Missing logs never count as success. Starvation cannot score as a calorie win. Honesty
+          and recovery still earn XP.
         </p>
       </header>
 

@@ -60,6 +60,16 @@ export function requiredWeeklyLossKg(
   return round2(remainingKg / weeks);
 }
 
+export interface WeightProjection {
+  projectedKg: number;
+  confidence: 'estimate' | 'insufficient_data';
+  /** Estimated ISO date of hitting target at current rate; null if insufficient or rate ≥ 0 */
+  estimatedArrivalDate: string | null;
+  /** kg/week implied by recent rate (negative = losing). Null if insufficient. */
+  recentWeeklyRateKg: number | null;
+  paceNote: string;
+}
+
 /**
  * Linear projected weight from start→current rate.
  * Requires ≥3 primary weights spanning ≥7 days. Label as estimate only.
@@ -68,24 +78,56 @@ export function projectWeightAtDeadline(opts: {
   weights: { date: string; weightKg: number }[];
   deadline: string;
   startDate: string;
-}): { projectedKg: number; confidence: 'estimate' | 'insufficient_data' } {
+  targetWeightKg: number;
+}): WeightProjection {
   const sorted = [...opts.weights].sort((a, b) => a.date.localeCompare(b.date));
+  const insufficient = (projectedKg: number): WeightProjection => ({
+    projectedKg,
+    confidence: 'insufficient_data',
+    estimatedArrivalDate: null,
+    recentWeeklyRateKg: null,
+    paceNote: 'Need ≥3 morning weigh-ins spanning ≥7 days before projecting.',
+  });
+
   if (sorted.length < 3) {
-    return { projectedKg: sorted.at(-1)?.weightKg ?? NaN, confidence: 'insufficient_data' };
+    return insufficient(sorted.at(-1)?.weightKg ?? NaN);
   }
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
   const spanDays =
     (Date.parse(last.date) - Date.parse(first.date)) / (1000 * 60 * 60 * 24);
   if (spanDays < 7) {
-    return { projectedKg: last.weightKg, confidence: 'insufficient_data' };
+    return insufficient(last.weightKg);
   }
   const ratePerDay = (last.weightKg - first.weightKg) / spanDays;
+  const recentWeeklyRateKg = round2(ratePerDay * 7);
   const daysToDeadline =
     (Date.parse(opts.deadline) - Date.parse(last.date)) / (1000 * 60 * 60 * 24);
+  const projectedKg = round1(last.weightKg + ratePerDay * daysToDeadline);
+
+  let estimatedArrivalDate: string | null = null;
+  if (ratePerDay < -0.01 && last.weightKg > opts.targetWeightKg) {
+    const daysNeeded = (last.weightKg - opts.targetWeightKg) / -ratePerDay;
+    const arrival = new Date(Date.parse(last.date) + daysNeeded * 86400000);
+    estimatedArrivalDate = arrival.toISOString().slice(0, 10);
+  }
+
+  let paceNote: string;
+  if (recentWeeklyRateKg >= 0) {
+    paceNote =
+      'Recent rate is not losing weight. Projection is an estimate only — not a promise or a crash-diet plan.';
+  } else if (Math.abs(recentWeeklyRateKg) > 0.9) {
+    paceNote = `Recent pace ~${Math.abs(recentWeeklyRateKg)} kg/week is ambitious. Prefer sustainable loss; never crash diet to force the birthday date.`;
+  } else {
+    paceNote = `Recent pace ~${Math.abs(recentWeeklyRateKg)} kg/week (estimate). Birthday date is a milestone, not a medical guarantee.`;
+  }
+
   return {
-    projectedKg: round1(last.weightKg + ratePerDay * daysToDeadline),
+    projectedKg,
     confidence: 'estimate',
+    estimatedArrivalDate,
+    recentWeeklyRateKg,
+    paceNote,
   };
 }
 

@@ -37,3 +37,8 @@ Short ease-out transitions; Framer for sheets. `prefers-reduced-motion` honored.
 3. Charts never invent missing data  
 4. Touch ≥ 44px; safe-area aware  
 5. No manipulative streaks or neon chrome  
+
+## Honesty in chrome
+- Progress ring shows **awaiting scale** (dashed track) until the first weigh-in — never a misleading 0% “failure”.
+- Incomplete food logs stay labelled provisional / estimated; blank ≠ zero.
+- Prefer flat charcoal surfaces + restrained lime over glow, dual gradients, and nested card grids. 

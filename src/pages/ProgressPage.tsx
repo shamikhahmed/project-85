@@ -19,6 +19,8 @@ import {
   sevenDayRollingAverage,
   computeWeightProgress,
 } from '../lib/weightProgress';
+import { assessWeightTrend, dailyWeightVsTrendMessage } from '../lib/weightTrend';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { useAppStore } from '../store/useAppStore';
 
 export function ProgressPage() {
@@ -120,6 +122,15 @@ export function ProgressPage() {
     weights,
     deadline: settings.deadline,
     startDate: settings.startDate,
+    targetWeightKg: settings.targetWeightKg,
+  });
+  const trend = assessWeightTrend(weights);
+  const latestKg = weights.at(-1)?.weightKg ?? null;
+  const previousKg = weights.length >= 2 ? weights[weights.length - 2]!.weightKg : null;
+  const truthLine = dailyWeightVsTrendMessage({
+    todayKg: latestKg,
+    previousKg,
+    trend,
   });
 
   return (
@@ -131,6 +142,24 @@ export function ProgressPage() {
           never fabricated as zero.
         </p>
       </header>
+
+      <section className="panel stack" aria-labelledby="truth-engine-title">
+        <h2 id="truth-engine-title">Weight trend truth</h2>
+        <p style={{ margin: 0, fontWeight: 650 }}>{trend.message}</p>
+        {truthLine && (
+          <p className="proof-win" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+            {truthLine}
+          </p>
+        )}
+        <p className="dim" style={{ margin: 0, fontSize: 'var(--text-footnote)' }}>
+          Status: {trend.status.replace(/_/g, ' ')}
+          {trend.sampleSize > 0 ? ` · ${trend.sampleSize} weigh-ins` : ''}
+          {trend.avg7ChangeKg != null ? ` · Δ7d avg ${trend.avg7ChangeKg > 0 ? '+' : ''}${trend.avg7ChangeKg} kg` : ''}
+          . Single mornings do not rewrite the plan.
+        </p>
+      </section>
+
+      <WeeklyReviewCard />
 
       <section className="panel stack" aria-labelledby="milestones-title">
         <h2 id="milestones-title">Milestones & consistency</h2>
@@ -196,6 +225,8 @@ export function ProgressPage() {
                     background: 'var(--bg-panel)',
                     border: '1px solid var(--border)',
                     borderRadius: 12,
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
                   }}
                   labelStyle={{ color: 'var(--text-muted)' }}
                 />
@@ -203,7 +234,11 @@ export function ProgressPage() {
                   y={settings.targetWeightKg}
                   stroke="var(--accent)"
                   strokeDasharray="4 4"
-                  label={{ value: '85', fill: 'var(--accent)', fontSize: 11 }}
+                  label={{
+                    value: String(settings.targetWeightKg),
+                    fill: 'var(--accent)',
+                    fontSize: 11,
+                  }}
                 />
                 <ReferenceLine
                   y={settings.startingWeightKg}
@@ -358,20 +393,29 @@ export function ProgressPage() {
       </section>
 
       <section className="panel stack">
-        <h2 style={{ fontSize: '1.05rem' }}>Goal projection</h2>
+        <h2 style={{ fontSize: '1.05rem' }}>Birthday forecast</h2>
         <p className="muted" style={{ margin: 0 }}>
-          Required average weekly loss to hit {settings.targetWeightKg} kg:{' '}
+          Required average weekly loss to hit {settings.targetWeightKg} kg by{' '}
+          {settings.deadline}:{' '}
           <strong className="mono">
             {weekly == null ? 'n/a' : `${weekly} kg/week`}
           </strong>
-          . This is informational — never an instruction to crash diet.
+          . Informational — never an instruction to crash diet.
         </p>
-        <p className="dim" style={{ fontSize: '0.85rem' }}>
-          Trajectory estimate:{' '}
+        <p className="dim" style={{ fontSize: '0.85rem', margin: 0 }}>
           {projection.confidence === 'insufficient_data'
-            ? 'Insufficient data (need ≥3 weigh-ins spanning ≥7 days).'
-            : `${projection.projectedKg} kg by deadline (estimate only — not a promise).`}
+            ? projection.paceNote
+            : `At recent pace, estimate ~${projection.projectedKg} kg by deadline${
+                projection.estimatedArrivalDate
+                  ? ` · ~${projection.estimatedArrivalDate} to target (linear estimate)`
+                  : ''
+              }.`}
         </p>
+        {projection.confidence === 'estimate' && (
+          <p className="dim" style={{ fontSize: 'var(--text-footnote)', margin: 0 }}>
+            {projection.paceNote}
+          </p>
+        )}
       </section>
     </div>
   );

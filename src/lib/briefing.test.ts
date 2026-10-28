@@ -41,6 +41,29 @@ describe('buildDailyBriefing', () => {
     expect(b.foodProvisional).toBe(true);
     expect(b.bullets.some((x) => /incomplete|provisional/i.test(x))).toBe(true);
     expect(b.quickAction).toBeTruthy();
+    expect(b.missionTitle).toMatch(/Win today/i);
+    expect(b.dayKindLabel).toBeTruthy();
+  });
+
+  it('softens training language after short sleep', () => {
+    const b = buildDailyBriefing({
+      settings,
+      agg: agg({
+        foodEntryCount: 2,
+        honestyAnswered: true,
+        loggingCompleteness: 0.8,
+        primaryWeightKg: 96,
+        calories: 1600,
+        proteinG: 140,
+        waterMl: 2000,
+        steps: 8000,
+      }),
+      score: null,
+      hour: 19,
+      yesterdaySleepHours: 5.5,
+    });
+    expect(b.dayKind).toBe('recover');
+    expect(b.narrative.toLowerCase()).toMatch(/sleep|recovery|easy|light/);
   });
 
   it('never invents steps when unlogged', () => {

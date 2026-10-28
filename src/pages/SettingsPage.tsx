@@ -4,7 +4,8 @@ import { PwaStatusCard } from '../components/InstallPwa';
 import * as repo from '../data/repository';
 import type { RestoreMode } from '../data/repository';
 import { useAppStore } from '../store/useAppStore';
-import type { ThemeMode } from '../domain/types';
+import type { BiologicalSex, ThemeMode } from '../domain/types';
+import { Link } from 'react-router-dom';
 
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
@@ -84,6 +85,45 @@ export function SettingsPage() {
           value={String(settings.targetWeightKg)}
           onCommit={(v) => void save({ targetWeightKg: Number(v) })}
         />
+      </section>
+
+      <section className="panel stack">
+        <h2 style={{ fontSize: '1.05rem' }}>Body profile</h2>
+        <p className="muted">
+          Needed for BMI/BMR/TDEE. Tape sites live on <Link to="/physique">Body Map</Link>.
+        </p>
+        <Field
+          label="Height (cm)"
+          type="number"
+          value={settings.heightCm != null ? String(settings.heightCm) : ''}
+          onCommit={(v) =>
+            void save({ heightCm: v.trim() === '' ? null : Number(v) })
+          }
+        />
+        <Field
+          label="Birth year"
+          type="number"
+          value={settings.birthYear != null ? String(settings.birthYear) : ''}
+          onCommit={(v) =>
+            void save({ birthYear: v.trim() === '' ? null : Number(v) })
+          }
+        />
+        <label>
+          <span className="label">Biological sex (for BMR formula)</span>
+          <select
+            className="select"
+            value={settings.biologicalSex}
+            onChange={(e) => void save({ biologicalSex: e.target.value as BiologicalSex })}
+          >
+            <option value="unspecified">Unspecified (mid estimate)</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+        <p className="muted">
+          Also: <Link to="/body">Body Intelligence</Link> · <Link to="/health">Health</Link> ·{' '}
+          <Link to="/motivation">Motivation</Link> · <Link to="/timeline">Timeline</Link>
+        </p>
       </section>
 
       <section className="panel stack">

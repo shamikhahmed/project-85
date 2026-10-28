@@ -2,12 +2,21 @@ import { createDefaultSettings, SEED_FOOD_LIBRARY } from '../domain/defaults';
 import type {
   AppSettings,
   BackupPayload,
+  BodyMeasurement,
+  BodyMeasurementType,
   CigaretteEntry,
   DailyNotes,
   DayAggregate,
   DayScore,
   FoodEntry,
   FoodLibraryItem,
+  JournalEntry,
+  MeasurementCondition,
+  MotivationItem,
+  MotivationKind,
+  PersonalLetter,
+  PhotoPose,
+  ProgressPhoto,
   SleepEntry,
   StepEntry,
   WaterEntry,
@@ -33,6 +42,7 @@ export async function ensureInitialized(): Promise<AppSettings> {
         await db.settings.put(migrateSettings(existing));
       }
       await ensureSeedFoodLibrary();
+      await dedupeFoodLibraryByName();
     })();
   }
   await initPromise;
@@ -50,6 +60,15 @@ function migrateSettings(raw: AppSettings): AppSettings {
     shoulderCaution: raw.shoulderCaution ?? defaults.shoulderCaution,
     avoidChai: raw.avoidChai ?? defaults.avoidChai,
     personalRewards: raw.personalRewards ?? [],
+    lengthUnit: raw.lengthUnit ?? defaults.lengthUnit,
+    heightCm: raw.heightCm ?? defaults.heightCm,
+    biologicalSex: raw.biologicalSex ?? defaults.biologicalSex,
+    birthYear: raw.birthYear ?? defaults.birthYear,
+    motivationalTone: raw.motivationalTone ?? defaults.motivationalTone,
+    showDailyEncouragement:
+      raw.showDailyEncouragement ?? defaults.showDailyEncouragement,
+    measurementRemindersEnabled:
+      raw.measurementRemindersEnabled ?? defaults.measurementRemindersEnabled,
     scoreWeights: { ...defaults.scoreWeights, ...raw.scoreWeights },
   };
 }
@@ -70,6 +89,33 @@ export async function ensureSeedFoodLibrary(): Promise<number> {
     })),
   );
   return missing.length;
+}
+
+/**
+ * Keep one template per name (case-insensitive). Prefers higher useCount, then newer updatedAt.
+ * Does not touch logged food entries — only collapses duplicate library templates.
+ */
+export async function dedupeFoodLibraryByName(): Promise<number> {
+  const all = await db.foodLibrary.toArray();
+  const byName = new Map<string, FoodLibraryItem[]>();
+  for (const item of all) {
+    const key = item.name.trim().toLowerCase();
+    const list = byName.get(key) ?? [];
+    list.push(item);
+    byName.set(key, list);
+  }
+  const toDelete: string[] = [];
+  for (const group of byName.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => {
+      if (b.useCount !== a.useCount) return b.useCount - a.useCount;
+      return (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '');
+    });
+    for (const loser of group.slice(1)) toDelete.push(loser.id);
+  }
+  if (toDelete.length === 0) return 0;
+  await db.foodLibrary.bulkDelete(toDelete);
+  return toDelete.length;
 }
 
 export async function getSettings(): Promise<AppSettings> {
@@ -463,6 +509,13 @@ export async function createBackup(): Promise<BackupPayload> {
     scores: await db.scores.toArray(),
     xp: await db.xp.toArray(),
     achievements: await db.achievements.toArray(),
+    bodyMeasurements: await db.bodyMeasurements.toArray(),
+    motivationItems: await db.motivationItems.toArray(),
+    personalLetters: await db.personalLetters.toArray(),
+    journalEntries: await db.journalEntries.toArray(),
+    progressPhotos: await db.progressPhotos.toArray(),
+    healthRecords: await db.healthRecords.toArray(),
+    healthConnections: await db.healthConnections.toArray(),
   };
 }
 
@@ -518,6 +571,13 @@ export async function restoreBackup(
       db.scores,
       db.xp,
       db.achievements,
+      db.bodyMeasurements,
+      db.motivationItems,
+      db.personalLetters,
+      db.journalEntries,
+      db.progressPhotos,
+      db.healthRecords,
+      db.healthConnections,
     ],
     async () => {
       if (mode === 'replace') {
@@ -535,6 +595,13 @@ export async function restoreBackup(
           db.scores.clear(),
           db.xp.clear(),
           db.achievements.clear(),
+          db.bodyMeasurements.clear(),
+          db.motivationItems.clear(),
+          db.personalLetters.clear(),
+          db.journalEntries.clear(),
+          db.progressPhotos.clear(),
+          db.healthRecords.clear(),
+          db.healthConnections.clear(),
         ]);
         await db.settings.put(migrateSettings(data.settings));
         if (data.weights.length) await db.weights.bulkAdd(data.weights);
@@ -549,6 +616,20 @@ export async function restoreBackup(
         if (data.scores.length) await db.scores.bulkAdd(data.scores);
         if (data.xp.length) await db.xp.bulkAdd(data.xp);
         if (data.achievements.length) await db.achievements.bulkAdd(data.achievements);
+        if (data.bodyMeasurements?.length)
+          await db.bodyMeasurements.bulkAdd(data.bodyMeasurements);
+        if (data.motivationItems?.length)
+          await db.motivationItems.bulkAdd(data.motivationItems);
+        if (data.personalLetters?.length)
+          await db.personalLetters.bulkAdd(data.personalLetters);
+        if (data.journalEntries?.length)
+          await db.journalEntries.bulkAdd(data.journalEntries);
+        if (data.progressPhotos?.length)
+          await db.progressPhotos.bulkAdd(data.progressPhotos);
+        if (data.healthRecords?.length)
+          await db.healthRecords.bulkAdd(data.healthRecords);
+        if (data.healthConnections?.length)
+          await db.healthConnections.bulkAdd(data.healthConnections);
         imported =
           data.weights.length +
           data.foods.length +
@@ -561,7 +642,14 @@ export async function restoreBackup(
           data.notes.length +
           data.scores.length +
           data.xp.length +
-          data.achievements.length;
+          data.achievements.length +
+          (data.bodyMeasurements?.length ?? 0) +
+          (data.motivationItems?.length ?? 0) +
+          (data.personalLetters?.length ?? 0) +
+          (data.journalEntries?.length ?? 0) +
+          (data.progressPhotos?.length ?? 0) +
+          (data.healthRecords?.length ?? 0) +
+          (data.healthConnections?.length ?? 0);
         return;
       }
 
@@ -587,6 +675,34 @@ export async function restoreBackup(
       const rScores = await mergeTableKeepNewer(db.scores, data.scores);
       const rXp = await mergeTableKeepNewer(db.xp, data.xp);
       const rAch = await mergeTableKeepNewer(db.achievements, data.achievements);
+      const rMeas = await mergeTableKeepNewer(
+        db.bodyMeasurements,
+        data.bodyMeasurements ?? [],
+      );
+      const rMot = await mergeTableKeepNewer(
+        db.motivationItems,
+        data.motivationItems ?? [],
+      );
+      const rLet = await mergeTableKeepNewer(
+        db.personalLetters,
+        data.personalLetters ?? [],
+      );
+      const rJour = await mergeTableKeepNewer(
+        db.journalEntries,
+        data.journalEntries ?? [],
+      );
+      const rPhoto = await mergeTableKeepNewer(
+        db.progressPhotos,
+        data.progressPhotos ?? [],
+      );
+      const rHealth = await mergeTableKeepNewer(
+        db.healthRecords,
+        data.healthRecords ?? [],
+      );
+      const rConn = await mergeTableKeepNewer(
+        db.healthConnections,
+        data.healthConnections ?? [],
+      );
       for (const r of [
         rWeights,
         rFoods,
@@ -600,6 +716,13 @@ export async function restoreBackup(
         rScores,
         rXp,
         rAch,
+        rMeas,
+        rMot,
+        rLet,
+        rJour,
+        rPhoto,
+        rHealth,
+        rConn,
       ]) {
         keptLocalNewer += r.keptLocalNewer;
         imported += r.imported;
@@ -644,6 +767,310 @@ export async function clearAllData(): Promise<void> {
   initPromise = null;
   // Recreate
   await ensureInitialized();
+}
+
+/* ─── Body measurements (append-only history; edits update row, never overwrite siblings) ─── */
+
+export async function addBodyMeasurement(input: {
+  type: BodyMeasurementType;
+  valueCm: number;
+  date: string;
+  measuredAt?: string;
+  note?: string;
+  condition?: MeasurementCondition;
+  customLabel?: string;
+}): Promise<BodyMeasurement> {
+  const now = new Date().toISOString();
+  const row: BodyMeasurement = {
+    id: newId('bm'),
+    type: input.type,
+    customLabel: input.customLabel,
+    valueCm: input.valueCm,
+    date: input.date,
+    measuredAt: input.measuredAt ?? now,
+    note: input.note,
+    condition: input.condition ?? 'unspecified',
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.bodyMeasurements.add(row);
+  if (input.type === 'height') {
+    await updateSettings({ heightCm: input.valueCm });
+  }
+  return row;
+}
+
+export async function updateBodyMeasurement(
+  id: string,
+  patch: Partial<
+    Pick<BodyMeasurement, 'valueCm' | 'date' | 'measuredAt' | 'note' | 'condition' | 'customLabel'>
+  >,
+): Promise<BodyMeasurement> {
+  const existing = await db.bodyMeasurements.get(id);
+  if (!existing) throw new Error('Measurement not found');
+  const next: BodyMeasurement = {
+    ...existing,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  await db.bodyMeasurements.put(next);
+  if (next.type === 'height') {
+    await updateSettings({ heightCm: next.valueCm });
+  }
+  return next;
+}
+
+export async function deleteBodyMeasurement(id: string): Promise<void> {
+  await db.bodyMeasurements.delete(id);
+}
+
+export async function getAllBodyMeasurements(): Promise<BodyMeasurement[]> {
+  return db.bodyMeasurements.orderBy('date').toArray();
+}
+
+export async function getBodyMeasurementsByType(
+  type: BodyMeasurementType,
+): Promise<BodyMeasurement[]> {
+  return db.bodyMeasurements.where('type').equals(type).sortBy('date');
+}
+
+export async function getLatestMeasurement(
+  type: BodyMeasurementType,
+): Promise<BodyMeasurement | undefined> {
+  const rows = await getBodyMeasurementsByType(type);
+  return rows.at(-1);
+}
+
+/* ─── Motivation / letters / journal ─── */
+
+export async function listMotivationItems(): Promise<MotivationItem[]> {
+  return db.motivationItems.orderBy('createdAt').reverse().toArray();
+}
+
+export async function upsertMotivationItem(input: {
+  id?: string;
+  kind: MotivationKind;
+  source?: 'user' | 'suggested';
+  title: string;
+  body: string;
+  pinned?: boolean;
+  hidden?: boolean;
+  showOnDashboard?: boolean;
+}): Promise<MotivationItem> {
+  const now = new Date().toISOString();
+  if (input.id) {
+    const existing = await db.motivationItems.get(input.id);
+    if (!existing) throw new Error('Motivation item not found');
+    const next: MotivationItem = {
+      ...existing,
+      kind: input.kind,
+      title: input.title,
+      body: input.body,
+      pinned: input.pinned ?? existing.pinned,
+      hidden: input.hidden ?? existing.hidden,
+      showOnDashboard: input.showOnDashboard ?? existing.showOnDashboard,
+      updatedAt: now,
+    };
+    await db.motivationItems.put(next);
+    return next;
+  }
+  const row: MotivationItem = {
+    id: newId('mot'),
+    kind: input.kind,
+    source: input.source ?? 'user',
+    title: input.title,
+    body: input.body,
+    pinned: input.pinned ?? false,
+    hidden: input.hidden ?? false,
+    showOnDashboard: input.showOnDashboard ?? false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.motivationItems.add(row);
+  return row;
+}
+
+export async function deleteMotivationItem(id: string): Promise<void> {
+  await db.motivationItems.delete(id);
+}
+
+export async function listPersonalLetters(): Promise<PersonalLetter[]> {
+  return db.personalLetters.orderBy('openOn').toArray();
+}
+
+export async function upsertPersonalLetter(input: {
+  id?: string;
+  title: string;
+  body: string;
+  openOn: string;
+  hidden?: boolean;
+}): Promise<PersonalLetter> {
+  const now = new Date().toISOString();
+  if (input.id) {
+    const existing = await db.personalLetters.get(input.id);
+    if (!existing) throw new Error('Letter not found');
+    const next: PersonalLetter = {
+      ...existing,
+      title: input.title,
+      body: input.body,
+      openOn: input.openOn,
+      hidden: input.hidden ?? existing.hidden,
+      updatedAt: now,
+    };
+    await db.personalLetters.put(next);
+    return next;
+  }
+  const row: PersonalLetter = {
+    id: newId('ltr'),
+    title: input.title,
+    body: input.body,
+    openOn: input.openOn,
+    openedAt: null,
+    hidden: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.personalLetters.add(row);
+  return row;
+}
+
+export async function openPersonalLetter(id: string): Promise<PersonalLetter> {
+  const existing = await db.personalLetters.get(id);
+  if (!existing) throw new Error('Letter not found');
+  const next: PersonalLetter = {
+    ...existing,
+    openedAt: existing.openedAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  await db.personalLetters.put(next);
+  return next;
+}
+
+export async function deletePersonalLetter(id: string): Promise<void> {
+  await db.personalLetters.delete(id);
+}
+
+export async function listJournalEntries(): Promise<JournalEntry[]> {
+  return db.journalEntries.orderBy('date').reverse().toArray();
+}
+
+export async function upsertJournalEntry(input: {
+  id?: string;
+  date: string;
+  body: string;
+  prompt?: string;
+  fromVoice?: boolean;
+  hidden?: boolean;
+}): Promise<JournalEntry> {
+  const now = new Date().toISOString();
+  if (input.id) {
+    const existing = await db.journalEntries.get(input.id);
+    if (!existing) throw new Error('Journal entry not found');
+    const next: JournalEntry = {
+      ...existing,
+      date: input.date,
+      body: input.body,
+      prompt: input.prompt ?? existing.prompt,
+      fromVoice: input.fromVoice ?? existing.fromVoice,
+      hidden: input.hidden ?? existing.hidden,
+      updatedAt: now,
+    };
+    await db.journalEntries.put(next);
+    return next;
+  }
+  const row: JournalEntry = {
+    id: newId('jou'),
+    date: input.date,
+    body: input.body,
+    prompt: input.prompt,
+    fromVoice: input.fromVoice ?? false,
+    hidden: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.journalEntries.add(row);
+  return row;
+}
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+  await db.journalEntries.delete(id);
+}
+
+/* ─── Progress photos (local data URLs only) ─── */
+
+export async function listProgressPhotos(): Promise<ProgressPhoto[]> {
+  return db.progressPhotos.orderBy('date').reverse().toArray();
+}
+
+export async function addProgressPhoto(input: {
+  date: string;
+  pose: PhotoPose;
+  dataUrl: string;
+  mimeType: string;
+  note?: string;
+  consentExternalAnalysis?: boolean;
+}): Promise<ProgressPhoto> {
+  if (!input.dataUrl.startsWith('data:')) {
+    throw new Error('Photos must stay local (data URL only)');
+  }
+  const now = new Date().toISOString();
+  const row: ProgressPhoto = {
+    id: newId('pho'),
+    date: input.date,
+    pose: input.pose,
+    note: input.note,
+    dataUrl: input.dataUrl,
+    mimeType: input.mimeType,
+    consentExternalAnalysis: input.consentExternalAnalysis ?? false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.progressPhotos.add(row);
+  return row;
+}
+
+export async function updateProgressPhotoConsent(
+  id: string,
+  consentExternalAnalysis: boolean,
+): Promise<ProgressPhoto> {
+  const existing = await db.progressPhotos.get(id);
+  if (!existing) throw new Error('Photo not found');
+  const next: ProgressPhoto = {
+    ...existing,
+    consentExternalAnalysis,
+    updatedAt: new Date().toISOString(),
+  };
+  await db.progressPhotos.put(next);
+  return next;
+}
+
+export async function deleteProgressPhoto(id: string): Promise<void> {
+  await db.progressPhotos.delete(id);
+}
+
+/* ─── Health intelligence (canonical records + connection diagnostics) ─── */
+
+export async function listHealthRecords(): Promise<
+  import('../health/types').HealthMetricRecord[]
+> {
+  return db.healthRecords.toArray();
+}
+
+export async function refreshHealthConnectionDiagnostics(): Promise<
+  import('../health/types').HealthConnectionState[]
+> {
+  const { diagnoseAllConnections } = await import('../health/adapters');
+  const states = diagnoseAllConnections();
+  await db.healthConnections.bulkPut(states);
+  return states;
+}
+
+export async function listHealthConnections(): Promise<
+  import('../health/types').HealthConnectionState[]
+> {
+  const existing = await db.healthConnections.toArray();
+  if (existing.length === 0) return refreshHealthConnectionDiagnostics();
+  return existing;
 }
 
 export async function loadDayBundle(date: string) {

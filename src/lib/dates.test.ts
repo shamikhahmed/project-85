@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calendarDaysRemaining,
   eachISODate,
+  previousISODate,
   sleepDurationHours,
   toLocalISODate,
 } from './dates';
@@ -15,6 +16,10 @@ describe('countdown', () => {
 
   it('toLocalISODate is YYYY-MM-DD', () => {
     expect(toLocalISODate(new Date(2026, 9, 27))).toBe('2026-10-27');
+  });
+
+  it('previousISODate crosses months', () => {
+    expect(previousISODate('2026-11-01')).toBe('2026-10-31');
   });
 });
 

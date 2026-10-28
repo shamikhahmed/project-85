@@ -1,4 +1,5 @@
 import type { AppSettings, HonestyChecklist, ScoreWeights } from './types';
+/** Default stature for BMI when user hasn't set height yet — null until confirmed in Settings. */
 
 export const MISSION_START = '2026-10-27';
 export const MISSION_DEADLINE = '2027-01-15';
@@ -45,6 +46,13 @@ export function createDefaultSettings(now = new Date().toISOString()): AppSettin
     cigaretteTarget: 0,
     theme: 'dark',
     units: 'metric',
+    lengthUnit: 'cm',
+    heightCm: null,
+    biologicalSex: 'unspecified',
+    birthYear: null,
+    motivationalTone: 'calm',
+    showDailyEncouragement: true,
+    measurementRemindersEnabled: false,
     remindersEnabled: false,
     reminderTimes: ['21:30'],
     accountabilityEnabled: true,

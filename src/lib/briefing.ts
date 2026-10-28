@@ -1,5 +1,6 @@
 import type { AppSettings, DayAggregate, DayScore } from '../domain/types';
 import type { WeightTrendAssessment } from './weightTrend';
+import { dailyWeightVsTrendMessage } from './weightTrend';
 
 export interface BriefingInput {
   settings: AppSettings;
@@ -7,11 +8,27 @@ export interface BriefingInput {
   score: DayScore | null;
   weightTrend?: WeightTrendAssessment | null;
   hour?: number;
+  /** Yesterday’s logged sleep hours, if known — never invent */
+  yesterdaySleepHours?: number | null;
+  /** Previous primary morning weight for daily-vs-trend copy */
+  previousWeightKg?: number | null;
 }
 
 export type QuickActionKind = 'meal' | 'water' | 'steps' | 'weight' | 'workout' | 'nightly' | 'shake';
 
+export type MissionDayKind =
+  | 'morning_setup'
+  | 'fuel_day'
+  | 'train_window'
+  | 'recover'
+  | 'evening_close'
+  | 'steady';
+
 export interface DailyBriefing {
+  /** Short mission headline for Today */
+  missionTitle: string;
+  dayKind: MissionDayKind;
+  dayKindLabel: string;
   primaryAction: string;
   narrative: string;
   bullets: string[];
@@ -21,15 +38,31 @@ export interface DailyBriefing {
   stepsRemaining: number | null;
   waterRemaining: number;
   foodProvisional: boolean;
+  /** Present only when daily scale vs weekly trend disagree usefully */
+  trendTruth: string | null;
 }
 
+const DAY_KIND_LABEL: Record<MissionDayKind, string> = {
+  morning_setup: 'Morning setup',
+  fuel_day: 'Fuel & log',
+  train_window: 'Train or recover',
+  recover: 'Softer day',
+  evening_close: 'Evening close',
+  steady: 'Steady day',
+};
+
 /**
- * Daily Command Centre briefing from real aggregates only.
+ * Daily Mission from real aggregates only.
  * Never invent history. Never advise exercise to “burn off” food or sacrifice sleep.
  */
 export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const { settings, agg, score, weightTrend } = input;
   const hour = input.hour ?? new Date().getHours();
+  const softRecovery =
+    input.yesterdaySleepHours != null &&
+    Number.isFinite(input.yesterdaySleepHours) &&
+    input.yesterdaySleepHours < 6.5;
+
   const bullets: string[] = [];
   const foodProvisional =
     agg.foodEntryCount > 0 && (!agg.honestyAnswered || agg.loggingCompleteness < 0.6);
@@ -45,6 +78,12 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const stepsRemaining =
     agg.steps == null ? null : Math.max(0, settings.stepsTarget - agg.steps);
   const waterRemaining = Math.max(0, settings.waterTargetMl - agg.waterMl);
+
+  if (softRecovery) {
+    bullets.push(
+      `Yesterday’s sleep was ~${input.yesterdaySleepHours} h — keep today’s effort manageable.`,
+    );
+  }
 
   if (agg.primaryWeightKg == null) {
     bullets.push(
@@ -106,25 +145,61 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     bullets.push(`Score so far ${score.total}/100.`);
   }
 
-  const { primaryAction, quickAction, narrative } = choosePrimary(
+  const trendTruth =
+    weightTrend != null
+      ? dailyWeightVsTrendMessage({
+          todayKg: agg.primaryWeightKg,
+          previousKg: input.previousWeightKg ?? null,
+          trend: weightTrend,
+        })
+      : null;
+  if (trendTruth) bullets.unshift(trendTruth);
+
+  const chosen = choosePrimary(
     settings,
     agg,
     hour,
     proteinRemaining,
     stepsRemaining,
+    softRecovery,
   );
 
+  const dayKind = resolveDayKind(hour, agg, softRecovery, chosen.quickAction);
+  const missionTitle = softRecovery
+    ? `Win today: ${chosen.primaryAction} (keep it light)`
+    : `Win today: ${chosen.primaryAction}`;
+
   return {
-    primaryAction,
-    narrative,
+    missionTitle,
+    dayKind,
+    dayKindLabel: DAY_KIND_LABEL[dayKind],
+    primaryAction: chosen.primaryAction,
+    narrative: chosen.narrative,
     bullets: bullets.slice(0, 6),
-    quickAction,
+    quickAction: chosen.quickAction,
     caloriesRemaining,
     proteinRemaining,
     stepsRemaining,
     waterRemaining,
     foodProvisional,
+    trendTruth,
   };
+}
+
+function resolveDayKind(
+  hour: number,
+  agg: DayAggregate,
+  softRecovery: boolean,
+  quick: QuickActionKind,
+): MissionDayKind {
+  if (softRecovery && agg.workoutTypes.length === 0) return 'recover';
+  if (hour < 11 && agg.primaryWeightKg == null) return 'morning_setup';
+  if (quick === 'workout' || (hour >= 17 && hour < 21 && agg.workoutTypes.length === 0)) {
+    return softRecovery ? 'recover' : 'train_window';
+  }
+  if (hour >= 20 || quick === 'nightly') return 'evening_close';
+  if (agg.foodEntryCount === 0 || quick === 'meal' || quick === 'shake') return 'fuel_day';
+  return 'steady';
 }
 
 function choosePrimary(
@@ -133,8 +208,8 @@ function choosePrimary(
   hour: number,
   proteinRemaining: number | null,
   stepsRemaining: number | null,
+  softRecovery: boolean,
 ): { primaryAction: string; quickAction: QuickActionKind; narrative: string } {
-  // Morning: weight first
   if (hour < 11 && agg.primaryWeightKg == null) {
     return {
       primaryAction: 'Record this morning’s weight',
@@ -143,7 +218,6 @@ function choosePrimary(
     };
   }
 
-  // Meal times
   if (agg.foodEntryCount === 0 && hour >= 11 && hour < 16) {
     return {
       primaryAction: 'Log lunch (or your first meal)',
@@ -156,7 +230,7 @@ function choosePrimary(
     return {
       primaryAction: 'Log your first meal',
       quickAction: 'meal',
-      narrative: 'Open Quick Log and tap a saved meal — usually two to four taps.',
+      narrative: 'Open Quick Log and tap a saved or recent meal — usually two to four taps.',
     };
   }
 
@@ -168,8 +242,16 @@ function choosePrimary(
     };
   }
 
-  // Pre-gym evening (7–9pm profile)
   if (hour >= 18 && hour < 21 && agg.workoutTypes.length === 0) {
+    if (softRecovery) {
+      return {
+        primaryAction: 'Log a recovery or light movement day',
+        quickAction: 'workout',
+        narrative: settings.shoulderCaution
+          ? 'Short sleep — swim, walk, or rest. Skip painful presses.'
+          : 'Short sleep — prefer recovery or an easy session over forcing intensity.',
+      };
+    }
     return {
       primaryAction: 'Log tonight’s gym, swim, or recovery',
       quickAction: 'workout',
@@ -179,12 +261,7 @@ function choosePrimary(
     };
   }
 
-  if (
-    proteinRemaining != null &&
-    proteinRemaining >= 25 &&
-    hour >= 16 &&
-    hour < 22
-  ) {
+  if (proteinRemaining != null && proteinRemaining >= 25 && hour >= 16 && hour < 22) {
     return {
       primaryAction: `Cover ~${proteinRemaining} g protein still open`,
       quickAction: 'shake',
@@ -197,7 +274,9 @@ function choosePrimary(
     return {
       primaryAction: `Close ~${stepsRemaining.toLocaleString()} steps when it fits`,
       quickAction: 'steps',
-      narrative: 'Karachi heat: walk early, late, or indoors — don’t trade sleep for steps.',
+      narrative: softRecovery
+        ? 'If you’re tired, take an easy walk — don’t trade more sleep for steps.'
+        : 'Karachi heat: walk early, late, or indoors — don’t trade sleep for steps.',
     };
   }
 
@@ -219,7 +298,9 @@ function choosePrimary(
 
   if (agg.workoutTypes.length === 0 && hour >= 12) {
     return {
-      primaryAction: 'Log training or a planned recovery day',
+      primaryAction: softRecovery
+        ? 'Name today as recovery if you’re not training'
+        : 'Log training or a planned recovery day',
       quickAction: 'workout',
       narrative: 'Rest days count when you name them honestly.',
     };

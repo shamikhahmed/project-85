@@ -63,7 +63,29 @@ describe('projectWeightAtDeadline', () => {
       ],
       deadline: '2027-01-15',
       startDate: '2026-10-27',
+      targetWeightKg: 85,
     });
     expect(r.confidence).toBe('insufficient_data');
+    expect(r.estimatedArrivalDate).toBeNull();
+  });
+
+  it('estimates arrival when losing at a measured rate', () => {
+    const weights = [];
+    for (let i = 0; i < 14; i++) {
+      weights.push({
+        date: `2026-11-${String(i + 1).padStart(2, '0')}`,
+        weightKg: 96.5 - i * 0.1,
+      });
+    }
+    const r = projectWeightAtDeadline({
+      weights,
+      deadline: '2027-01-15',
+      startDate: '2026-10-27',
+      targetWeightKg: 85,
+    });
+    expect(r.confidence).toBe('estimate');
+    expect(r.recentWeeklyRateKg).toBeLessThan(0);
+    expect(r.estimatedArrivalDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(r.paceNote).toMatch(/estimate/i);
   });
 });

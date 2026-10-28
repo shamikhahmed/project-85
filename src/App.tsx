@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppNav } from './components/AppNav';
 import { InstallPwaBanner } from './components/InstallPwa';
 import { NightlyTruthCheck } from './components/NightlyTruthCheck';
@@ -9,6 +9,11 @@ import { ProgressPage } from './pages/ProgressPage';
 import { DisciplinePage } from './pages/DisciplinePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage, applyTheme } from './pages/SettingsPage';
+import { BodyMapPage } from './pages/BodyMapPage';
+import { BodyIntelligencePage } from './pages/BodyIntelligencePage';
+import { MotivationPage } from './pages/MotivationPage';
+import { TimelinePage } from './pages/TimelinePage';
+import { HealthIntelligencePage } from './pages/HealthIntelligencePage';
 import { useAppStore } from './store/useAppStore';
 
 export default function App() {
@@ -35,9 +40,11 @@ export default function App() {
 
   if (!ready) {
     return (
-      <div className="empty-state">
-        <h2>PROJECT 85</h2>
-        <p>Opening your private mission…</p>
+      <div className="empty-state boot">
+        <h2>
+          PROJECT <span className="hero-brand-num">85</span>
+        </h2>
+        <p className="muted">Opening your private mission…</p>
       </div>
     );
   }
@@ -55,8 +62,17 @@ export default function App() {
     );
   }
 
+  // GitHub Pages has no server rewrite for SPA paths — use HashRouter when base ≠ /
+  const useHash = import.meta.env.BASE_URL !== '/';
+  const Router = useHash ? HashRouter : BrowserRouter;
+  const routerBasename = useHash
+    ? undefined
+    : import.meta.env.BASE_URL === '/'
+      ? undefined
+      : import.meta.env.BASE_URL.replace(/\/$/, '');
+
   return (
-    <BrowserRouter>
+    <Router basename={routerBasename}>
       <div className="app-shell">
         <AppNav />
         <main className="main-content">
@@ -66,6 +82,11 @@ export default function App() {
             <Route path="/log" element={<DailyLog />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/discipline" element={<DisciplinePage />} />
+            <Route path="/physique" element={<BodyMapPage />} />
+            <Route path="/body" element={<BodyIntelligencePage />} />
+            <Route path="/health" element={<HealthIntelligencePage />} />
+            <Route path="/motivation" element={<MotivationPage />} />
+            <Route path="/timeline" element={<TimelinePage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -78,6 +99,6 @@ export default function App() {
           </div>
         )}
       </div>
-    </BrowserRouter>
+    </Router>
   );
 }

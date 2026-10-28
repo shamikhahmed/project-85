@@ -35,6 +35,13 @@ export function eachISODate(start: ISODate, end: ISODate): ISODate[] {
   return out;
 }
 
+/** Previous local calendar day as YYYY-MM-DD. */
+export function previousISODate(iso: ISODate): ISODate {
+  const d = parseLocalDate(iso);
+  const prev = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+  return format(prev, 'yyyy-MM-dd');
+}
+
 /** Inclusive week window ending on `end` (default today), length days (default 7). */
 export function rollingWeekBounds(
   end: ISODate = toLocalISODate(),
