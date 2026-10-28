@@ -22,11 +22,13 @@ import type {
   WaterEntry,
   WeightEntry,
   WorkoutEntry,
+  WorkoutExercise,
 } from '../domain/types';
 import { buildDayAggregate } from '../lib/aggregates';
 import { eachISODate } from '../lib/dates';
 import { mergeRowsKeepNewer, rowTimestamp, validateBackupPayload } from './backup';
 import { db, newId } from './db';
+import { mergeExercise, PLAN_NOTE_PREFIX } from '../lib/trainingLog';
 
 export { backupToCsv, validateBackupPayload } from './backup';
 
@@ -425,6 +427,31 @@ export async function upsertWorkout(
   };
   await db.workouts.add(next);
   return next;
+}
+
+export async function getWorkoutsInRange(start: string, end: string): Promise<WorkoutEntry[]> {
+  return db.workouts.where('date').between(start, end, true, true).toArray();
+}
+
+/**
+ * Log one exercise's top set into the plan session for that date ("Plan: Push" etc.).
+ * Creates the strength workout on first log; replaces the same exercise if logged again.
+ */
+export async function logPlanExercise(
+  date: string,
+  sessionLabel: string,
+  exercise: WorkoutExercise,
+): Promise<WorkoutEntry> {
+  const note = `${PLAN_NOTE_PREFIX}${sessionLabel}`;
+  const sameDay = await db.workouts.where('date').equals(date).toArray();
+  const existing = sameDay.find((w) => w.notes === note);
+  return upsertWorkout({
+    id: existing?.id,
+    date,
+    type: 'strength',
+    notes: note,
+    exercises: mergeExercise(existing?.exercises, exercise),
+  });
 }
 
 export async function deleteWorkout(id: string): Promise<void> {

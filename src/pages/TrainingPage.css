@@ -40,3 +40,13 @@
 .cp-table tr.now td{color:var(--accent)}
 textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--font-mono);background:var(--bg-sunken);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px;box-sizing:border-box}
 @media (prefers-reduced-motion:reduce){.ex-chev{transition:none}}
+.ex.done{border-color:color-mix(in srgb,var(--success) 45%,var(--border))}
+.ex.done .ex-code{color:var(--success)}
+.ex-log{border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg-panel)}
+.ex-log-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:var(--text-sm)}
+.ex-log-head span{color:var(--text-dim);font-variant-numeric:tabular-nums}
+.ex-hint{margin:0;font-size:var(--text-sm);color:var(--accent)}
+.ex-log-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+.ex-log-row label{display:flex;flex-direction:column;gap:4px;font-size:var(--text-caption);color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;min-width:0}
+.ex-log-row input{min-height:var(--touch);border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-sunken);color:var(--text);font:600 var(--text-md)/1 var(--font-mono);padding:0 10px;width:100%;box-sizing:border-box;min-width:0}
+.ex-log-row .btn{min-height:var(--touch)}

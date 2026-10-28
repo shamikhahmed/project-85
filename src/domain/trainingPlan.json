@@ -2073,6 +2073,34 @@
   "lower": "5_Fri_Lower.pdf",
   "arms": "6A_Sat_Option1_Arms_Delts.pdf",
   "core": "6B_Sat_Option2_Cardio_Core.pdf",
-  "rest": "7_Sun_Rest.pdf"
+  "rest": "7_Sun_Rest.pdf",
+  "pump": "5_Birthday_Week.pdf"
+ },
+ "birthdayPump": {
+  "title": "Birthday pump, 30 min",
+  "when": "1-2 hours before the event. Rest only 30-45 sec. Stop before you're exhausted.",
+  "moves": [
+   [
+    "Band pull-apart",
+    "2 x 20"
+   ],
+   [
+    "Incline push-up",
+    "3 x 15"
+   ],
+   [
+    "Cable lateral raise",
+    "3 x 15"
+   ],
+   [
+    "Cable curl + rope pushdown (superset)",
+    "3 x 12 each"
+   ],
+   [
+    "Pec deck",
+    "2 x 15"
+   ]
+  ],
+  "after": "Eat a carb + protein meal afterwards (rice with chicken). Weigh in and take photos in the morning, before this."
  }
 }

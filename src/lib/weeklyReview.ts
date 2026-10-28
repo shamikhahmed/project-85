@@ -93,7 +93,7 @@ export function buildWeeklyReview(
   if (workouts < 3) {
     suggestions.push(
       settings.shoulderCaution
-        ? 'Protect training consistency: swim / machine work / avoid painful shoulder presses.'
+        ? 'Protect training consistency: log each plan session from the Train tab; machines and cables, no painful presses.'
         : 'Schedule at least three training or recovery sessions next week.',
     );
   }

@@ -249,15 +249,15 @@ function choosePrimary(
         primaryAction: 'Log a recovery or light movement day',
         quickAction: 'workout',
         narrative: settings.shoulderCaution
-          ? 'Short sleep — swim, walk, or rest. Skip painful presses.'
+          ? 'Short sleep — train lighter (stop 2-3 reps short) or do Saturday option 2. Skip anything that hurts the shoulder.'
           : 'Short sleep — prefer recovery or an easy session over forcing intensity.',
       };
     }
     return {
-      primaryAction: 'Log tonight’s gym, swim, or recovery',
+      primaryAction: 'Log tonight’s session in Train, or a recovery day',
       quickAction: 'workout',
       narrative: settings.shoulderCaution
-        ? 'Protect the shoulder — skip painful presses; machines and swim still count.'
+        ? 'Protect the shoulder — skip anything painful; machine and cable work still counts.'
         : 'Mark what you did so consistency shows up on Progress.',
     };
   }

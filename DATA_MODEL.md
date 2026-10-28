@@ -12,6 +12,10 @@ Dexie IndexedDB database `project85` (**v3**). Local-only; no sync.
 ### v3+
 `healthRecords`, `healthConnections`
 
+## Plan logging (v0.10)
+- Train tab logs one top set per exercise into `workouts` (type `strength`, `notes` = `Plan: <session>`, `exercises[]` with `name`, `weightKg`, `reps`). Re-logging the same exercise on the same day replaces it.
+- `settings.planVersion` (2 = Project New Me migration applied) and `settings.dayTypeCalories`.
+
 ## Critical rules
 - **Steps:** `setStepsForDate` **replaces** the day’s total (never adds).
 - **Weight:** one primary morning weigh-in per date; corrections demote prior primary.

@@ -3,6 +3,9 @@
 ## v0.10.0 — Project New Me plan (2026-10-29)
 
 - **Train tab** (`/train`): Push / Pull / Legs / Upper / Lower + two Saturday options. Every exercise has sets with kg and lb, rest, cues, why it's there, two alternatives, advanced technique, Block B swap and a demo link. Warm-up, cardio and cooldown per day.
+- **Top-set logging with progression**: each exercise card logs weight × reps into today's workout; next session shows "Last: 60 kg × 8 (17 Nov)" and tells you to add weight or beat the reps. Feeds the existing training score.
+- **Birthday pump** day on 15 Jan and Block B recalibration note.
+- Coaching text no longer suggests swimming (dropped from the plan).
 - **Plan phases**: weeks 1-2 Basic, 3-4 Advanced, 5 Deload, 6-10 Block B, 11-15 Jan Reveal. Today's session and phase on the dashboard.
 - **Full muscle coverage**: lower chest (high-to-low fly), traps (shrug), obliques (woodchop), glute medius (abductor), adductors added.
 - **Weekly missions + Sunday checkpoints** on the straight line to the target.
@@ -10,7 +13,7 @@
 - **Plan library**: 15 PDFs in `public/plan/`, precached for offline.
 - **Day-specific calories**: Saturday −50 kcal, rest days −400 kcal (carbs carry it); protein and fat constant. Toggle `dayTypeCalories`.
 - **One-time settings migration (planVersion 2)**: start 3 Nov 2026 at 96 kg, 240 g protein, 2,150 kcal, 151 g carbs, 65 g fat, 7 h sleep.
-- Tests: plan sessions/phases/targets/macros/migration and check-in builder.
+- Tests: plan sessions/phases/targets/macros/migration, check-in builder, training-log helpers (123 passing).
 
 ## Unreleased — 2026-10-28 (deep audit)
 
