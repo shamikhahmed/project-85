@@ -293,6 +293,7 @@ export async function duplicateFoodLibraryItem(id: string): Promise<FoodLibraryI
 /**
  * Documented rule: setStepsForDate REPLACES the day's total.
  * It does not add to previous value. Pass the absolute total from the pedometer/watch.
+ * Transactional: collapses any duplicate date rows so aggregates never sum steps.
  */
 export async function setStepsForDate(
   date: string,
@@ -300,29 +301,36 @@ export async function setStepsForDate(
   note?: string,
 ): Promise<StepEntry> {
   const now = new Date().toISOString();
-  const existing = await db.steps.where('date').equals(date).first();
-  if (existing) {
+  return db.transaction('rw', db.steps, async () => {
+    const existing = await db.steps.where('date').equals(date).toArray();
+    if (existing.length > 0) {
+      const keep = [...existing].sort((a, b) =>
+        (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt),
+      )[0]!;
+      const drop = existing.filter((r) => r.id !== keep.id);
+      if (drop.length) await db.steps.bulkDelete(drop.map((r) => r.id));
+      const next: StepEntry = {
+        ...keep,
+        totalSteps,
+        note,
+        source: 'manual',
+        updatedAt: now,
+      };
+      await db.steps.put(next);
+      return next;
+    }
     const next: StepEntry = {
-      ...existing,
+      id: newId('steps'),
+      date,
       totalSteps,
-      note,
       source: 'manual',
+      note,
+      createdAt: now,
       updatedAt: now,
     };
-    await db.steps.put(next);
+    await db.steps.add(next);
     return next;
-  }
-  const next: StepEntry = {
-    id: newId('steps'),
-    date,
-    totalSteps,
-    source: 'manual',
-    note,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await db.steps.add(next);
-  return next;
+  });
 }
 
 export async function getStepsByDate(date: string): Promise<StepEntry | undefined> {
@@ -1059,8 +1067,11 @@ export async function listHealthRecords(): Promise<
 export async function refreshHealthConnectionDiagnostics(): Promise<
   import('../health/types').HealthConnectionState[]
 > {
-  const { diagnoseAllConnections } = await import('../health/adapters');
-  const states = diagnoseAllConnections();
+  const { diagnoseAllConnections, mergeConnectionDiagnostics } = await import(
+    '../health/adapters'
+  );
+  const existing = await db.healthConnections.toArray();
+  const states = mergeConnectionDiagnostics(diagnoseAllConnections(), existing);
   await db.healthConnections.bulkPut(states);
   return states;
 }

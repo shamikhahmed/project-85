@@ -59,7 +59,27 @@ export function mergeHealthRecords(
   return [...byId.values()].filter((r) => !r.deletedAt);
 }
 
-/** Pick one day-total for a metric without summing providers. */
+/** Metrics where same-provider interval samples should be summed for a calendar day. */
+const CUMULATIVE_DAY_METRICS = new Set(['steps', 'active_energy', 'hydration', 'distance']);
+
+/**
+ * Heuristic: full-day aggregate (do not sum with interval samples).
+ * Matches PROJECT 85 manual mirrors (T00:00–T23:59) and long single windows (≥20h).
+ */
+export function isLikelyDayTotal(r: HealthMetricRecord, dayIso: string): boolean {
+  const startDay = r.startAt.slice(0, 10);
+  const endDay = (r.endAt ?? r.startAt).slice(0, 10);
+  if (startDay !== dayIso || endDay !== dayIso) return false;
+  if (r.startAt.includes('T00:00:00') && (r.endAt?.includes('T23:59:') ?? false)) {
+    return true;
+  }
+  const startMs = Date.parse(r.startAt);
+  const endMs = Date.parse(r.endAt ?? r.startAt);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return false;
+  return endMs - startMs >= 20 * 60 * 60 * 1000;
+}
+
+/** Pick one day-total for a metric without summing across providers. */
 export function pickDayTotal(
   rows: HealthMetricRecord[],
   metricId: string,
@@ -73,11 +93,22 @@ export function pickDayTotal(
       (r.endAt ?? r.startAt).slice(0, 10) >= dayIso,
   );
   if (dayRows.length === 0) return null;
+
+  const cumulative = CUMULATIVE_DAY_METRICS.has(metricId);
+
   for (const p of PROVIDER_PRIORITY_FOR_DAY_TOTALS) {
-    const hit = dayRows
-      .filter((r) => r.provider === p)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-    if (hit) return hit;
+    const providerRows = dayRows.filter((r) => r.provider === p);
+    if (providerRows.length === 0) continue;
+    if (!cumulative) {
+      return providerRows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
+    }
+    const dayTotals = providerRows.filter((r) => isLikelyDayTotal(r, dayIso));
+    if (dayTotals.length > 0) {
+      return dayTotals.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
+    }
+    const sum = providerRows.reduce((acc, r) => acc + r.value, 0);
+    const newest = providerRows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]!;
+    return { ...newest, value: sum, originalValue: sum };
   }
   return dayRows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
 }

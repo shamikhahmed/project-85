@@ -42,6 +42,26 @@ export function previousISODate(iso: ISODate): ISODate {
   return format(prev, 'yyyy-MM-dd');
 }
 
+/** Next local calendar day as YYYY-MM-DD (never UTC-shifted). */
+export function nextISODate(iso: ISODate): ISODate {
+  return addLocalCalendarDays(iso, 1);
+}
+
+/** Add (or subtract) whole local calendar days — never UTC-shifted. */
+export function addLocalCalendarDays(iso: ISODate, days: number): ISODate {
+  const d = parseLocalDate(iso);
+  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
+  return format(next, 'yyyy-MM-dd');
+}
+
+/**
+ * Wake calendar date for a sleep session on `bedDate`.
+ * If wake clock is before bedtime clock, wake is the next local day.
+ */
+export function overnightWakeDate(bedDate: ISODate, bedHHMM: string, wakeHHMM: string): ISODate {
+  return wakeHHMM < bedHHMM ? nextISODate(bedDate) : bedDate;
+}
+
 /** Inclusive week window ending on `end` (default today), length days (default 7). */
 export function rollingWeekBounds(
   end: ISODate = toLocalISODate(),
@@ -59,12 +79,16 @@ export function rollingWeekBounds(
   };
 }
 
-/** Sleep duration in hours; handles sessions that cross midnight. */
-export function sleepDurationHours(bedtimeIso: string, wakeIso: string): number {
+/**
+ * Sleep duration in hours; handles sessions that cross midnight.
+ * Returns null for invalid or non-positive durations (do not average as zero).
+ */
+export function sleepDurationHours(bedtimeIso: string, wakeIso: string): number | null {
   const bed = new Date(bedtimeIso);
   const wake = new Date(wakeIso);
-  if (!isValid(bed) || !isValid(wake)) return 0;
+  if (!isValid(bed) || !isValid(wake)) return null;
   let ms = wake.getTime() - bed.getTime();
   if (ms < 0) ms += 24 * 60 * 60 * 1000;
+  if (ms <= 0) return null;
   return Math.round((ms / (1000 * 60 * 60)) * 100) / 100;
 }

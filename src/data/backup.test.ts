@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultSettings } from '../domain/defaults';
 import type { BackupPayload, DayScoreBreakdown } from '../domain/types';
-import { backupToCsv, mergeRowsKeepNewer, validateBackupPayload } from './backup';
+import {
+  backupToCsv,
+  csvQuoted,
+  mergeRowsKeepNewer,
+  sanitizePrimaryWeights,
+  sanitizeProgressPhotos,
+  validateBackupPayload,
+} from './backup';
 import { restoreBackup } from './repository';
 
 const ISO = '2026-10-27T12:00:00.000Z';
@@ -112,6 +119,13 @@ function backupPayloadFixture(
   };
 }
 
+describe('csvQuoted', () => {
+  it('escapes quotes and flattens newlines', () => {
+    expect(csvQuoted('say "hi"')).toBe('"say ""hi"""');
+    expect(csvQuoted('line1\nline2')).toBe('"line1 line2"');
+  });
+});
+
 describe('backupToCsv', () => {
   it('emits header and one row per exportable record', () => {
     const csv = backupToCsv(backupPayloadFixture());
@@ -125,6 +139,33 @@ describe('backupToCsv', () => {
     expect(lines).toContain('cigarette,2026-10-27,tobacco,0');
     expect(lines).toContain('score,2026-10-27,NEEDS_ATTENTION,72');
     expect(lines).toHaveLength(7);
+  });
+
+  it('escapes weight notes with quotes without breaking the row', () => {
+    const csv = backupToCsv(
+      backupPayloadFixture({
+        weights: [
+          {
+            id: 'w3',
+            date: '2026-10-27',
+            weightKg: 96,
+            notes: 'said "morning"\nlate',
+            isEstimate: false,
+            isPrimaryMorning: true,
+            createdAt: ISO,
+            updatedAt: ISO,
+          },
+        ],
+        foods: [],
+        steps: [],
+        water: [],
+        cigarettes: [],
+        scores: [],
+      }),
+    );
+    const lines = csv.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toBe('weight,2026-10-27,"said ""morning"" late",96');
   });
 
   it('escapes empty weight notes', () => {
@@ -183,6 +224,112 @@ describe('validateBackupPayload', () => {
     expect(() =>
       validateBackupPayload({ ...base, weights: 'not-an-array' }),
     ).toThrow('Invalid backup: corrupted data');
+  });
+
+  it('drops non–data-image progress photos during validate', () => {
+    const validated = validateBackupPayload(
+      backupPayloadFixture({
+        progressPhotos: [
+          {
+            id: 'p1',
+            date: '2026-10-27',
+            pose: 'front',
+            dataUrl: 'https://evil.example/x.jpg',
+            mimeType: 'image/jpeg',
+            consentExternalAnalysis: false,
+            createdAt: ISO,
+            updatedAt: ISO,
+          },
+          {
+            id: 'p2',
+            date: '2026-10-27',
+            pose: 'front',
+            dataUrl: 'data:image/jpeg;base64,abc',
+            mimeType: 'image/jpeg',
+            consentExternalAnalysis: false,
+            createdAt: ISO,
+            updatedAt: ISO,
+          },
+        ],
+      }),
+    );
+    expect(validated.progressPhotos).toHaveLength(1);
+    expect(validated.progressPhotos![0].id).toBe('p2');
+  });
+
+  it('demotes duplicate primary morning weights per date', () => {
+    const validated = validateBackupPayload(
+      backupPayloadFixture({
+        weights: [
+          {
+            id: 'w-old',
+            date: '2026-10-27',
+            weightKg: 97,
+            isEstimate: false,
+            isPrimaryMorning: true,
+            createdAt: '2026-10-27T06:00:00.000Z',
+            updatedAt: '2026-10-27T06:00:00.000Z',
+          },
+          {
+            id: 'w-new',
+            date: '2026-10-27',
+            weightKg: 96.5,
+            isEstimate: false,
+            isPrimaryMorning: true,
+            createdAt: '2026-10-27T07:00:00.000Z',
+            updatedAt: '2026-10-27T07:00:00.000Z',
+          },
+        ],
+      }),
+    );
+    const primaries = validated.weights.filter((w) => w.isPrimaryMorning);
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0].id).toBe('w-new');
+    expect(validated.weights).toHaveLength(2);
+  });
+});
+
+describe('sanitizeProgressPhotos / sanitizePrimaryWeights', () => {
+  it('filters javascript and http URLs', () => {
+    expect(
+      sanitizeProgressPhotos([
+        {
+          id: 'x',
+          date: '2026-10-27',
+          pose: 'front',
+          dataUrl: 'javascript:alert(1)',
+          mimeType: 'text/html',
+          consentExternalAnalysis: false,
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ]),
+    ).toHaveLength(0);
+  });
+
+  it('keeps non-primary corrections untouched', () => {
+    const out = sanitizePrimaryWeights([
+      {
+        id: 'p',
+        date: '2026-10-27',
+        weightKg: 96,
+        isEstimate: false,
+        isPrimaryMorning: true,
+        createdAt: ISO,
+        updatedAt: ISO,
+      },
+      {
+        id: 'c',
+        date: '2026-10-27',
+        weightKg: 96.2,
+        isEstimate: true,
+        isPrimaryMorning: false,
+        createdAt: ISO,
+        updatedAt: ISO,
+      },
+    ]);
+    expect(out.filter((w) => w.isPrimaryMorning)).toHaveLength(1);
+    expect(out.find((w) => w.id === 'c')?.isPrimaryMorning).toBe(false);
   });
 });
 

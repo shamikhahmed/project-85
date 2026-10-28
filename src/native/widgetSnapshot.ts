@@ -4,6 +4,8 @@
  * Never invent measurements — nulls mean "not logged / unknown".
  */
 
+import { toLocalISODate } from '../lib/dates';
+
 export const WIDGET_APP_GROUP = 'group.com.capricorn.project85';
 export const WIDGET_SNAPSHOT_KEY = 'widgetSnapshotV1';
 export const WIDGET_SCHEMA_VERSION = 1 as const;
@@ -74,7 +76,7 @@ export interface WidgetSnapshot {
 }
 
 export function emptyWidgetSnapshot(partial?: Partial<WidgetSnapshot>): WidgetSnapshot {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalISODate();
   return {
     schemaVersion: WIDGET_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(),

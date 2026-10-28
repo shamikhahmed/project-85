@@ -84,7 +84,7 @@ export function HealthIntelligencePage() {
         const sleep = await repo.getSleepByDate(d);
         if (sleep) {
           const h = sleepDurationHours(sleep.bedtime, sleep.wakeTime);
-          if (h != null) {
+          if (h != null && h > 0) {
             sleepSum += h;
             sleepN += 1;
           }

@@ -65,4 +65,63 @@ describe('pickDayTotal', () => {
     expect(pick?.provider).toBe('manual');
     expect(pick?.value).toBe(10000);
   });
+
+  it('never sums steps across providers', () => {
+    const rows = [
+      row({ id: '1', provider: 'apple_health', value: 8000, sourceRecordId: 'a' }),
+      row({ id: '2', provider: 'google_health', value: 7000, sourceRecordId: 'g' }),
+    ];
+    const pick = pickDayTotal(rows, 'steps', '2026-10-28');
+    expect(pick?.provider).toBe('apple_health');
+    expect(pick?.value).toBe(8000);
+  });
+
+  it('sums same-provider cumulative samples for a day', () => {
+    const rows = [
+      row({
+        id: '1',
+        provider: 'apple_health',
+        value: 3000,
+        sourceRecordId: 'a1',
+        startAt: '2026-10-28T08:00:00.000Z',
+        endAt: '2026-10-28T12:00:00.000Z',
+      }),
+      row({
+        id: '2',
+        provider: 'apple_health',
+        value: 5000,
+        sourceRecordId: 'a2',
+        startAt: '2026-10-28T12:00:00.000Z',
+        endAt: '2026-10-28T20:00:00.000Z',
+      }),
+    ];
+    const pick = pickDayTotal(rows, 'steps', '2026-10-28');
+    expect(pick?.value).toBe(8000);
+  });
+
+  it('prefers a day-total over summing samples from the same provider', () => {
+    const rows = [
+      row({
+        id: 'day',
+        provider: 'apple_health',
+        value: 10000,
+        sourceRecordId: 'day',
+        startAt: '2026-10-28T00:00:00.000Z',
+        endAt: '2026-10-28T23:59:59.000Z',
+        updatedAt: '2026-10-28T22:00:00.000Z',
+      }),
+      row({
+        id: 's1',
+        provider: 'apple_health',
+        value: 3000,
+        sourceRecordId: 'a1',
+        startAt: '2026-10-28T08:00:00.000Z',
+        endAt: '2026-10-28T12:00:00.000Z',
+        updatedAt: '2026-10-28T12:00:00.000Z',
+      }),
+    ];
+    const pick = pickDayTotal(rows, 'steps', '2026-10-28');
+    expect(pick?.value).toBe(10000);
+    expect(pick?.id).toBe('day');
+  });
 });

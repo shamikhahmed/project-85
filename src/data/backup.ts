@@ -1,4 +1,9 @@
-import type { AppSettings, BackupPayload } from '../domain/types';
+import type {
+  AppSettings,
+  BackupPayload,
+  ProgressPhoto,
+  WeightEntry,
+} from '../domain/types';
 
 const BACKUP_ARRAY_KEYS = [
   'weights',
@@ -55,7 +60,7 @@ export function validateBackupPayload(payload: unknown): BackupPayload {
     version: 1,
     exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : '',
     settings: data.settings,
-    weights: data.weights ?? [],
+    weights: sanitizePrimaryWeights(data.weights ?? []),
     foods: data.foods ?? [],
     foodLibrary: data.foodLibrary ?? [],
     steps: data.steps ?? [],
@@ -71,10 +76,54 @@ export function validateBackupPayload(payload: unknown): BackupPayload {
     motivationItems: data.motivationItems ?? [],
     personalLetters: data.personalLetters ?? [],
     journalEntries: data.journalEntries ?? [],
-    progressPhotos: data.progressPhotos ?? [],
+    progressPhotos: sanitizeProgressPhotos(data.progressPhotos ?? []),
     healthRecords: data.healthRecords ?? [],
     healthConnections: data.healthConnections ?? [],
   };
+}
+
+/** Reject non–data-URL photos so restore cannot inject remote or script URLs. */
+export function sanitizeProgressPhotos(photos: ProgressPhoto[]): ProgressPhoto[] {
+  return photos.filter(
+    (p) =>
+      typeof p?.dataUrl === 'string' &&
+      p.dataUrl.startsWith('data:image/') &&
+      typeof p.id === 'string' &&
+      typeof p.date === 'string',
+  );
+}
+
+/**
+ * At most one primary morning weight per calendar date (newest updatedAt wins).
+ * Corrections stay; extras are demoted so restore cannot invent dual primaries.
+ */
+export function sanitizePrimaryWeights(weights: WeightEntry[]): WeightEntry[] {
+  const byDate = new Map<string, WeightEntry[]>();
+  for (const w of weights) {
+    if (!w || typeof w.id !== 'string' || typeof w.date !== 'string') continue;
+    const list = byDate.get(w.date) ?? [];
+    list.push(w);
+    byDate.set(w.date, list);
+  }
+  const out: WeightEntry[] = [];
+  for (const list of byDate.values()) {
+    const primaries = list
+      .filter((w) => w.isPrimaryMorning)
+      .sort((a, b) =>
+        (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt),
+      );
+    const keepPrimaryId = primaries[0]?.id;
+    for (const w of list) {
+      if (!w.isPrimaryMorning) {
+        out.push(w);
+        continue;
+      }
+      out.push(
+        w.id === keepPrimaryId ? w : { ...w, isPrimaryMorning: false },
+      );
+    }
+  }
+  return out;
 }
 
 export type TimedRow = {
@@ -132,17 +181,26 @@ export function mergeRowsKeepNewer<T extends TimedRow>(
   };
 }
 
+/**
+ * RFC-4180-ish quoted field. Flattens CR/LF so one logical row stays one line
+ * (our exporter is line-oriented). Escapes embedded quotes by doubling.
+ */
+export function csvQuoted(value: string): string {
+  const flat = String(value).replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
+  return `"${flat}"`;
+}
+
 export function backupToCsv(payload: BackupPayload): string {
   const lines = ['type,date,detail,value'];
   for (const w of payload.weights) {
-    lines.push(`weight,${w.date},"${w.notes ?? ''}",${w.weightKg}`);
+    lines.push(`weight,${w.date},${csvQuoted(w.notes ?? '')},${w.weightKg}`);
   }
   for (const s of payload.steps) {
     lines.push(`steps,${s.date},total,${s.totalSteps}`);
   }
   for (const f of payload.foods) {
     lines.push(
-      `food,${f.date},"${f.name.replace(/"/g, '""')}",${f.calories}|${f.proteinG}`,
+      `food,${f.date},${csvQuoted(f.name)},${f.calories}|${f.proteinG}`,
     );
   }
   for (const w of payload.water) {

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — 2026-10-28 (deep audit)
+
+### Reliability & honesty
+- Health sync: single-flight lock + transactional `healthRecords` replace; Apple connection `ok` only after a real sample import and preserved across diagnose refresh
+- Overnight sleep wake dates use local calendar helpers (no UTC shift)
+- Invalid sleep durations stay `null` (never averaged as zero); aggregates take max of valid rows
+- Steps replace-total is transactional and collapses duplicate date rows
+- Backup validate strips non–`data:image/` progress photos and demotes duplicate primary morning weights
+- CSV export escapes quotes and flattens newlines in detail fields
+- `pickDayTotal` never sums across providers; prefers day-total over summing interval samples
+- Deep links / QA routes allowlisted; weight seed refreshes the day store
+
+### Tests
+- Vitest **98** passing across **19** files (was 55 / 13 at 0.9.0 docs; prior session baseline 80 / 18)
+
 ## 0.9.0 — 2026-10-28
 
 ### Health Intelligence + Body Map / Motivation / Timeline

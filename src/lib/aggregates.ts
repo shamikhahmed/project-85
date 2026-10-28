@@ -39,13 +39,11 @@ export function buildDayAggregate(src: DaySources): DayAggregate {
     b.updatedAt.localeCompare(a.updatedAt),
   )[0];
   const waterMl = src.water.reduce((s, w) => s + w.amountMl, 0);
-  const sleepHours =
-    src.sleep.length === 0
-      ? null
-      : src.sleep.reduce(
-          (sum, s) => sum + sleepDurationHours(s.bedtime, s.wakeTime),
-          0,
-        );
+  const sleepHoursList = src.sleep
+    .map((s) => sleepDurationHours(s.bedtime, s.wakeTime))
+    .filter((h): h is number => h != null && h > 0);
+  // Prefer max if restore left duplicate sleep rows — never invent hours from zeros.
+  const sleepHours = sleepHoursList.length === 0 ? null : Math.max(...sleepHoursList);
   const cigaretteCount = src.cigarettes.reduce((s, c) => s + c.count, 0);
   const cigarettesLogged = src.cigarettes.length > 0;
 

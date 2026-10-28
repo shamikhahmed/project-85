@@ -8,7 +8,7 @@ import type {
   WorkoutType,
 } from '../domain/types';
 import * as repo from '../data/repository';
-import { sleepDurationHours, toLocalISODate } from '../lib/dates';
+import { overnightWakeDate, sleepDurationHours, toLocalISODate } from '../lib/dates';
 import { sumFoodEntries } from '../lib/nutrition';
 import { useAppStore } from '../store/useAppStore';
 
@@ -779,13 +779,8 @@ function SleepPanel({
 
   const duration = useMemo(() => {
     const bedIso = `${date}T${bed}:00`;
-    let wakeDate = date;
-    if (wake < bed) {
-      const d = new Date(date);
-      d.setDate(d.getDate() + 1);
-      wakeDate = d.toISOString().slice(0, 10);
-    }
-    return sleepDurationHours(bedIso, `${wakeDate}T${wake}:00`);
+    const wakeDate = overnightWakeDate(date, bed, wake);
+    return sleepDurationHours(bedIso, `${wakeDate}T${wake}:00`) ?? 0;
   }, [bed, wake, date]);
 
   return (
@@ -813,12 +808,7 @@ function SleepPanel({
         className="btn btn-primary"
         onClick={async () => {
           const bedIso = `${date}T${bed}:00`;
-          let wakeDate = date;
-          if (wake < bed) {
-            const d = new Date(date);
-            d.setDate(d.getDate() + 1);
-            wakeDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          }
+          const wakeDate = overnightWakeDate(date, bed, wake);
           await repo.upsertSleep({
             date,
             bedtime: bedIso,

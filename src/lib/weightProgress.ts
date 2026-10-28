@@ -1,3 +1,6 @@
+import { differenceInCalendarDays } from 'date-fns';
+import { addLocalCalendarDays, parseLocalDate } from './dates';
+
 export interface WeightProgressInput {
   startingWeightKg: number;
   targetWeightKg: number;
@@ -94,22 +97,25 @@ export function projectWeightAtDeadline(opts: {
   }
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
-  const spanDays =
-    (Date.parse(last.date) - Date.parse(first.date)) / (1000 * 60 * 60 * 24);
+  const spanDays = Math.max(
+    1,
+    differenceInCalendarDays(parseLocalDate(last.date), parseLocalDate(first.date)),
+  );
   if (spanDays < 7) {
     return insufficient(last.weightKg);
   }
   const ratePerDay = (last.weightKg - first.weightKg) / spanDays;
   const recentWeeklyRateKg = round2(ratePerDay * 7);
-  const daysToDeadline =
-    (Date.parse(opts.deadline) - Date.parse(last.date)) / (1000 * 60 * 60 * 24);
+  const daysToDeadline = Math.max(
+    0,
+    differenceInCalendarDays(parseLocalDate(opts.deadline), parseLocalDate(last.date)),
+  );
   const projectedKg = round1(last.weightKg + ratePerDay * daysToDeadline);
 
   let estimatedArrivalDate: string | null = null;
   if (ratePerDay < -0.01 && last.weightKg > opts.targetWeightKg) {
     const daysNeeded = (last.weightKg - opts.targetWeightKg) / -ratePerDay;
-    const arrival = new Date(Date.parse(last.date) + daysNeeded * 86400000);
-    estimatedArrivalDate = arrival.toISOString().slice(0, 10);
+    estimatedArrivalDate = addLocalCalendarDays(last.date, Math.ceil(daysNeeded));
   }
 
   let paceNote: string;

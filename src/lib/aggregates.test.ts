@@ -51,4 +51,67 @@ describe('buildDayAggregate', () => {
     });
     expect(agg.steps).toBe(10450);
   });
+
+  it('ignores invalid sleep windows instead of inventing zero hours', () => {
+    const agg = buildDayAggregate({
+      date: '2026-10-27',
+      settings,
+      weights: [],
+      foods: [],
+      steps: [],
+      water: [],
+      workouts: [],
+      sleep: [
+        {
+          id: 'sl1',
+          date: '2026-10-27',
+          bedtime: 'not-a-date',
+          wakeTime: 'also-bad',
+          quality: 3,
+          createdAt: '2026-10-27T08:00:00.000Z',
+          updatedAt: '2026-10-27T08:00:00.000Z',
+        },
+      ],
+      cigarettes: [],
+      notes: undefined,
+      score: undefined,
+    });
+    expect(agg.sleepHours).toBeNull();
+  });
+
+  it('uses max sleep hours when duplicate rows exist', () => {
+    const agg = buildDayAggregate({
+      date: '2026-10-27',
+      settings,
+      weights: [],
+      foods: [],
+      steps: [],
+      water: [],
+      workouts: [],
+      sleep: [
+        {
+          id: 'sl1',
+          date: '2026-10-27',
+          bedtime: '2026-10-26T23:00:00',
+          wakeTime: '2026-10-27T06:00:00',
+          quality: 3,
+          createdAt: '2026-10-27T08:00:00.000Z',
+          updatedAt: '2026-10-27T08:00:00.000Z',
+        },
+        {
+          id: 'sl2',
+          date: '2026-10-27',
+          bedtime: '2026-10-26T23:00:00',
+          wakeTime: '2026-10-27T07:00:00',
+          quality: 4,
+          createdAt: '2026-10-27T09:00:00.000Z',
+          updatedAt: '2026-10-27T09:00:00.000Z',
+        },
+      ],
+      cigarettes: [],
+      notes: undefined,
+      score: undefined,
+    });
+    expect(agg.sleepHours).toBe(8);
+  });
 });

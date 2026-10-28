@@ -26,7 +26,8 @@ export const manualAdapter: HealthAdapter = {
       lastAttemptAt: nowIso(),
       lastError: null,
       scopesGranted: ['local'],
-      notes: 'Weights, steps, sleep, water and workouts you log locally — mirrored into healthRecords on sync.',
+      notes:
+        'Weights, steps, sleep, water and workouts you log locally — mirrored into healthRecords on sync.',
       updatedAt: nowIso(),
     };
   },
@@ -39,16 +40,19 @@ export const appleHealthAdapter: HealthAdapter = {
   diagnose() {
     const bridge = getHealthKitBridgeStatus();
     const native = Capacitor.isNativePlatform();
+    // Never report ok / lastSuccessAt from platform presence alone — only after a real sync.
     return {
       id: 'conn_apple_health',
       provider: 'apple_health',
       displayName: 'Apple Health',
-      status: native && bridge.available ? 'ok' : 'unsupported',
-      lastSuccessAt: native && bridge.available ? nowIso() : null,
+      status: native ? 'permission_needed' : 'unsupported',
+      lastSuccessAt: null,
       lastAttemptAt: nowIso(),
       lastError: null,
       scopesGranted: [],
-      notes: bridge.reason,
+      notes: native
+        ? `${bridge.reason} Connect Apple Health, authorize reads, then Sync — status stays permission_needed until a successful pull.`
+        : bridge.reason,
       updatedAt: nowIso(),
     };
   },
@@ -105,4 +109,72 @@ export const ALL_ADAPTERS: HealthAdapter[] = [
 
 export function diagnoseAllConnections(): HealthConnectionState[] {
   return ALL_ADAPTERS.map((a) => a.diagnose());
+}
+
+/**
+ * Merge live platform diagnose with persisted connection rows.
+ * Preserves a prior Apple (or other) `ok` + lastSuccessAt so a successful sync
+ * is not wiped by the next diagnose-only refresh. Never invents `ok` without
+ * an existing success timestamp.
+ */
+export function mergeConnectionDiagnostics(
+  diagnosed: HealthConnectionState[],
+  existing: HealthConnectionState[],
+): HealthConnectionState[] {
+  const prevByProvider = new Map(existing.map((e) => [e.provider, e]));
+  return diagnosed.map((d) => {
+    const prev = prevByProvider.get(d.provider);
+    if (!prev) return d;
+    // Platform no longer available — do not keep a stale ok.
+    if (d.status === 'unsupported' || d.status === 'blocked_credentials') {
+      return {
+        ...d,
+        lastSuccessAt: prev.lastSuccessAt,
+        lastError: d.lastError ?? prev.lastError,
+      };
+    }
+    if (
+      prev.status === 'ok' &&
+      prev.lastSuccessAt &&
+      (d.status === 'permission_needed' || d.status === 'never' || d.status === 'stale')
+    ) {
+      return {
+        ...d,
+        status: 'ok',
+        lastSuccessAt: prev.lastSuccessAt,
+        lastAttemptAt: d.lastAttemptAt ?? prev.lastAttemptAt,
+        scopesGranted: prev.scopesGranted.length ? prev.scopesGranted : d.scopesGranted,
+        notes: prev.notes || d.notes,
+        updatedAt: d.updatedAt,
+      };
+    }
+    if (prev.lastSuccessAt && !d.lastSuccessAt) {
+      return { ...d, lastSuccessAt: prev.lastSuccessAt };
+    }
+    return d;
+  });
+}
+
+/** Mark a provider connected after a verified successful pull (never call on empty). */
+export function markProviderSyncSuccess(
+  existing: HealthConnectionState[],
+  provider: HealthProvider,
+  detail: string,
+): HealthConnectionState[] {
+  const ts = nowIso();
+  const base = diagnoseAllConnections();
+  const withPrev = mergeConnectionDiagnostics(base, existing);
+  return withPrev.map((c) =>
+    c.provider === provider
+      ? {
+          ...c,
+          status: 'ok',
+          lastSuccessAt: ts,
+          lastAttemptAt: ts,
+          lastError: null,
+          notes: detail,
+          updatedAt: ts,
+        }
+      : c,
+  );
 }

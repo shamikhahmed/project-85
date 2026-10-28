@@ -38,6 +38,8 @@ async function loadLatestPrimaryWeight(): Promise<number | null> {
   return primaries[0]?.weightKg ?? null;
 }
 
+let refreshGeneration = 0;
+
 export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
   error: null,
@@ -85,8 +87,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   refreshDay: async () => {
+    const gen = ++refreshGeneration;
     const date = get().selectedDate;
     const bundle = await repo.loadDayBundle(date);
+    if (gen !== refreshGeneration || get().selectedDate !== date) return;
     const agg = buildDayAggregate({
       date,
       settings: bundle.settings,
@@ -102,8 +106,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     const score = computeDayScore({ date, settings: bundle.settings, agg });
     await repo.saveDayScore(score);
+    if (gen !== refreshGeneration || get().selectedDate !== date) return;
     const latestWeightKg = await loadLatestPrimaryWeight();
     const foodLibrary = await repo.getFoodLibrary();
+    if (gen !== refreshGeneration || get().selectedDate !== date) return;
     set({
       settings: bundle.settings,
       todayAgg: agg,
