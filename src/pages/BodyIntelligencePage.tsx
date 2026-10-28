@@ -49,13 +49,14 @@ export function BodyIntelligencePage() {
     })();
   }, [agg?.primaryWeightKg]);
 
-  const latestOf = (type: BodyMeasurement['type']) => {
-    const rows = measurements.filter((m) => m.type === type).sort((a, b) => a.date.localeCompare(b.date));
-    return rows.at(-1)?.valueCm ?? null;
-  };
-
   const bi = useMemo(() => {
     if (!settings) return null;
+    const latestOf = (type: BodyMeasurement['type']) => {
+      const rows = measurements
+        .filter((m) => m.type === type)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      return rows.at(-1)?.valueCm ?? null;
+    };
     const heightCm = settings.heightCm ?? latestOf('height');
     const waistCm =
       latestOf('waist_natural') ?? latestOf('waist_navel') ?? agg?.waistCm ?? null;

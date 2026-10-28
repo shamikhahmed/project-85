@@ -53,6 +53,9 @@ describe('TDEE and activity', () => {
 
   it('defaults activity without steps', () => {
     expect(suggestActivityKey(null).confidence).toBe('profile_default');
+    expect(suggestActivityKey(5000, 0).confidence).toBe('steps_hint');
+    expect(suggestActivityKey(5000, 0).key).not.toBe('very_active');
+
   });
 });
 

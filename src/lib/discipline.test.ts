@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDayScore, pointsFor } from './discipline';
+import { computeDayScore, nextActions, pointsFor } from './discipline';
 import { createDefaultSettings } from '../domain/defaults';
 import type { DayAggregate } from '../domain/types';
 
@@ -120,3 +120,22 @@ describe('computeDayScore', () => {
     expect(score.xpEarned).toBeGreaterThan(0);
   });
 });
+
+describe('nextActions', () => {
+  const settings = createDefaultSettings();
+
+  it('does not treat unlogged protein as zero remaining', () => {
+    const actions = nextActions(emptyAgg({ foodEntryCount: 0, proteinG: 0 }), settings);
+    expect(actions.some((a) => /protein remaining/i.test(a))).toBe(false);
+    expect(actions.some((a) => /food log/i.test(a))).toBe(true);
+  });
+
+  it('nudges protein only after food is logged', () => {
+    const actions = nextActions(
+      emptyAgg({ foodEntryCount: 2, proteinG: 40, honestyAnswered: true }),
+      settings,
+    );
+    expect(actions.some((a) => /protein remaining/i.test(a))).toBe(true);
+  });
+});
+

@@ -64,7 +64,8 @@ export function requiredWeeklyLossKg(
 }
 
 export interface WeightProjection {
-  projectedKg: number;
+  /** Null when confidence is insufficient_data and no last weigh-in exists */
+  projectedKg: number | null;
   confidence: 'estimate' | 'insufficient_data';
   /** Estimated ISO date of hitting target at current rate; null if insufficient or rate ≥ 0 */
   estimatedArrivalDate: string | null;
@@ -83,8 +84,10 @@ export function projectWeightAtDeadline(opts: {
   startDate: string;
   targetWeightKg: number;
 }): WeightProjection {
-  const sorted = [...opts.weights].sort((a, b) => a.date.localeCompare(b.date));
-  const insufficient = (projectedKg: number): WeightProjection => ({
+  const sorted = [...opts.weights]
+    .filter((w) => Number.isFinite(w.weightKg))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const insufficient = (projectedKg: number | null): WeightProjection => ({
     projectedKg,
     confidence: 'insufficient_data',
     estimatedArrivalDate: null,
@@ -93,7 +96,8 @@ export function projectWeightAtDeadline(opts: {
   });
 
   if (sorted.length < 3) {
-    return insufficient(sorted.at(-1)?.weightKg ?? NaN);
+    const last = sorted.at(-1)?.weightKg;
+    return insufficient(last != null && Number.isFinite(last) ? last : null);
   }
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
@@ -137,12 +141,16 @@ export function projectWeightAtDeadline(opts: {
   };
 }
 
+/** Rolling mean of weigh-ins within the prior 6 local calendar days (inclusive window of 7). */
 export function sevenDayRollingAverage(
   points: { date: string; weightKg: number }[],
 ): { date: string; avgKg: number }[] {
-  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
-  return sorted.map((p, i) => {
-    const window = sorted.slice(Math.max(0, i - 6), i + 1);
+  const sorted = [...points]
+    .filter((w) => Number.isFinite(w.weightKg))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.map((p) => {
+    const windowStart = addLocalCalendarDays(p.date, -6);
+    const window = sorted.filter((w) => w.date >= windowStart && w.date <= p.date);
     const avg = window.reduce((s, w) => s + w.weightKg, 0) / window.length;
     return { date: p.date, avgKg: round2(avg) };
   });

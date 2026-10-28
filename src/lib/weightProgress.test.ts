@@ -3,6 +3,7 @@ import {
   computeWeightProgress,
   projectWeightAtDeadline,
   requiredWeeklyLossKg,
+  sevenDayRollingAverage,
 } from './weightProgress';
 
 describe('computeWeightProgress', () => {
@@ -55,7 +56,16 @@ describe('requiredWeeklyLossKg', () => {
 });
 
 describe('projectWeightAtDeadline', () => {
-  it('requires enough data', () => {
+  it('requires enough data without inventing NaN', () => {
+    const empty = projectWeightAtDeadline({
+      weights: [],
+      deadline: '2027-01-15',
+      startDate: '2026-10-27',
+      targetWeightKg: 85,
+    });
+    expect(empty.confidence).toBe('insufficient_data');
+    expect(empty.projectedKg).toBeNull();
+
     const r = projectWeightAtDeadline({
       weights: [
         { date: '2026-10-27', weightKg: 96.5 },
@@ -66,6 +76,7 @@ describe('projectWeightAtDeadline', () => {
       targetWeightKg: 85,
     });
     expect(r.confidence).toBe('insufficient_data');
+    expect(r.projectedKg).toBe(96.2);
     expect(r.estimatedArrivalDate).toBeNull();
   });
 
@@ -87,5 +98,19 @@ describe('projectWeightAtDeadline', () => {
     expect(r.recentWeeklyRateKg).toBeLessThan(0);
     expect(r.estimatedArrivalDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(r.paceNote).toMatch(/estimate/i);
+  });
+});
+
+describe('sevenDayRollingAverage', () => {
+  it('windows by local calendar days, not last N points', () => {
+    const avg = sevenDayRollingAverage([
+      { date: '2026-10-01', weightKg: 97 },
+      { date: '2026-10-05', weightKg: 96 },
+      { date: '2026-10-12', weightKg: 95 },
+    ]);
+    const last = avg.at(-1)!;
+    expect(last.date).toBe('2026-10-12');
+    // 10-05 is outside 10-06..10-12 window → only 95
+    expect(last.avgKg).toBe(95);
   });
 });

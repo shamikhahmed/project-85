@@ -132,7 +132,8 @@ export function suggestActivityKey(stepsToday: number | null | undefined, stepsT
   if (stepsToday == null || !Number.isFinite(stepsToday)) {
     return { key: 'light', confidence: 'profile_default' };
   }
-  const ratio = stepsToday / stepsTarget;
+  const target = Number.isFinite(stepsTarget) && stepsTarget > 0 ? stepsTarget : 10000;
+  const ratio = stepsToday / target;
   if (ratio < 0.4) return { key: 'sedentary', confidence: 'steps_hint' };
   if (ratio < 0.8) return { key: 'light', confidence: 'steps_hint' };
   if (ratio < 1.2) return { key: 'moderate', confidence: 'steps_hint' };

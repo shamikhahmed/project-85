@@ -403,7 +403,7 @@ export function ProgressPage() {
           . Informational — never an instruction to crash diet.
         </p>
         <p className="dim" style={{ fontSize: '0.85rem', margin: 0 }}>
-          {projection.confidence === 'insufficient_data'
+          {projection.confidence === 'insufficient_data' || projection.projectedKg == null
             ? projection.paceNote
             : `At recent pace, estimate ~${projection.projectedKg} kg by deadline${
                 projection.estimatedArrivalDate

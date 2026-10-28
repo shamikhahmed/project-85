@@ -208,20 +208,22 @@ export function nextActions(agg: DayAggregate, settings: AppSettings): string[] 
       `${settings.stepsTarget - agg.steps} steps remaining — walk when it fits; don’t sacrifice sleep.`,
     );
   }
-  if (agg.proteinG < settings.proteinTargetG) {
-    actions.push(
-      `${Math.round(settings.proteinTargetG - agg.proteinG)} g protein remaining — prioritize protein foods.`,
-    );
+  if (agg.foodEntryCount === 0) {
+    actions.push('Start food log — honesty matters more than a perfect day.');
+  } else {
+    if (agg.proteinG < settings.proteinTargetG) {
+      actions.push(
+        `${Math.round(settings.proteinTargetG - agg.proteinG)} g protein remaining — prioritize protein foods.`,
+      );
+    }
+    if (!agg.honestyAnswered) {
+      actions.push('Answer the honesty checklist before closing the day.');
+    }
   }
   if (agg.waterMl < settings.waterTargetMl) {
     actions.push(
       `${settings.waterTargetMl - agg.waterMl} ml water remaining — sip steadily.`,
     );
-  }
-  if (agg.foodEntryCount === 0) {
-    actions.push('Start food log — honesty matters more than a perfect day.');
-  } else if (!agg.honestyAnswered) {
-    actions.push('Answer the honesty checklist before closing the day.');
   }
   if (agg.calories >= settings.calorieTarget) {
     // Do NOT encourage filling remaining calories

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bar,
@@ -136,8 +136,11 @@ export function BodyMapPage() {
     return compareMeasurementDates(rows, compareA, compareB);
   }, [rows, compareA, compareB]);
 
-  const displayVal = (cm: number, type?: BodyMeasurementType) =>
-    unit === 'cm' ? roundLength(cm, 'cm', type) : roundLength(cm, 'in', type);
+  const displayVal = useCallback(
+    (cm: number, type?: BodyMeasurementType) =>
+      unit === 'cm' ? roundLength(cm, 'cm', type) : roundLength(cm, 'in', type),
+    [unit],
+  );
 
   const chartData = useMemo(
     () =>
@@ -145,7 +148,7 @@ export function BodyMapPage() {
         date: h.date,
         value: displayVal(h.valueCm, chartType),
       })),
-    [rows, chartType, unit],
+    [rows, chartType, displayVal],
   );
 
   const masterTable = useMemo(() => {
@@ -211,7 +214,7 @@ export function BodyMapPage() {
         String(a.date).localeCompare(String(b.date)),
       ),
     };
-  }, [rows, multiPreset, showOptional, unit]);
+  }, [rows, multiPreset, showOptional, displayVal]);
 
   const leftRightBars = useMemo(() => {
     const pairs: { label: string; left?: BodyMeasurementType; right?: BodyMeasurementType }[] = [
@@ -234,7 +237,7 @@ export function BodyMapPage() {
         };
       })
       .filter(Boolean) as { name: string; left: number | null; right: number | null }[];
-  }, [latestMap, unit]);
+  }, [latestMap, displayVal]);
 
   const snapshotBars = useMemo(() => {
     return masterTable
@@ -244,7 +247,7 @@ export function BodyMapPage() {
         value: displayVal(r.latestCm!, r.type),
         full: r.label,
       }));
-  }, [masterTable, unit]);
+  }, [masterTable, displayVal]);
 
   const exportCsv = () => {
     const lines = ['date,type,label,value_cm,condition,note'];
