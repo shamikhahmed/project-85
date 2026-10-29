@@ -25,12 +25,11 @@ dist-ssr
 *.sw?
 dev-dist
 
+# QA screenshots only — do NOT blanket-ignore *.png or gh-pages drops
+# apple-touch-icon / pwa-*.png from the Pages deploy (iPhone home-screen icon 404).
 qa-*.png
-*.png
-!public/*.png
-!public/brand/*.png
-!ios/App/App/public/**/*.png
-!ios/App/App/Assets.xcassets/**/*.png
+qa-sim-*.png
+qa-live/**/*.png
 
 # Capacitor / Xcode
 ios/App/Pods
