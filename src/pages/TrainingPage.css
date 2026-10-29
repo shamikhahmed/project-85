@@ -50,3 +50,10 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
 .ex-log-row label{display:flex;flex-direction:column;gap:4px;font-size:var(--text-caption);color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;min-width:0}
 .ex-log-row input{min-height:var(--touch);border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-sunken);color:var(--text);font:600 var(--text-md)/1 var(--font-mono);padding:0 10px;width:100%;box-sizing:border-box;min-width:0}
 .ex-log-row .btn{min-height:var(--touch)}
+.ex-swap-badge{display:block;margin-top:4px;font-size:var(--text-caption);color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0}
+.ex-swap{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-sunken)}
+.ex-swap>strong{font-size:var(--text-caption);text-transform:uppercase;letter-spacing:.06em}
+.ex-reason,.ex-alt-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ex-reason button,.ex-alt-chips button{min-height:var(--touch);padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);font:600 var(--text-sm)/1.2 var(--font-system);text-align:left;max-width:100%}
+.ex-reason button.active,.ex-alt-chips button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ex-pain{margin:0;font-size:var(--text-sm);color:#f5c542}

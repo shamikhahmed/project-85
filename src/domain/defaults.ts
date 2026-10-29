@@ -64,6 +64,10 @@ export function createDefaultSettings(now = new Date().toISOString()): AppSettin
     avoidChai: true,
     dayTypeCalories: true,
     planVersion: 2,
+    autoSyncHealth: true,
+    lastAutoSyncAt: null,
+    offerHealthWriteBack: false,
+    todayExerciseSwaps: undefined,
     createdAt: now,
     updatedAt: now,
   };

@@ -10,6 +10,7 @@ import type {
   CigaretteEntry,
   DailyNotes,
   DayScore,
+  ExerciseSwapLog,
   FoodEntry,
   FoodLibraryItem,
   JournalEntry,
@@ -45,6 +46,7 @@ export class Project85DB extends Dexie {
   progressPhotos!: Table<ProgressPhoto, string>;
   healthRecords!: Table<HealthMetricRecord, string>;
   healthConnections!: Table<HealthConnectionState, string>;
+  exerciseSwaps!: Table<ExerciseSwapLog, string>;
 
   constructor() {
     super('project85');
@@ -104,6 +106,29 @@ export class Project85DB extends Dexie {
       progressPhotos: 'id, date, pose, createdAt',
       healthRecords: 'id, metricId, category, startAt, provider, sourceRecordId',
       healthConnections: 'id, provider, status',
+    });
+    this.version(4).stores({
+      settings: 'id',
+      weights: 'id, date, isPrimaryMorning',
+      foods: 'id, date, category, name',
+      foodLibrary: 'id, name, useCount',
+      steps: 'id, date',
+      water: 'id, date, createdAt',
+      workouts: 'id, date, type',
+      sleep: 'id, date',
+      cigarettes: 'id, date',
+      notes: 'id, date',
+      scores: 'id, date',
+      xp: 'id, date, createdAt',
+      achievements: 'id, key, unlockedAt',
+      bodyMeasurements: 'id, type, date, measuredAt',
+      motivationItems: 'id, kind, createdAt',
+      personalLetters: 'id, openOn, createdAt',
+      journalEntries: 'id, date, createdAt',
+      progressPhotos: 'id, date, pose, createdAt',
+      healthRecords: 'id, metricId, category, startAt, provider, sourceRecordId',
+      healthConnections: 'id, provider, status',
+      exerciseSwaps: 'id, date, dayKey, code',
     });
   }
 }

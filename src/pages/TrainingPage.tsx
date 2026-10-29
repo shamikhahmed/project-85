@@ -13,9 +13,20 @@ import {
   sundayCheckpoints,
   type PlanPhase,
 } from '../domain/plan';
+import {
+  SWAP_REASONS,
+  fallbackFor,
+  orderedAlternatives,
+  reasonLabel,
+  resolveDisplayName,
+  swapKey,
+  type ActiveSwapMap,
+  type SwapReason,
+} from '../domain/exerciseSwap';
 import type { WorkoutEntry, WorkoutExercise } from '../domain/types';
 import { buildCheckin } from '../lib/checkin';
 import { parseLocalDate, toLocalISODate } from '../lib/dates';
+import { sleepDurationHours } from '../lib/dates';
 import {
   PLAN_NOTE_PREFIX,
   lastLogsByName,
@@ -84,6 +95,8 @@ export function TrainingPage() {
   const [day, setDay] = useState<DayKey>(() => defaultDay(today));
   const [checkin, setCheckin] = useState<string | null>(null);
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
+  const [swaps, setSwaps] = useState<ActiveSwapMap>({});
+  const [lastNightSleepH, setLastNightSleepH] = useState<number | null>(null);
   const ref = today < PLAN_START ? PLAN_START : today;
   const phase = planPhase(ref);
   const session = sessionFor(today);
@@ -97,6 +110,13 @@ export function TrainingPage() {
         : BASE_DAYS,
     [today],
   );
+  /** Low sleep (<6h): suggest Basic even on Advanced weeks. */
+  const effectivePhase = useMemo((): PlanPhase => {
+    if (lastNightSleepH != null && lastNightSleepH < 6 && phase.advanced) {
+      return { ...phase, advanced: false, mode: phase.blockB ? 'Block B · Basic' : 'Basic' };
+    }
+    return phase;
+  }, [phase, lastNightSleepH]);
 
   const historyFrom = format(addDays(parseLocalDate(today), -120), 'yyyy-MM-dd');
   const loadHistory = useCallback(async () => {
@@ -108,6 +128,14 @@ export function TrainingPage() {
     void repo.getWorkoutsInRange(historyFrom, today).then((rows) => {
       if (!cancelled) setHistory(rows);
     });
+    void repo.getActiveSwaps(today).then((map) => {
+      if (!cancelled) setSwaps(map);
+    });
+    const yday = format(addDays(parseLocalDate(today), -1), 'yyyy-MM-dd');
+    void repo.getSleepByDate(yday).then((sl) => {
+      if (cancelled || !sl) return;
+      setLastNightSleepH(sleepDurationHours(sl.bedtime, sl.wakeTime));
+    });
     return () => {
       cancelled = true;
     };
@@ -118,8 +146,9 @@ export function TrainingPage() {
     [day],
   );
   const displayName = useCallback(
-    (ex: PlanExercise) => (phase.blockB && ex.blockB ? ex.blockB : ex.name),
-    [phase.blockB],
+    (ex: PlanExercise) =>
+      resolveDisplayName(ex, { day, swaps, useBlockB: effectivePhase.blockB }),
+    [day, swaps, effectivePhase.blockB],
   );
   const lastLogs = useMemo(
     () => lastLogsByName(history, exercises.map(displayName), today),
@@ -184,10 +213,16 @@ export function TrainingPage() {
           </p>
         </div>
         <div className="train-banner">
-          <strong>Mode: {phase.mode}.</strong> <ModeText phase={phase} />
+          <strong>Mode: {effectivePhase.mode}.</strong> <ModeText phase={effectivePhase} />
           <br />
           <strong>Week {mission.week} mission:</strong> {mission.text}
         </div>
+        {lastNightSleepH != null && lastNightSleepH < 6 && (
+          <div className="train-banner warn" role="status">
+            Slept {Math.floor(lastNightSleepH)}h {Math.round((lastNightSleepH % 1) * 60)}m last
+            night — using <strong>Basic</strong> today (skip Advanced techniques).
+          </div>
+        )}
       </header>
 
       <nav className="train-days" aria-label="Training day">
@@ -299,6 +334,8 @@ export function TrainingPage() {
           <section className="stack" aria-label="Exercises">
             {exercises.map((ex, i) => {
               const name = displayName(ex);
+              const key = swapKey(day, ex.code);
+              const swap = swaps[key];
               const todayEx = todaySession?.exercises?.find(
                 (e) => e.name.toLowerCase() === name.toLowerCase(),
               );
@@ -307,12 +344,30 @@ export function TrainingPage() {
                   key={ex.code + ex.name}
                   ex={ex}
                   name={name}
-                  phase={phase}
+                  planName={ex.name}
+                  phase={effectivePhase}
                   sessionNote={session.key !== 'rest' ? session.note : null}
                   last={lastLogs[name]}
                   todayLog={todayEx}
                   defaultOpen={i === 0}
+                  swap={swap}
+                  shoulderCaution={settings.shoulderCaution}
                   onSave={saveSet}
+                  onSwap={async (swappedName, reason) => {
+                    const map = await repo.setExerciseSwap({
+                      date: today,
+                      dayKey: day,
+                      code: ex.code,
+                      planName: ex.name,
+                      swappedName,
+                      reason,
+                    });
+                    setSwaps(map);
+                  }}
+                  onUndoSwap={async () => {
+                    const map = await repo.clearExerciseSwap(today, day, ex.code);
+                    setSwaps(map);
+                  }}
                 />
               );
             })}
@@ -436,32 +491,46 @@ function ModeText({ phase }: { phase: PlanPhase }) {
 function ExerciseCard({
   ex,
   name,
+  planName,
   phase,
   sessionNote,
   last,
   todayLog,
   defaultOpen,
+  swap,
+  shoulderCaution,
   onSave,
+  onSwap,
+  onUndoSwap,
 }: {
   ex: PlanExercise;
   name: string;
+  planName: string;
   phase: PlanPhase;
   sessionNote: string | null;
   last: LastLog | undefined;
   todayLog: WorkoutExercise | undefined;
   defaultOpen: boolean;
+  swap?: { name: string; reason: SwapReason };
+  shoulderCaution: boolean;
   onSave: (name: string, weightKg: number | undefined, reps: number | undefined) => Promise<void>;
+  onSwap: (swappedName: string, reason: SwapReason) => Promise<void>;
+  onUndoSwap: () => Promise<void>;
 }) {
   const row = loggedSetRow(ex.sets);
   const repRange = row?.[1] ?? '';
-  // Inputs show today's log, else last time's weight, until the user edits them.
-  const derivedKg = todayLog?.weightKg ?? last?.weightKg;
+  const fallback = fallbackFor(ex.muscle, shoulderCaution);
+  const [reason, setReason] = useState<SwapReason>(swap?.reason ?? 'busy');
+  const alts = orderedAlternatives(ex.alts, fallback, reason);
+  // Inputs show today's log, else last time's weight — cleared on fresh swap.
+  const derivedKg = todayLog?.weightKg ?? (swap ? undefined : last?.weightKg);
   const [kgEdit, setKgEdit] = useState<string | null>(null);
   const [repsEdit, setRepsEdit] = useState<string | null>(null);
+  const [freshSwap, setFreshSwap] = useState(false);
   const kg = kgEdit ?? (derivedKg != null ? String(derivedKg) : '');
   const reps = repsEdit ?? (todayLog?.reps != null ? String(todayLog.reps) : '');
   const [busy, setBusy] = useState(false);
-  const usingBlockB = phase.blockB && ex.blockB != null;
+  const usingBlockB = !swap && phase.blockB && ex.blockB != null;
   const kgId = `kg-${ex.code}-${ex.name}`.replace(/[^a-zA-Z0-9-]/g, '');
   const repsId = `reps-${ex.code}-${ex.name}`.replace(/[^a-zA-Z0-9-]/g, '');
 
@@ -477,6 +546,19 @@ function ExerciseCard({
       await onSave(name, k, r);
       setKgEdit(null);
       setRepsEdit(null);
+      setFreshSwap(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickAlt = async (alt: string) => {
+    setBusy(true);
+    try {
+      await onSwap(alt, reason);
+      setKgEdit('');
+      setRepsEdit('');
+      setFreshSwap(true);
     } finally {
       setBusy(false);
     }
@@ -492,6 +574,11 @@ function ExerciseCard({
             {ex.muscle}
             {ex.pair ? ` · ${ex.pair}` : ''}
           </span>
+          {swap && (
+            <span className="ex-swap-badge">
+              Swapped: {planName} → {swap.name} ({reasonLabel(swap.reason).toLowerCase()})
+            </span>
+          )}
         </span>
         <span className="ex-chev" aria-hidden>
           ›
@@ -523,6 +610,46 @@ function ExerciseCard({
           </tbody>
         </table>
 
+        <div className="ex-swap">
+          <strong>Machine busy or broken?</strong>
+          <div className="ex-reason" role="group" aria-label="Swap reason">
+            {SWAP_REASONS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={reason === r.id ? 'active' : ''}
+                aria-pressed={reason === r.id}
+                onClick={() => setReason(r.id)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {reason === 'pain' && (
+            <p className="ex-pain" role="alert">
+              Stop — don&apos;t push through pain. Prefer the lowest-load option first.
+            </p>
+          )}
+          <div className="ex-alt-chips">
+            {alts.map((alt) => (
+              <button
+                key={alt}
+                type="button"
+                className={swap?.name === alt ? 'active' : ''}
+                disabled={busy}
+                onClick={() => void pickAlt(alt)}
+              >
+                {alt}
+              </button>
+            ))}
+          </div>
+          {swap && (
+            <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void onUndoSwap()}>
+              Undo swap / back to plan
+            </button>
+          )}
+        </div>
+
         <div className="ex-log">
           <div className="ex-log-head">
             <strong>Log your {row?.[0]?.toLowerCase().startsWith('top') ? 'top set' : 'hardest set'}</strong>
@@ -532,7 +659,11 @@ function ExerciseCard({
                 : 'No log yet'}
             </span>
           </div>
-          <p className="ex-hint">{progressionHint(last, repRange)}</p>
+          <p className="ex-hint">
+            {freshSwap || (swap && !todayLog)
+              ? 'New exercise: pick a weight you can do for the top of the rep range with 1–2 reps left'
+              : progressionHint(last, repRange)}
+          </p>
           <div className="ex-log-row">
             <label htmlFor={kgId}>
               kg
@@ -584,15 +715,12 @@ function ExerciseCard({
             {ex.advanced}
           </div>
         )}
-        {ex.blockB && !phase.blockB && (
+        {ex.blockB && !phase.blockB && !swap && (
           <div className="ex-bb">
             <strong>Block B (from 7 Dec)</strong>
             {ex.blockB}
           </div>
         )}
-        <div className="ex-meta">
-          <strong>If busy:</strong> 1) {ex.alts[0]} · 2) {ex.alts[1]}
-        </div>
         {ex.note && (
           <div className="dim" style={{ fontSize: 'var(--text-caption)' }}>
             {ex.note}

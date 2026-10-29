@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { eachISODate, toLocalISODate } from '../lib/dates';
 import { buildDayAggregate } from '../lib/aggregates';
-import type { DayAggregate } from '../domain/types';
+import type { DayAggregate, ExerciseSwapLog } from '../domain/types';
+import { reasonLabel } from '../domain/exerciseSwap';
 import * as repo from '../data/repository';
 import { useAppStore } from '../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ export function HistoryPage() {
   const navigate = useNavigate();
   const [days, setDays] = useState<DayAggregate[]>([]);
   const [selected, setSelected] = useState<DayAggregate | null>(null);
+  const [swaps, setSwaps] = useState<ExerciseSwapLog[]>([]);
 
   useEffect(() => {
     if (!settings) return;
@@ -66,10 +68,24 @@ export function HistoryPage() {
         );
       }
       setDays(aggs);
+      setSwaps(await repo.getExerciseSwapLogs());
     })();
   }, [settings]);
 
   if (!settings) return null;
+
+  const swapInsights = (() => {
+    const byPlan = new Map<string, { count: number; reasons: Record<string, number> }>();
+    for (const s of swaps) {
+      const row = byPlan.get(s.planName) ?? { count: 0, reasons: {} };
+      row.count += 1;
+      row.reasons[s.reason] = (row.reasons[s.reason] ?? 0) + 1;
+      byPlan.set(s.planName, row);
+    }
+    return [...byPlan.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 8);
+  })();
 
   const byMonth = days.reduce<Record<string, DayAggregate[]>>((acc, d) => {
     const key = d.date.slice(0, 7);
@@ -85,6 +101,41 @@ export function HistoryPage() {
           {settings.startDate} → {settings.deadline}. Tap a day to inspect or edit.
         </p>
       </header>
+
+      {swapInsights.length > 0 && (
+        <section className="panel stack">
+          <h2 style={{ fontSize: '1rem' }}>Machine swaps</h2>
+          <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+            How often each planned machine was swapped and why.
+          </p>
+          <ul className="train-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {swapInsights.map(([name, info]) => (
+              <li
+                key={name}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '10px 0',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  fontSize: 'var(--text-sm)',
+                }}
+              >
+                <span>
+                  <strong>{name}</strong>
+                  <br />
+                  <span className="dim">
+                    {Object.entries(info.reasons)
+                      .map(([r, n]) => `${reasonLabel(r as 'busy')} ×${n}`)
+                      .join(' · ')}
+                  </span>
+                </span>
+                <span className="dim">{info.count}×</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {Object.entries(byMonth).map(([month, list]) => (
         <section key={month} className="panel">

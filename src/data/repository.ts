@@ -8,10 +8,12 @@ import type {
   DailyNotes,
   DayAggregate,
   DayScore,
+  ExerciseSwapLog,
   FoodEntry,
   FoodLibraryItem,
   JournalEntry,
   MeasurementCondition,
+  MetricSource,
   MotivationItem,
   MotivationKind,
   PersonalLetter,
@@ -24,6 +26,9 @@ import type {
   WorkoutEntry,
   WorkoutExercise,
 } from '../domain/types';
+import type { ActiveSwapMap, SwapReason } from '../domain/exerciseSwap';
+import { swapsForDate } from '../domain/exerciseSwap';
+import { toLocalISODate } from '../lib/dates';
 import { buildDayAggregate } from '../lib/aggregates';
 import { eachISODate } from '../lib/dates';
 import { mergeRowsKeepNewer, rowTimestamp, validateBackupPayload } from './backup';
@@ -93,6 +98,9 @@ function migrateSettings(input: AppSettings): AppSettings {
     measurementRemindersEnabled:
       raw.measurementRemindersEnabled ?? defaults.measurementRemindersEnabled,
     scoreWeights: { ...defaults.scoreWeights, ...raw.scoreWeights },
+    autoSyncHealth: raw.autoSyncHealth ?? defaults.autoSyncHealth,
+    lastAutoSyncAt: raw.lastAutoSyncAt ?? defaults.lastAutoSyncAt,
+    offerHealthWriteBack: raw.offerHealthWriteBack ?? defaults.offerHealthWriteBack,
   };
 }
 
@@ -182,6 +190,7 @@ export async function upsertPrimaryWeight(
         ...entry,
         id: entry.id,
         isPrimaryMorning: true,
+        source: entry.source ?? 'manual',
         updatedAt: now,
         createdAt: prev?.createdAt ?? now,
       };
@@ -197,6 +206,7 @@ export async function upsertPrimaryWeight(
       notes: entry.notes,
       isEstimate: entry.isEstimate,
       isPrimaryMorning: true,
+      source: entry.source ?? 'manual',
       enteredLate: entry.enteredLate,
       createdAt: now,
       updatedAt: now,
@@ -458,6 +468,155 @@ export async function deleteWorkout(id: string): Promise<void> {
   await db.workouts.delete(id);
 }
 
+/* ---------------- Exercise swaps (today-only active + history log) ---------------- */
+
+export async function getActiveSwaps(today = toLocalISODate()): Promise<ActiveSwapMap> {
+  const settings = await getSettings();
+  return swapsForDate(settings.todayExerciseSwaps, today);
+}
+
+export async function setExerciseSwap(opts: {
+  date: string;
+  dayKey: string;
+  code: string;
+  planName: string;
+  swappedName: string;
+  reason: SwapReason;
+}): Promise<ActiveSwapMap> {
+  const settings = await getSettings();
+  const map = swapsForDate(settings.todayExerciseSwaps, opts.date);
+  const key = `${opts.dayKey}:${opts.code}`;
+  map[key] = { name: opts.swappedName, reason: opts.reason };
+  await updateSettings({
+    todayExerciseSwaps: { date: opts.date, map },
+  });
+  const log: ExerciseSwapLog = {
+    id: newId('swap'),
+    date: opts.date,
+    dayKey: opts.dayKey,
+    code: opts.code,
+    planName: opts.planName,
+    swappedName: opts.swappedName,
+    reason: opts.reason,
+    createdAt: new Date().toISOString(),
+  };
+  await db.exerciseSwaps.add(log);
+  return map;
+}
+
+export async function clearExerciseSwap(
+  date: string,
+  dayKey: string,
+  code: string,
+): Promise<ActiveSwapMap> {
+  const settings = await getSettings();
+  const map = swapsForDate(settings.todayExerciseSwaps, date);
+  delete map[`${dayKey}:${code}`];
+  await updateSettings({
+    todayExerciseSwaps: { date, map },
+  });
+  return map;
+}
+
+export async function getExerciseSwapLogs(): Promise<ExerciseSwapLog[]> {
+  return db.exerciseSwaps.orderBy('createdAt').reverse().toArray();
+}
+
+/** REPLACE steps from health only when the day is empty or already health-sourced (manual wins). */
+export async function applyHealthStepsIfAllowed(
+  date: string,
+  totalSteps: number,
+  source: MetricSource,
+): Promise<'applied' | 'skipped_manual'> {
+  const existing = await getStepsByDate(date);
+  if (existing && existing.source === 'manual') return 'skipped_manual';
+  const now = new Date().toISOString();
+  return db.transaction('rw', db.steps, async () => {
+    const rows = await db.steps.where('date').equals(date).toArray();
+    if (rows.length > 0) {
+      const keep = [...rows].sort((a, b) =>
+        (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt),
+      )[0]!;
+      if (keep.source === 'manual') return 'skipped_manual';
+      const drop = rows.filter((r) => r.id !== keep.id);
+      if (drop.length) await db.steps.bulkDelete(drop.map((r) => r.id));
+      await db.steps.put({
+        ...keep,
+        totalSteps,
+        source,
+        updatedAt: now,
+      });
+      return 'applied';
+    }
+    await db.steps.add({
+      id: newId('steps'),
+      date,
+      totalSteps,
+      source,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return 'applied';
+  });
+}
+
+/** Import morning weight from health when no primary manual weigh-in exists for that date. */
+export async function applyHealthWeightIfAllowed(
+  date: string,
+  weightKg: number,
+  source: MetricSource,
+): Promise<'applied' | 'skipped_manual'> {
+  const existing = await db.weights.where('date').equals(date).toArray();
+  const primary = existing.find((w) => w.isPrimaryMorning);
+  // Untagged primary rows (pre-v0.11) are treated as manual — never overwrite.
+  if (primary && (primary.source === 'manual' || primary.source == null)) {
+    return 'skipped_manual';
+  }
+  const now = new Date().toISOString();
+  if (primary && (primary.source === 'apple_health' || primary.source === 'google_health')) {
+    await db.weights.put({
+      ...primary,
+      weightKg,
+      source,
+      updatedAt: now,
+    });
+    return 'applied';
+  }
+  await db.weights.add({
+    id: newId('wt'),
+    date,
+    weightKg,
+    isEstimate: false,
+    isPrimaryMorning: true,
+    source,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return 'applied';
+}
+
+export async function applyHealthSleepIfAllowed(
+  date: string,
+  bedtime: string,
+  wakeTime: string,
+  source: MetricSource,
+): Promise<'applied' | 'skipped_manual'> {
+  const existing = await getSleepByDate(date);
+  if (existing && (existing.source === 'manual' || existing.source == null)) {
+    return 'skipped_manual';
+  }
+  await upsertSleep({
+    id: existing?.id,
+    date,
+    bedtime,
+    wakeTime,
+    source,
+    notes: existing?.notes,
+    quality: existing?.quality,
+  });
+  return 'applied';
+}
+
 export async function getWorkoutsByDate(date: string): Promise<WorkoutEntry[]> {
   return db.workouts.where('date').equals(date).toArray();
 }
@@ -481,6 +640,7 @@ export async function upsertSleep(
     wakeTime: entry.wakeTime,
     quality: entry.quality,
     notes: entry.notes,
+    source: entry.source,
     createdAt: now,
     updatedAt: now,
   };
@@ -581,6 +741,7 @@ export async function createBackup(): Promise<BackupPayload> {
     progressPhotos: await db.progressPhotos.toArray(),
     healthRecords: await db.healthRecords.toArray(),
     healthConnections: await db.healthConnections.toArray(),
+    exerciseSwaps: await db.exerciseSwaps.toArray(),
   };
 }
 
@@ -643,6 +804,7 @@ export async function restoreBackup(
       db.progressPhotos,
       db.healthRecords,
       db.healthConnections,
+      db.exerciseSwaps,
     ],
     async () => {
       if (mode === 'replace') {
@@ -667,6 +829,7 @@ export async function restoreBackup(
           db.progressPhotos.clear(),
           db.healthRecords.clear(),
           db.healthConnections.clear(),
+          db.exerciseSwaps.clear(),
         ]);
         await db.settings.put(migrateSettings(data.settings));
         if (data.weights.length) await db.weights.bulkAdd(data.weights);
@@ -695,6 +858,8 @@ export async function restoreBackup(
           await db.healthRecords.bulkAdd(data.healthRecords);
         if (data.healthConnections?.length)
           await db.healthConnections.bulkAdd(data.healthConnections);
+        if (data.exerciseSwaps?.length)
+          await db.exerciseSwaps.bulkAdd(data.exerciseSwaps);
         imported =
           data.weights.length +
           data.foods.length +
@@ -714,7 +879,8 @@ export async function restoreBackup(
           (data.journalEntries?.length ?? 0) +
           (data.progressPhotos?.length ?? 0) +
           (data.healthRecords?.length ?? 0) +
-          (data.healthConnections?.length ?? 0);
+          (data.healthConnections?.length ?? 0) +
+          (data.exerciseSwaps?.length ?? 0);
         return;
       }
 
@@ -768,6 +934,10 @@ export async function restoreBackup(
         db.healthConnections,
         data.healthConnections ?? [],
       );
+      const rSwaps = await mergeTableKeepNewer(
+        db.exerciseSwaps,
+        data.exerciseSwaps ?? [],
+      );
       for (const r of [
         rWeights,
         rFoods,
@@ -788,6 +958,7 @@ export async function restoreBackup(
         rPhoto,
         rHealth,
         rConn,
+        rSwaps,
       ]) {
         keptLocalNewer += r.keptLocalNewer;
         imported += r.imported;

@@ -199,8 +199,34 @@ export interface AppSettings {
   dayTypeCalories?: boolean;
   /** Plan migrations applied (2 = Project New Me, 3 Nov 2026). */
   planVersion?: number;
+  /** Native shell: auto-pull HealthKit / Health Connect (default on). */
+  autoSyncHealth?: boolean;
+  /** ISO timestamp of last successful auto-sync attempt window. */
+  lastAutoSyncAt?: string | null;
+  /** Offer writing manual weight back to Apple Health (default off). */
+  offerHealthWriteBack?: boolean;
+  /**
+   * Active exercise swaps for a single calendar day.
+   * Reset automatically when `date` ≠ today.
+   */
+  todayExerciseSwaps?: {
+    date: ISODate;
+    map: Record<string, { name: string; reason: 'busy' | 'broken' | 'not_available' | 'pain' }>;
+  };
   createdAt: string;
   updatedAt: string;
+}
+
+/** Historical machine-swap log (survives day rollover for History insights). */
+export interface ExerciseSwapLog {
+  id: string;
+  date: ISODate;
+  dayKey: string;
+  code: string;
+  planName: string;
+  swappedName: string;
+  reason: 'busy' | 'broken' | 'not_available' | 'pain';
+  createdAt: string;
 }
 
 export interface ScoreWeights {
@@ -223,6 +249,7 @@ export interface WeightEntry {
   notes?: string;
   isEstimate: boolean;
   isPrimaryMorning: boolean;
+  source?: MetricSource;
   createdAt: string;
   updatedAt: string;
   enteredLate?: boolean;
@@ -265,12 +292,14 @@ export interface FoodLibraryItem {
   updatedAt: string;
 }
 
+export type MetricSource = 'manual' | 'apple_health' | 'google_health' | 'health_future';
+
 export interface StepEntry {
   id: string;
   date: ISODate;
   /** Documented rule: each update REPLACES the day's total (not cumulative add). */
   totalSteps: number;
-  source: 'manual' | 'health_future';
+  source: MetricSource;
   note?: string;
   createdAt: string;
   updatedAt: string;
@@ -312,6 +341,7 @@ export interface SleepEntry {
   wakeTime: string;
   quality?: 1 | 2 | 3 | 4 | 5;
   notes?: string;
+  source?: MetricSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -420,6 +450,7 @@ export interface BackupPayload {
   /** Canonical imported/calculated health rows (v0.9+) */
   healthRecords?: import('../health/types').HealthMetricRecord[];
   healthConnections?: import('../health/types').HealthConnectionState[];
+  exerciseSwaps?: ExerciseSwapLog[];
 }
 
 export interface DayAggregate {
