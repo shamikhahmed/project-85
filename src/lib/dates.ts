@@ -6,6 +6,14 @@ export function toLocalISODate(d: Date = new Date()): ISODate {
   return format(d, 'yyyy-MM-dd');
 }
 
+/**
+ * Local calendar day for an ISO timestamp (incl. trailing Z).
+ * Never use iso.slice(0, 10) — that is the UTC date.
+ */
+export function localCalendarDay(iso: string): ISODate {
+  return format(parseISO(iso), 'yyyy-MM-dd');
+}
+
 export function parseLocalDate(iso: ISODate): Date {
   const d = parseISO(iso);
   if (!isValid(d)) throw new Error(`Invalid date: ${iso}`);

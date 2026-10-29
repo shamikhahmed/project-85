@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.12.0 — Body age + readiness scores (2026-10-29)
+
+- **Body age (Health):** separate Fitness Age (30d median VO₂max, HUNT) and PhenoAge (Levine 2018 manual labs with unit pickers); citations in-app; never blended.
+- **Readiness:** Recovery (0–100), Strain (0–21), Sleep performance + go-to-bed-by; labelled PROJECT 85 score, not medical. Recomputed after health sync into Dexie `dailyScores`.
+- **Journal tags:** daily yes/no tags with mean-difference insights after 14+ days.
+- **Coach line** on Today from recovery + strain; Train Basic mode uses `shouldForceBasic` (recovery + sleep).
+- **Settings:** HR max override, sleep need baseline hours.
+- Dexie **v5** tables `labPanels`, `dailyScores`, `journalTags`; backup/restore includes them.
+
 ## v0.11.0 — Exercise swaps + auto health sync (2026-10-29)
 
 - **Exercise swaps:** Train cards offer Busy / Broken / Not available / Pain reasons with tappable alts + no-equipment/DB fallback (`fallbackFor`). Swap > Block B > plan name for logging; today-only persistence; undo; history insights.

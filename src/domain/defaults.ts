@@ -67,6 +67,8 @@ export function createDefaultSettings(now = new Date().toISOString()): AppSettin
     autoSyncHealth: true,
     lastAutoSyncAt: null,
     offerHealthWriteBack: false,
+    hrMaxOverrideBpm: null,
+    sleepNeedBaselineHours: 8,
     todayExerciseSwaps: undefined,
     createdAt: now,
     updatedAt: now,

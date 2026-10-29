@@ -205,6 +205,10 @@ export interface AppSettings {
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */
   offerHealthWriteBack?: boolean;
+  /** Manual override for Tanaka HRmax (bpm). Null = 208 − 0.7×age. */
+  hrMaxOverrideBpm?: number | null;
+  /** Baseline sleep need hours (WHOOP-style need calc). Default 8. */
+  sleepNeedBaselineHours?: number;
   /**
    * Active exercise swaps for a single calendar day.
    * Reset automatically when `date` ≠ today.
@@ -218,6 +222,56 @@ export interface AppSettings {
 }
 
 /** Historical machine-swap log (survives day rollover for History insights). */
+/** WHOOP-style daily yes/no journal tags (stored keys when enabled). */
+export const JOURNAL_TAG_KEYS = [
+  'late_meal',
+  'chai_after_4pm',
+  'alcohol',
+  'screens_in_bed',
+  'stress',
+  'sick',
+] as const;
+
+export type JournalTagKey = (typeof JOURNAL_TAG_KEYS)[number];
+
+export interface LabPanel {
+  id: string;
+  date: ISODate;
+  albumin_gL: number;
+  creatinine_umolL: number;
+  glucose_mmolL: number;
+  crp_mgDl: number;
+  lymphocytePct: number;
+  mcv: number;
+  rdw: number;
+  alp: number;
+  wbc: number;
+  chronologicalAgeAtTest: number;
+  phenoAgeYears: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyScoreRow {
+  id: string;
+  date: ISODate;
+  recovery: number | null;
+  strain: number | null;
+  sleepPerf: number | null;
+  inputsJson: string;
+  formulaVersion: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JournalTagRow {
+  id: string;
+  date: ISODate;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ExerciseSwapLog {
   id: string;
   date: ISODate;
@@ -309,6 +363,8 @@ export interface WaterEntry {
   id: string;
   date: ISODate;
   amountMl: number;
+  /** Untagged / missing = manual (never overwritten by health sync). */
+  source?: MetricSource;
   createdAt: string;
 }
 
@@ -451,6 +507,9 @@ export interface BackupPayload {
   healthRecords?: import('../health/types').HealthMetricRecord[];
   healthConnections?: import('../health/types').HealthConnectionState[];
   exerciseSwaps?: ExerciseSwapLog[];
+  labPanels?: LabPanel[];
+  dailyScores?: DailyScoreRow[];
+  journalTags?: JournalTagRow[];
 }
 
 export interface DayAggregate {

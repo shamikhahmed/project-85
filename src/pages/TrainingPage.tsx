@@ -3,6 +3,7 @@ import { addDays, format } from 'date-fns';
 import plan from '../domain/trainingPlan.json';
 import { useAppStore } from '../store/useAppStore';
 import * as repo from '../data/repository';
+import { shouldForceBasic } from '../health/scores';
 import {
   PLAN_END,
   PLAN_START,
@@ -97,6 +98,8 @@ export function TrainingPage() {
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [swaps, setSwaps] = useState<ActiveSwapMap>({});
   const [lastNightSleepH, setLastNightSleepH] = useState<number | null>(null);
+  const [todayRecovery, setTodayRecovery] = useState<number | null>(null);
+  const [todayStrain, setTodayStrain] = useState<number | null>(null);
   const ref = today < PLAN_START ? PLAN_START : today;
   const phase = planPhase(ref);
   const session = sessionFor(today);
@@ -110,13 +113,17 @@ export function TrainingPage() {
         : BASE_DAYS,
     [today],
   );
-  /** Low sleep (<6h): suggest Basic even on Advanced weeks. */
+  const forceBasic = useMemo(() => {
+    const sleepH = lastNightSleepH ?? 8;
+    return shouldForceBasic(todayRecovery ?? 70, todayStrain ?? 0, sleepH);
+  }, [lastNightSleepH, todayRecovery, todayStrain]);
+
   const effectivePhase = useMemo((): PlanPhase => {
-    if (lastNightSleepH != null && lastNightSleepH < 6 && phase.advanced) {
+    if (forceBasic && phase.advanced) {
       return { ...phase, advanced: false, mode: phase.blockB ? 'Block B · Basic' : 'Basic' };
     }
     return phase;
-  }, [phase, lastNightSleepH]);
+  }, [phase, forceBasic]);
 
   const historyFrom = format(addDays(parseLocalDate(today), -120), 'yyyy-MM-dd');
   const loadHistory = useCallback(async () => {
@@ -135,6 +142,11 @@ export function TrainingPage() {
     void repo.getSleepByDate(yday).then((sl) => {
       if (cancelled || !sl) return;
       setLastNightSleepH(sleepDurationHours(sl.bedtime, sl.wakeTime));
+    });
+    void repo.getDailyScore(today).then((row) => {
+      if (cancelled) return;
+      setTodayRecovery(row?.recovery ?? null);
+      setTodayStrain(row?.strain ?? null);
     });
     return () => {
       cancelled = true;
@@ -217,10 +229,14 @@ export function TrainingPage() {
           <br />
           <strong>Week {mission.week} mission:</strong> {mission.text}
         </div>
-        {lastNightSleepH != null && lastNightSleepH < 6 && (
+        {forceBasic && (
           <div className="train-banner warn" role="status">
-            Slept {Math.floor(lastNightSleepH)}h {Math.round((lastNightSleepH % 1) * 60)}m last
-            night — using <strong>Basic</strong> today (skip Advanced techniques).
+            {lastNightSleepH != null && lastNightSleepH < 6.5
+              ? `Slept ${Math.floor(lastNightSleepH)}h ${Math.round((lastNightSleepH % 1) * 60)}m last night — `
+              : todayRecovery != null && todayRecovery <= 33
+                ? 'Low recovery today — '
+                : ''}
+            using <strong>Basic</strong> today (readiness + sleep).
           </div>
         )}
       </header>

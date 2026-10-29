@@ -26,6 +26,9 @@ const BACKUP_ARRAY_KEYS = [
   'healthRecords',
   'healthConnections',
   'exerciseSwaps',
+  'labPanels',
+  'dailyScores',
+  'journalTags',
 ] as const satisfies ReadonlyArray<keyof BackupPayload>;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -81,6 +84,9 @@ export function validateBackupPayload(payload: unknown): BackupPayload {
     healthRecords: data.healthRecords ?? [],
     healthConnections: data.healthConnections ?? [],
     exerciseSwaps: data.exerciseSwaps ?? [],
+    labPanels: data.labPanels ?? [],
+    dailyScores: data.dailyScores ?? [],
+    journalTags: data.journalTags ?? [],
   };
 }
 

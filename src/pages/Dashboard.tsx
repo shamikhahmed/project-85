@@ -19,6 +19,7 @@ import { assessWeightTrend } from '../lib/weightTrend';
 import { useAppStore, useWeightProgress } from '../store/useAppStore';
 import { calorieTargetFor, missionFor, planPhase, sessionFor, PLAN_START } from '../domain/plan';
 import type { ISODate } from '../domain/types';
+import { coachLine } from '../health/scores';
 
 const STATUS_CLASS: Record<string, string> = {
   ON_TRACK: 'badge-ok',
@@ -84,6 +85,7 @@ export function Dashboard() {
   const [comeback, setComeback] = useState<ComebackState | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickMode, setQuickMode] = useState<QuickLogMode>('meal');
+  const [readinessCoach, setReadinessCoach] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -114,6 +116,16 @@ export function Dashboard() {
       setComeback(assessComeback(days, today));
     })();
   }, [settings, today, agg?.loggingCompleteness, agg?.foodEntryCount, agg?.steps]);
+
+  useEffect(() => {
+    void repo.getDailyScore(today).then((row) => {
+      if (row?.recovery != null && row.strain != null) {
+        setReadinessCoach(coachLine(row.recovery, row.strain));
+      } else {
+        setReadinessCoach(null);
+      }
+    });
+  }, [today, agg?.sleepHours, agg?.steps]);
 
   const trend = useMemo(() => assessWeightTrend(weightSeries), [weightSeries]);
   const previousWeightKg = useMemo(() => {
@@ -192,6 +204,11 @@ export function Dashboard() {
           ? `Starts in ${calendarDaysElapsed(today, settings.startDate)} days · ${daysLeft} days to the birthday`
           : `Day ${daysIn + 1} · ${daysLeft} days left`}
       </p>
+      {readinessCoach && (
+        <p className="panel-inset muted" style={{ margin: 0 }}>
+          <strong>Coach:</strong> {readinessCoach}
+        </p>
+      )}
 
       {comeback && comeback.missedDays >= 2 && (
         <section className="panel comeback-panel stack" aria-labelledby="comeback-title">

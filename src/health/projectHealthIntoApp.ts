@@ -4,7 +4,9 @@
  */
 
 import * as repo from '../data/repository';
+import { localCalendarDay } from '../lib/dates';
 import { pickDayTotal } from './dedupe';
+import { groupSleepNights } from './scores/sleepNights';
 import type { HealthMetricRecord, HealthProvider } from './types';
 
 function providerToSource(
@@ -13,20 +15,15 @@ function providerToSource(
   return provider === 'google_health' ? 'google_health' : 'apple_health';
 }
 
-function localDay(iso: string): string {
-  // Prefer calendar date from the sample start (HealthKit local-ish ISO).
-  return iso.slice(0, 10);
-}
-
 /** Aggregate steps / weight / sleep / hydration from records into domain tables. */
 export async function projectHealthRecordsIntoApp(
   records: HealthMetricRecord[],
 ): Promise<{ steps: number; weights: number; sleep: number; water: number }> {
   const counts = { steps: 0, weights: 0, sleep: 0, water: 0 };
-  const days = new Set(records.map((r) => localDay(r.startAt)));
+  const days = new Set(records.map((r) => localCalendarDay(r.startAt)));
 
   for (const day of days) {
-    const dayRows = records.filter((r) => localDay(r.startAt) === day);
+    const dayRows = records.filter((r) => localCalendarDay(r.startAt) === day);
 
     const steps = pickDayTotal(dayRows, 'steps', day);
     if (steps && steps.provider !== 'manual') {
@@ -40,7 +37,6 @@ export async function projectHealthRecordsIntoApp(
 
     const weight = pickDayTotal(dayRows, 'weight', day);
     if (weight && weight.provider !== 'manual') {
-      // Prefer earliest morning-ish sample if multiple.
       const candidates = dayRows
         .filter((r) => r.metricId === 'weight' && r.provider !== 'manual')
         .sort((a, b) => a.startAt.localeCompare(b.startAt));
@@ -53,37 +49,42 @@ export async function projectHealthRecordsIntoApp(
       if (res === 'applied') counts.weights += 1;
     }
 
-    const asleep = dayRows.filter(
-      (r) => r.metricId === 'sleep_asleep' && r.provider !== 'manual' && r.endAt,
-    );
-    if (asleep.length) {
-      // Longest asleep session for the night ending on `day` (wake date).
-      const sorted = [...asleep].sort(
-        (a, b) => (b.value || 0) - (a.value || 0),
-      );
-      const best = sorted[0]!;
-      if (best.endAt) {
-        const wakeDay = best.endAt.slice(0, 10);
-        const res = await repo.applyHealthSleepIfAllowed(
-          wakeDay,
-          best.startAt,
-          best.endAt,
-          providerToSource(best.provider),
-        );
-        if (res === 'applied') counts.sleep += 1;
-      }
-    }
-
     const water = pickDayTotal(dayRows, 'hydration', day);
     if (water && water.provider !== 'manual' && water.value > 0) {
-      // Only seed water when the day has no entries yet (manual wins by presence).
-      const { db } = await import('../data/db');
-      const rows = await db.water.where('date').equals(day).toArray();
-      if (rows.length === 0) {
-        await repo.addWater(day, Math.round(water.value));
-        counts.water += 1;
-      }
+      const res = await repo.applyHealthWaterIfAllowed(
+        day,
+        Math.round(water.value),
+        providerToSource(water.provider),
+      );
+      if (res === 'applied') counts.water += 1;
     }
+  }
+
+  const sleepSegs = records.filter(
+    (r) =>
+      (r.metricId === 'sleep_asleep' || r.metricId === 'sleep_awake') &&
+      r.provider !== 'manual' &&
+      r.endAt,
+  );
+  const nights = groupSleepNights(
+    sleepSegs.map((r) => ({
+      startAt: r.startAt,
+      endAt: r.endAt!,
+      metricId: r.metricId,
+      value: r.value,
+      provider: r.provider,
+    })),
+  );
+  for (const night of nights) {
+    const first = sleepSegs.find((s) => s.startAt === night.bedtime);
+    const provider = (first?.provider ?? 'apple_health') as HealthProvider;
+    const res = await repo.applyHealthSleepIfAllowed(
+      night.wakeDay,
+      night.bedtime,
+      night.wake,
+      providerToSource(provider),
+    );
+    if (res === 'applied') counts.sleep += 1;
   }
 
   return counts;

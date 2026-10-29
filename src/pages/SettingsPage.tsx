@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { formatDistanceToNow } from 'date-fns';
 import { FoodLibraryManager } from '../components/FoodLibraryManager';
@@ -8,6 +8,7 @@ import type { RestoreMode } from '../data/repository';
 import { maybeRunAutoHealthSync } from '../health/autoSync';
 import { useAppStore } from '../store/useAppStore';
 import type { BiologicalSex, ThemeMode } from '../domain/types';
+import { applyTheme } from '../lib/theme';
 import { Link } from 'react-router-dom';
 
 export function SettingsPage() {
@@ -172,6 +173,24 @@ export function SettingsPage() {
           type="number"
           value={String(settings.sleepTargetHours)}
           onCommit={(v) => void save({ sleepTargetHours: Number(v) })}
+        />
+        <Field
+          label="Sleep need baseline (hours, WHOOP-style)"
+          type="number"
+          value={String(settings.sleepNeedBaselineHours ?? 8)}
+          onCommit={(v) => void save({ sleepNeedBaselineHours: Number(v) })}
+        />
+        <Field
+          label="HR max override (bpm, optional)"
+          type="number"
+          value={
+            settings.hrMaxOverrideBpm != null ? String(settings.hrMaxOverrideBpm) : ''
+          }
+          onCommit={(v) =>
+            void save({
+              hrMaxOverrideBpm: v.trim() === '' ? null : Number(v),
+            })
+          }
         />
         <Field
           label="Cigarette goal"
@@ -465,10 +484,21 @@ function Field({
   type: string;
   onCommit: (v: string) => void;
 }) {
+  return <SettingsFieldInner key={value} label={label} value={value} type={type} onCommit={onCommit} />;
+}
+
+function SettingsFieldInner({
+  label,
+  value,
+  type,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  type: string;
+  onCommit: (v: string) => void;
+}) {
   const [local, setLocal] = useState(value);
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
   return (
     <label>
       <span className="label">{label}</span>
@@ -483,14 +513,4 @@ function Field({
       />
     </label>
   );
-}
-
-export function applyTheme(theme: ThemeMode) {
-  const root = document.documentElement;
-  if (theme === 'system') {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    root.setAttribute('data-theme', dark ? 'dark' : 'light');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
 }

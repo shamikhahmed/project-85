@@ -128,8 +128,8 @@ describe('pickDayTotal', () => {
         provider: 'apple_health',
         value: 10000,
         sourceRecordId: 'day',
-        startAt: '2026-10-28T00:00:00.000Z',
-        endAt: '2026-10-28T23:59:59.000Z',
+        startAt: '2026-10-28T00:00:00.000',
+        endAt: '2026-10-28T23:59:59.000',
         updatedAt: '2026-10-28T22:00:00.000Z',
       }),
       row({
@@ -137,8 +137,8 @@ describe('pickDayTotal', () => {
         provider: 'apple_health',
         value: 3000,
         sourceRecordId: 'a1',
-        startAt: '2026-10-28T08:00:00.000Z',
-        endAt: '2026-10-28T12:00:00.000Z',
+        startAt: '2026-10-28T08:00:00.000',
+        endAt: '2026-10-28T12:00:00.000',
         updatedAt: '2026-10-28T12:00:00.000Z',
       }),
     ];

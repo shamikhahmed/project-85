@@ -6,9 +6,12 @@ import type {
   BodyMeasurementType,
   CigaretteEntry,
   DailyNotes,
+  DailyScoreRow,
   DayAggregate,
   DayScore,
   ExerciseSwapLog,
+  JournalTagRow,
+  LabPanel,
   FoodEntry,
   FoodLibraryItem,
   JournalEntry,
@@ -101,6 +104,9 @@ function migrateSettings(input: AppSettings): AppSettings {
     autoSyncHealth: raw.autoSyncHealth ?? defaults.autoSyncHealth,
     lastAutoSyncAt: raw.lastAutoSyncAt ?? defaults.lastAutoSyncAt,
     offerHealthWriteBack: raw.offerHealthWriteBack ?? defaults.offerHealthWriteBack,
+    hrMaxOverrideBpm: raw.hrMaxOverrideBpm ?? defaults.hrMaxOverrideBpm ?? null,
+    sleepNeedBaselineHours:
+      raw.sleepNeedBaselineHours ?? defaults.sleepNeedBaselineHours ?? 8,
   };
 }
 
@@ -385,15 +391,55 @@ export async function getStepsInRange(start: string, end: string): Promise<StepE
 
 /* ---------------- Water ---------------- */
 
-export async function addWater(date: string, amountMl: number): Promise<WaterEntry> {
+export async function addWater(
+  date: string,
+  amountMl: number,
+  source: MetricSource = 'manual',
+): Promise<WaterEntry> {
   const entry: WaterEntry = {
     id: newId('h2o'),
     date,
     amountMl,
+    source,
     createdAt: new Date().toISOString(),
   };
   await db.water.add(entry);
   return entry;
+}
+
+/**
+ * Replace the single health-sourced water row for a day.
+ * If any manual (or untagged) water exists, skip — manual wins.
+ */
+export async function applyHealthWaterIfAllowed(
+  date: string,
+  amountMl: number,
+  source: MetricSource,
+): Promise<'applied' | 'skipped_manual'> {
+  const rows = await db.water.where('date').equals(date).toArray();
+  const hasManual = rows.some((r) => r.source === 'manual' || r.source == null);
+  if (hasManual) return 'skipped_manual';
+  const healthRows = rows.filter(
+    (r) => r.source === 'apple_health' || r.source === 'google_health',
+  );
+  const now = new Date().toISOString();
+  return db.transaction('rw', db.water, async (): Promise<'applied' | 'skipped_manual'> => {
+    if (healthRows.length) {
+      const keep = healthRows[0]!;
+      const drop = healthRows.slice(1);
+      if (drop.length) await db.water.bulkDelete(drop.map((r) => r.id));
+      await db.water.put({ ...keep, amountMl, source, createdAt: keep.createdAt });
+      return 'applied';
+    }
+    await db.water.add({
+      id: newId('h2o'),
+      date,
+      amountMl,
+      source,
+      createdAt: now,
+    });
+    return 'applied';
+  });
 }
 
 export async function undoLastWater(date: string): Promise<WaterEntry | null> {
@@ -714,6 +760,75 @@ export async function getScoreByDate(date: string): Promise<DayScore | undefined
   return db.scores.where('date').equals(date).first();
 }
 
+/* ---------------- Lab panels & readiness scores ---------------- */
+
+export async function upsertLabPanel(
+  panel: Omit<LabPanel, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
+): Promise<LabPanel> {
+  const now = new Date().toISOString();
+  const id = panel.id ?? newId('lab');
+  const prev = panel.id ? await db.labPanels.get(panel.id) : undefined;
+  const next: LabPanel = {
+    ...panel,
+    id,
+    createdAt: prev?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await db.labPanels.put(next);
+  return next;
+}
+
+export async function listLabPanels(): Promise<LabPanel[]> {
+  return db.labPanels.orderBy('date').reverse().toArray();
+}
+
+export async function upsertDailyScore(
+  row: Omit<DailyScoreRow, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
+): Promise<DailyScoreRow> {
+  const now = new Date().toISOString();
+  const existing = await db.dailyScores.where('date').equals(row.date).first();
+  const id = row.id ?? existing?.id ?? newId('dscore');
+  const next: DailyScoreRow = {
+    ...row,
+    id,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await db.dailyScores.put(next);
+  return next;
+}
+
+export async function getDailyScore(date: string): Promise<DailyScoreRow | undefined> {
+  return db.dailyScores.where('date').equals(date).first();
+}
+
+export async function upsertJournalTags(
+  row: Omit<JournalTagRow, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
+): Promise<JournalTagRow> {
+  const now = new Date().toISOString();
+  const existing = await db.journalTags.where('date').equals(row.date).first();
+  const id = row.id ?? existing?.id ?? newId('jtag');
+  const next: JournalTagRow = {
+    ...row,
+    id,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await db.journalTags.put(next);
+  return next;
+}
+
+export async function getJournalTags(date: string): Promise<JournalTagRow | undefined> {
+  return db.journalTags.where('date').equals(date).first();
+}
+
+export async function listJournalTagsInRange(
+  start: string,
+  end: string,
+): Promise<JournalTagRow[]> {
+  return db.journalTags.where('date').between(start, end, true, true).toArray();
+}
+
 /* ---------------- Backup / Export ---------------- */
 
 export async function createBackup(): Promise<BackupPayload> {
@@ -742,6 +857,9 @@ export async function createBackup(): Promise<BackupPayload> {
     healthRecords: await db.healthRecords.toArray(),
     healthConnections: await db.healthConnections.toArray(),
     exerciseSwaps: await db.exerciseSwaps.toArray(),
+    labPanels: await db.labPanels.toArray(),
+    dailyScores: await db.dailyScores.toArray(),
+    journalTags: await db.journalTags.toArray(),
   };
 }
 
@@ -805,6 +923,9 @@ export async function restoreBackup(
       db.healthRecords,
       db.healthConnections,
       db.exerciseSwaps,
+      db.labPanels,
+      db.dailyScores,
+      db.journalTags,
     ],
     async () => {
       if (mode === 'replace') {
@@ -830,6 +951,9 @@ export async function restoreBackup(
           db.healthRecords.clear(),
           db.healthConnections.clear(),
           db.exerciseSwaps.clear(),
+          db.labPanels.clear(),
+          db.dailyScores.clear(),
+          db.journalTags.clear(),
         ]);
         await db.settings.put(migrateSettings(data.settings));
         if (data.weights.length) await db.weights.bulkAdd(data.weights);
@@ -860,6 +984,9 @@ export async function restoreBackup(
           await db.healthConnections.bulkAdd(data.healthConnections);
         if (data.exerciseSwaps?.length)
           await db.exerciseSwaps.bulkAdd(data.exerciseSwaps);
+        if (data.labPanels?.length) await db.labPanels.bulkAdd(data.labPanels);
+        if (data.dailyScores?.length) await db.dailyScores.bulkAdd(data.dailyScores);
+        if (data.journalTags?.length) await db.journalTags.bulkAdd(data.journalTags);
         imported =
           data.weights.length +
           data.foods.length +
@@ -880,7 +1007,10 @@ export async function restoreBackup(
           (data.progressPhotos?.length ?? 0) +
           (data.healthRecords?.length ?? 0) +
           (data.healthConnections?.length ?? 0) +
-          (data.exerciseSwaps?.length ?? 0);
+          (data.exerciseSwaps?.length ?? 0) +
+          (data.labPanels?.length ?? 0) +
+          (data.dailyScores?.length ?? 0) +
+          (data.journalTags?.length ?? 0);
         return;
       }
 
@@ -938,6 +1068,9 @@ export async function restoreBackup(
         db.exerciseSwaps,
         data.exerciseSwaps ?? [],
       );
+      const rLabs = await mergeTableKeepNewer(db.labPanels, data.labPanels ?? []);
+      const rDaily = await mergeTableKeepNewer(db.dailyScores, data.dailyScores ?? []);
+      const rJTags = await mergeTableKeepNewer(db.journalTags, data.journalTags ?? []);
       for (const r of [
         rWeights,
         rFoods,
@@ -959,6 +1092,9 @@ export async function restoreBackup(
         rHealth,
         rConn,
         rSwaps,
+        rLabs,
+        rDaily,
+        rJTags,
       ]) {
         keptLocalNewer += r.keptLocalNewer;
         imported += r.imported;
@@ -1310,6 +1446,27 @@ export async function listHealthConnections(): Promise<
   const existing = await db.healthConnections.toArray();
   if (existing.length === 0) return refreshHealthConnectionDiagnostics();
   return existing;
+}
+
+/**
+ * Stamp an auto-sync / plugin error onto native health connections.
+ * Never resets status to ok; preserves prior lastSuccessAt.
+ */
+export async function recordHealthSyncError(message: string): Promise<void> {
+  const existing = await db.healthConnections.toArray();
+  const ts = new Date().toISOString();
+  const next = existing.map((c) => {
+    if (c.provider !== 'apple_health' && c.provider !== 'google_health') return c;
+    return {
+      ...c,
+      status: c.status === 'ok' ? c.status : ('error' as const),
+      lastError: message,
+      lastAttemptAt: ts,
+      updatedAt: ts,
+      notes: message,
+    };
+  });
+  if (next.length) await db.healthConnections.bulkPut(next);
 }
 
 export async function loadDayBundle(date: string) {

@@ -1,3 +1,4 @@
+import { localCalendarDay } from '../lib/dates';
 import type { HealthMetricRecord } from './types';
 
 /**
@@ -71,8 +72,8 @@ const CUMULATIVE_DAY_METRICS = new Set(['steps', 'active_energy', 'hydration', '
  * Matches PROJECT 85 manual mirrors (T00:00–T23:59) and long single windows (≥20h).
  */
 export function isLikelyDayTotal(r: HealthMetricRecord, dayIso: string): boolean {
-  const startDay = r.startAt.slice(0, 10);
-  const endDay = (r.endAt ?? r.startAt).slice(0, 10);
+  const startDay = localCalendarDay(r.startAt);
+  const endDay = localCalendarDay(r.endAt ?? r.startAt);
   if (startDay !== dayIso || endDay !== dayIso) return false;
   if (r.startAt.includes('T00:00:00') && (r.endAt?.includes('T23:59:') ?? false)) {
     return true;
@@ -93,8 +94,8 @@ export function pickDayTotal(
     (r) =>
       r.metricId === metricId &&
       !r.deletedAt &&
-      r.startAt.slice(0, 10) <= dayIso &&
-      (r.endAt ?? r.startAt).slice(0, 10) >= dayIso,
+      localCalendarDay(r.startAt) <= dayIso &&
+      localCalendarDay(r.endAt ?? r.startAt) >= dayIso,
   );
   if (dayRows.length === 0) return null;
 

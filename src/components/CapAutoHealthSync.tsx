@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import * as repo from '../data/repository';
 import { maybeRunAutoHealthSync } from '../health/autoSync';
 import { useAppStore } from '../store/useAppStore';
 
@@ -19,8 +20,19 @@ export function CapAutoHealthSync() {
     let cancelled = false;
 
     const run = async (force = false) => {
-      const result = await maybeRunAutoHealthSync({ force });
-      if (!cancelled && result.ran) await refreshDay();
+      try {
+        const result = await maybeRunAutoHealthSync({ force });
+        if (!cancelled && result.ran) await refreshDay();
+      } catch (e) {
+        // Never set lastAutoSyncAt on throw (maybeRunAutoHealthSync only stamps after success).
+        // Record error on connection status without resetting a prior ok → never invent ok.
+        const msg = e instanceof Error ? e.message : 'Auto health sync failed';
+        try {
+          await repo.recordHealthSyncError(msg);
+        } catch {
+          /* non-fatal */
+        }
+      }
     };
 
     if (!ranLaunch.current) {

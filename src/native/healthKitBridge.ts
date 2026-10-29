@@ -42,6 +42,11 @@ const TYPE_MAP: Record<
     metricId: 'resting_heart_rate',
     category: 'heart',
   },
+  heartRate: {
+    dataType: 'heartRate',
+    metricId: 'heart_rate',
+    category: 'heart',
+  },
   heartRateVariability: {
     dataType: 'heartRateVariability',
     metricId: 'hrv',
@@ -170,6 +175,22 @@ const DEFAULT_READ: HealthDataType[] = [
   'workouts',
 ];
 
+/** True when at least one DEFAULT_READ type is already authorized (no prompt). */
+export async function hasHealthReadPermission(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  const Health = await loadHealthPlugin();
+  if (!Health) return false;
+  try {
+    const status = await Health.checkAuthorization({
+      read: DEFAULT_READ,
+      write: [],
+    });
+    return (status.readAuthorized?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function requestHealthAuthorization(): Promise<{
   ok: boolean;
   detail: string;
@@ -242,9 +263,15 @@ export async function queryAuthorizedQuantitySamples(opts: {
       ascending: true,
     });
     return (result.samples ?? []).map((s) => {
-      // Sleep: keep asleep samples as sleep_asleep; in-bed as sleep_in_bed.
-      if (mapping.dataType === 'sleep' && s.sleepState === 'inBed') {
-        return mapSample(s, 'sleep_in_bed', 'sleep');
+      // Sleep stages: awake separate; inBed separate; rem/deep/light/asleep → asleep.
+      if (mapping.dataType === 'sleep') {
+        if (s.sleepState === 'inBed') {
+          return mapSample(s, 'sleep_in_bed', 'sleep');
+        }
+        if (s.sleepState === 'awake') {
+          return mapSample(s, 'sleep_awake', 'sleep');
+        }
+        return mapSample(s, 'sleep_asleep', 'sleep');
       }
       return mapSample(s, mapping.metricId, mapping.category);
     });

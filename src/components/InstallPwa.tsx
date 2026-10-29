@@ -7,31 +7,32 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISS_KEY = 'p85-install-dismissed';
 
+function detectStandalone(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    ('standalone' in navigator &&
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+  );
+}
+
+function detectIosSafariHint(): boolean {
+  const ua = navigator.userAgent;
+  const isIos = /iphone|ipad|ipod/i.test(ua);
+  const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+  return isIos && isSafari;
+}
+
 export function InstallPwaBanner() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(detectStandalone);
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISS_KEY) === '1',
   );
-  const [iosHint, setIosHint] = useState(false);
+  const [iosHint] = useState(detectIosSafariHint);
   const [updateReady, setUpdateReady] = useState<(() => void) | null>(null);
 
   useEffect(() => {
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      // iOS Safari
-      ('standalone' in navigator &&
-        Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
-
-    if (isStandalone) {
-      setInstalled(true);
-      return;
-    }
-
-    const ua = navigator.userAgent;
-    const isIos = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-    if (isIos && isSafari) setIosHint(true);
+    if (installed) return;
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -48,7 +49,7 @@ export function InstallPwaBanner() {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
     };
-  }, []);
+  }, [installed]);
 
   useEffect(() => {
     const handler = (ev: Event) => {

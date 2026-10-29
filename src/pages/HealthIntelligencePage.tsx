@@ -5,8 +5,29 @@ import { diagnoseAllConnections } from '../health/adapters';
 import { buildHealthProfile } from '../health/healthProfile';
 import { METRIC_REGISTRY } from '../health/metricRegistry';
 import type { HealthConnectionState, MetricAvailability } from '../health/types';
+import {
+  JOURNAL_TAG_KEYS,
+  type DailyScoreRow,
+  type JournalTagRow,
+  type LabPanel,
+} from '../domain/types';
 import { ageFromBirthYear, buildBodyIntelligence, computeBmi } from '../lib/bodyMetrics';
 import { previousISODate, sleepDurationHours, toLocalISODate } from '../lib/dates';
+import {
+  FITNESS_AGE_CITATION,
+  PHENOAGE_CITATION,
+  albumin_gDlTo_gL,
+  creatinine_mgDlTo_umolL,
+  crp_mgLTo_mgDl,
+  fitnessAgeFromVo2,
+  glucose_mgDlTo_mmolL,
+  journalTagInsight,
+  medianVo2Last30Days,
+  phenoAgeFromLabs,
+  recoveryBandFromScore,
+  type FitnessSex,
+  type RecoveryResult,
+} from '../health/scores';
 import { assessWeightTrend } from '../lib/weightTrend';
 import {
   checkNativeHealthAvailability,
@@ -15,6 +36,56 @@ import {
 import { runFullHealthSync } from '../health/syncEngine';
 import { getGoogleHealthSetupStatus } from '../health/googleHealthClient';
 import { useAppStore } from '../store/useAppStore';
+
+const JOURNAL_LABELS: Record<(typeof JOURNAL_TAG_KEYS)[number], string> = {
+  late_meal: 'Late meal',
+  chai_after_4pm: 'Chai after 4pm',
+  alcohol: 'Alcohol',
+  screens_in_bed: 'Screens in bed',
+  stress: 'Stress',
+  sick: 'Sick',
+};
+
+function recoveryBadgeClass(score: number | null): string {
+  if (score == null) return 'badge-info';
+  const band = recoveryBandFromScore(score);
+  if (band === 'green') return 'badge-ok';
+  if (band === 'amber') return 'badge-warn';
+  return 'badge-bad';
+}
+
+function parseDailyInputs(row: DailyScoreRow | undefined): {
+  recovery: RecoveryResult | null;
+  goToBedBy: string | null;
+  hrvNote: string | null;
+} {
+  if (!row?.inputsJson) {
+    return { recovery: null, goToBedBy: null, hrvNote: null };
+  }
+  try {
+    const parsed = JSON.parse(row.inputsJson) as {
+      recovery?: RecoveryResult;
+      sleep?: { goToBedBy?: string };
+      recoveryInput?: { hrv?: unknown };
+    };
+    const hrvNote =
+      parsed.recoveryInput?.hrv == null && parsed.recovery?.status === 'ready'
+        ? 'HRV not shared by Google Health. Recovery uses resting HR + sleep.'
+        : null;
+    return {
+      recovery: parsed.recovery ?? null,
+      goToBedBy: parsed.sleep?.goToBedBy ?? null,
+      hrvNote,
+    };
+  } catch {
+    return { recovery: null, goToBedBy: null, hrvNote: null };
+  }
+}
+
+function parseLocalDateSafe(iso: string): Date {
+  const d = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
 
 function statusBadge(status: HealthConnectionState['status']): string {
   if (status === 'ok') return 'badge-ok';
@@ -55,7 +126,27 @@ export function HealthIntelligencePage() {
   const [stepsAvg, setStepsAvg] = useState<number | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [labPanels, setLabPanels] = useState<LabPanel[]>([]);
+  const [dailyRow, setDailyRow] = useState<DailyScoreRow | undefined>();
+  const [journalRow, setJournalRow] = useState<JournalTagRow | undefined>();
+  const [vo2Median, setVo2Median] = useState<number | null>(null);
+  const [journalInsights, setJournalInsights] = useState<string[]>([]);
+  const [phenoOpen, setPhenoOpen] = useState(false);
+  const [labDate, setLabDate] = useState(toLocalISODate());
+  const [labUnits, setLabUnits] = useState<'si' | 'us'>('si');
+  const [labForm, setLabForm] = useState({
+    albumin: '45',
+    creatinine: '80',
+    glucose: '5.2',
+    crp: '0.3',
+    lymphocytePct: '30',
+    mcv: '90',
+    rdw: '13',
+    alp: '70',
+    wbc: '6',
+  });
   const setToast = useAppStore((s) => s.setToast);
+  const today = toLocalISODate();
   const googleSetup = getGoogleHealthSetupStatus();
 
   useEffect(() => {
@@ -97,8 +188,45 @@ export function HealthIntelligencePage() {
       }
       setSleepAvg(sleepN ? Math.round((sleepSum / sleepN) * 10) / 10 : null);
       setStepsAvg(stepN ? Math.round(stepSum / stepN) : null);
+
+      setLabPanels(await repo.listLabPanels());
+      setDailyRow(await repo.getDailyScore(today));
+      setJournalRow(await repo.getJournalTags(today));
+
+      const records = await repo.listHealthRecords();
+      const vo2Samples = records
+        .filter((r) => r.metricId === 'vo2_max' && !r.deletedAt)
+        .map((r) => ({ at: r.startAt, vo2: r.value }));
+      setVo2Median(medianVo2Last30Days(vo2Samples));
+
+      const start = previousISODate(today);
+      let cursorInsight = start;
+      for (let i = 0; i < 89; i += 1) cursorInsight = previousISODate(cursorInsight);
+      const tagsInRange = await repo.listJournalTagsInRange(cursorInsight, today);
+      const insightEntries: { date: string; recovery: number; tags: string[] }[] = [];
+      for (const t of tagsInRange) {
+        const ds = await repo.getDailyScore(t.date);
+        if (ds?.recovery != null) {
+          insightEntries.push({ date: t.date, recovery: ds.recovery, tags: t.tags });
+        }
+      }
+      const lines: string[] = [];
+      if (insightEntries.length >= 14) {
+        for (const tag of JOURNAL_TAG_KEYS) {
+          const res = journalTagInsight(
+            insightEntries.map((e) => ({
+              date: e.date,
+              recovery: e.recovery,
+              tags: e.tags,
+            })),
+            tag,
+          );
+          if (res.status === 'ok') lines.push(res.message.replace(`Nights after ${tag}:`, `Nights after ${JOURNAL_LABELS[tag]}:`));
+        }
+      }
+      setJournalInsights(lines);
     })();
-  }, [settings, agg?.steps, agg?.sleepHours, agg?.primaryWeightKg]);
+  }, [settings, agg?.steps, agg?.sleepHours, agg?.primaryWeightKg, today]);
 
   const runSync = async () => {
     setSyncBusy(true);
@@ -167,6 +295,88 @@ export function HealthIntelligencePage() {
     );
   }, [settings, agg]);
 
+  const chronoAge = ageFromBirthYear(settings?.birthYear ?? null);
+  const fitnessSex: FitnessSex =
+    settings?.biologicalSex === 'female'
+      ? 'female'
+      : settings?.biologicalSex === 'male'
+        ? 'male'
+        : 'other';
+
+  const fitnessAge = useMemo(() => {
+    if (vo2Median == null) return null;
+    return fitnessAgeFromVo2(vo2Median, fitnessSex);
+  }, [vo2Median, fitnessSex]);
+
+  const latestLab = labPanels[0];
+  const dailyParsed = parseDailyInputs(dailyRow);
+
+  const saveLabPanel = async () => {
+    if (!settings) return;
+    const ageAtTest = ageFromBirthYear(settings.birthYear, parseLocalDateSafe(labDate));
+    if (ageAtTest == null) {
+      setToast('Set birth year in Settings for PhenoAge');
+      return;
+    }
+    const albumin_gL =
+      labUnits === 'us' ? albumin_gDlTo_gL(Number(labForm.albumin)) : Number(labForm.albumin);
+    const creatinine_umolL =
+      labUnits === 'us'
+        ? creatinine_mgDlTo_umolL(Number(labForm.creatinine))
+        : Number(labForm.creatinine);
+    const glucose_mmolL =
+      labUnits === 'us'
+        ? glucose_mgDlTo_mmolL(Number(labForm.glucose))
+        : Number(labForm.glucose);
+    const crp_mgDl =
+      labUnits === 'us' ? crp_mgLTo_mgDl(Number(labForm.crp)) : Number(labForm.crp);
+    const pheno = phenoAgeFromLabs({
+      albumin_gL,
+      creatinine_umolL,
+      glucose_mmolL,
+      crp_mgDl,
+      lymphocytePct: Number(labForm.lymphocytePct),
+      mcv: Number(labForm.mcv),
+      rdw: Number(labForm.rdw),
+      alp: Number(labForm.alp),
+      wbc: Number(labForm.wbc),
+      chronologicalAge: ageAtTest,
+    });
+    const saved = await repo.upsertLabPanel({
+      date: labDate,
+      albumin_gL,
+      creatinine_umolL,
+      glucose_mmolL,
+      crp_mgDl,
+      lymphocytePct: Number(labForm.lymphocytePct),
+      mcv: Number(labForm.mcv),
+      rdw: Number(labForm.rdw),
+      alp: Number(labForm.alp),
+      wbc: Number(labForm.wbc),
+      chronologicalAgeAtTest: ageAtTest,
+      phenoAgeYears: pheno,
+    });
+    setLabPanels(await repo.listLabPanels());
+    setPhenoOpen(false);
+    setToast(
+      pheno != null
+        ? `Lab panel saved · PhenoAge ${pheno.toFixed(1)}`
+        : `Lab panel saved · PhenoAge could not be computed`,
+    );
+    void saved;
+  };
+
+  const toggleJournalTag = async (key: (typeof JOURNAL_TAG_KEYS)[number]) => {
+    const active = new Set(journalRow?.tags ?? []);
+    if (active.has(key)) active.delete(key);
+    else active.add(key);
+    const row = await repo.upsertJournalTags({
+      date: today,
+      tags: [...active],
+    });
+    setJournalRow(row);
+  };
+
   if (!settings || !profile) return null;
 
   return (
@@ -203,16 +413,203 @@ export function HealthIntelligencePage() {
       </section>
 
       <section className="panel stack">
-        <h2>Biological age</h2>
-        <p>
-          <strong>Numerical biological age: not implemented.</strong> {profile.biologicalAgeReason}
+        <div className="section-head">
+          <h2>Body age</h2>
+          <span className="badge badge-info">Two estimates — never averaged</span>
+        </div>
+        <p className="muted">
+          Fitness Age (VO₂max, HUNT) and PhenoAge (Levine 2018 labs) are separate published models.
+          Chronological age{chronoAge != null ? `: ${chronoAge}` : ' — set birth year in Settings'}.
         </p>
+        <div className="bi-grid">
+          <div className="bi-metric">
+            <div className="label">Fitness age · VO₂max</div>
+            {fitnessAge != null && vo2Median != null ? (
+              <>
+                <div className="bi-value mono">{Math.round(fitnessAge)}</div>
+                <p className="muted bi-hint">
+                  Median VO₂ {vo2Median.toFixed(1)} (30d)
+                  {chronoAge != null ? ` · you are ${chronoAge}` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="muted bi-hint">
+                Needs a watch that measures cardio fitness, or a lab test
+              </p>
+            )}
+            <details className="panel-inset" style={{ marginTop: 8 }}>
+              <summary className="label">How fitness age is calculated</summary>
+              <p className="muted" style={{ margin: '8px 0 0' }}>
+                {FITNESS_AGE_CITATION}
+              </p>
+              <p className="muted">What moves it: zone-2 cardio, intervals, consistent training.</p>
+            </details>
+          </div>
+          <div className="bi-metric">
+            <div className="label">PhenoAge · blood labs</div>
+            {latestLab?.phenoAgeYears != null ? (
+              <>
+                <div className="bi-value mono">{latestLab.phenoAgeYears.toFixed(1)}</div>
+                <p className="muted bi-hint">
+                  Test {latestLab.date} · chrono {latestLab.chronologicalAgeAtTest}
+                </p>
+              </>
+            ) : (
+              <p className="muted bi-hint">Add a lab panel to track PhenoAge over time.</p>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ marginTop: 8 }}
+              onClick={() => setPhenoOpen((o) => !o)}
+            >
+              {phenoOpen ? 'Hide lab form' : 'Enter lab panel'}
+            </button>
+            <details className="panel-inset" style={{ marginTop: 8 }}>
+              <summary className="label">PhenoAge citation</summary>
+              <p className="muted" style={{ margin: '8px 0 0' }}>{PHENOAGE_CITATION}</p>
+            </details>
+          </div>
+        </div>
+        {phenoOpen && (
+          <div className="panel-inset stack" style={{ gap: 8 }}>
+            <label>
+              <span className="label">Test date</span>
+              <input
+                className="input"
+                type="date"
+                value={labDate}
+                onChange={(e) => setLabDate(e.target.value)}
+              />
+            </label>
+            <label>
+              <span className="label">Units</span>
+              <select
+                className="select"
+                value={labUnits}
+                onChange={(e) => setLabUnits(e.target.value as 'si' | 'us')}
+              >
+                <option value="si">SI (g/L, µmol/L, mmol/L, mg/dL CRP)</option>
+                <option value="us">US (g/dL, mg/dL creatinine, mg/dL glucose, mg/L CRP)</option>
+              </select>
+            </label>
+            {(
+              [
+                ['albumin', labUnits === 'si' ? 'Albumin (g/L)' : 'Albumin (g/dL)'],
+                ['creatinine', labUnits === 'si' ? 'Creatinine (µmol/L)' : 'Creatinine (mg/dL)'],
+                ['glucose', labUnits === 'si' ? 'Glucose (mmol/L)' : 'Glucose (mg/dL)'],
+                ['crp', labUnits === 'us' ? 'CRP (mg/L)' : 'CRP (mg/dL)'],
+                ['lymphocytePct', 'Lymphocyte %'],
+                ['mcv', 'MCV'],
+                ['rdw', 'RDW %'],
+                ['alp', 'Alkaline phosphatase'],
+                ['wbc', 'WBC (10³/µL)'],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key}>
+                <span className="label">{label}</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="any"
+                  value={labForm[key]}
+                  onChange={(e) => setLabForm((f) => ({ ...f, [key]: e.target.value }))}
+                />
+              </label>
+            ))}
+            <button type="button" className="btn btn-primary" onClick={() => void saveLabPanel()}>
+              Save lab panel
+            </button>
+          </div>
+        )}
+        {labPanels.length > 1 && (
+          <p className="muted">
+            PhenoAge trend:{' '}
+            {labPanels
+              .filter((p) => p.phenoAgeYears != null)
+              .slice(0, 5)
+              .map((p) => `${p.date} ${p.phenoAgeYears!.toFixed(1)}`)
+              .join(' → ')}
+          </p>
+        )}
         <div className="panel-inset">
           <p className="label">{profile.paceOfChange.label}</p>
           <p>
             {profile.paceOfChange.direction} — {profile.paceOfChange.note}
           </p>
         </div>
+      </section>
+
+      <section className="panel stack">
+        <div className="section-head">
+          <h2>Readiness</h2>
+          <span className="badge badge-accent">PROJECT 85 score, not medical</span>
+        </div>
+        <div className="bi-grid">
+          <div className="bi-metric">
+            <div className="label">Recovery</div>
+            {dailyRow?.recovery != null ? (
+              <>
+                <div className="bi-value mono">{dailyRow.recovery}</div>
+                <span className={`badge ${recoveryBadgeClass(dailyRow.recovery)}`}>
+                  {recoveryBandFromScore(dailyRow.recovery)}
+                </span>
+                {dailyParsed.recovery?.status === 'ready' && dailyParsed.recovery.drag && (
+                  <p className="muted bi-hint">{dailyParsed.recovery.drag.message}</p>
+                )}
+              </>
+            ) : dailyParsed.recovery?.status === 'calibrating' ? (
+              <p className="muted bi-hint">
+                Calibrating, day {dailyParsed.recovery.day}/{dailyParsed.recovery.needed}
+              </p>
+            ) : (
+              <p className="muted bi-hint">Sync health data or log sleep to build recovery.</p>
+            )}
+            {dailyParsed.hrvNote && <p className="muted bi-hint">{dailyParsed.hrvNote}</p>}
+          </div>
+          <div className="bi-metric">
+            <div className="label">Strain (0–21)</div>
+            <div className="bi-value mono">{dailyRow?.strain?.toFixed(1) ?? '—'}</div>
+          </div>
+          <div className="bi-metric">
+            <div className="label">Sleep performance</div>
+            <div className="bi-value mono">
+              {dailyRow?.sleepPerf != null ? `${dailyRow.sleepPerf}%` : '—'}
+            </div>
+            {dailyParsed.goToBedBy && (
+              <p className="muted bi-hint">Go to bed by {dailyParsed.goToBedBy} tonight</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="panel stack">
+        <h2>Journal tags · today</h2>
+        <p className="muted">Optional yes/no tags — insights appear after enough data.</p>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {JOURNAL_TAG_KEYS.map((key) => {
+            const on = journalRow?.tags.includes(key) ?? false;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`btn ${on ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => void toggleJournalTag(key)}
+              >
+                {JOURNAL_LABELS[key]}
+              </button>
+            );
+          })}
+        </div>
+        {journalInsights.length > 0 && (
+          <ul className="history-list">
+            {journalInsights.map((line) => (
+              <li key={line} className="muted">
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {bodyIntel && (

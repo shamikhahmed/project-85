@@ -9,6 +9,7 @@ import type { HealthMetricRecord, HealthProvider } from './types';
 import { mergeHealthRecords } from './dedupe';
 import {
   checkNativeHealthAvailability,
+  hasHealthReadPermission,
   pullCommonHealthMetrics,
 } from '../native/healthKitBridge';
 import {
@@ -16,6 +17,8 @@ import {
   markProviderSyncSuccess,
   mergeConnectionDiagnostics,
 } from './adapters';
+import { localCalendarDay } from '../lib/dates';
+import { recomputeDailyScoresForDates } from './recomputeScores';
 import { projectHealthRecordsIntoApp } from './projectHealthIntoApp';
 
 const now = () => new Date().toISOString();
@@ -246,6 +249,25 @@ export async function syncAppleHealthIfAvailable(opts?: {
     const provider: HealthProvider =
       bridge.platform === 'android' ? 'google_health' : 'apple_health';
 
+    // Never call readSamples before permission has been granted.
+    const permitted = await hasHealthReadPermission();
+    if (!permitted) {
+      const prevConn = await db.healthConnections.toArray();
+      const states = mergeConnectionDiagnostics(diagnoseAllConnections(), prevConn).map((c) =>
+        c.provider === provider
+          ? {
+              ...c,
+              status: 'permission_needed' as const,
+              lastAttemptAt: now(),
+              updatedAt: now(),
+              notes: 'Authorize Apple Health / Health Connect before sync can read samples.',
+            }
+          : c,
+      );
+      await db.healthConnections.bulkPut(states);
+      return { imported: 0, status: 'permission_needed' };
+    }
+
     let samples;
     try {
       samples = await pullCommonHealthMetrics(30, { from, to });
@@ -276,6 +298,14 @@ export async function syncAppleHealthIfAvailable(opts?: {
       const merged = mergeHealthRecords(existing, incoming);
       await replaceHealthRecords(merged);
       const projected = await projectHealthRecordsIntoApp(merged);
+      const touchedDays = [
+        ...new Set(
+          incoming
+            .filter((r) => !r.deletedAt)
+            .map((r) => localCalendarDay(r.startAt)),
+        ),
+      ];
+      await recomputeDailyScoresForDates(touchedDays);
       const prevConn = await db.healthConnections.toArray();
       const label = provider === 'google_health' ? 'Health Connect' : 'HealthKit';
       const states = markProviderSyncSuccess(

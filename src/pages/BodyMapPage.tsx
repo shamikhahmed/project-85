@@ -79,7 +79,9 @@ export function BodyMapPage() {
   const [rows, setRows] = useState<BodyMeasurement[]>([]);
   const [tab, setTab] = useState<PhysiqueTab>('overview');
   const [showOptional, setShowOptional] = useState(false);
-  const [unit, setUnit] = useState<LengthUnit>(settings?.lengthUnit ?? 'cm');
+  const [unitOverride, setUnitOverride] = useState<LengthUnit | null>(null);
+  const unit = unitOverride ?? settings?.lengthUnit ?? 'cm';
+  const setUnit = (next: LengthUnit) => setUnitOverride(next);
 
   // Session log — one field per measurement type (never shared)
   const [sessionDate, setSessionDate] = useState(toLocalISODate());
@@ -98,9 +100,9 @@ export function BodyMapPage() {
   const [view, setView] = useState<BodyView>('front');
   const [region, setRegion] = useState<string | null>('waist');
 
-  // Compare
-  const [compareA, setCompareA] = useState('');
-  const [compareB, setCompareB] = useState('');
+  // Compare — user picks override; defaults derived from dates during render
+  const [compareAOverride, setCompareA] = useState<string | null>(null);
+  const [compareBOverride, setCompareB] = useState<string | null>(null);
   const [chartType, setChartType] = useState<BodyMeasurementType>('waist_natural');
   const [multiPreset, setMultiPreset] = useState(MULTI_SITE_PRESETS[0].id);
   const [tableFilter, setTableFilter] = useState('');
@@ -108,12 +110,14 @@ export function BodyMapPage() {
   const reload = async () => setRows(await repo.getAllBodyMeasurements());
 
   useEffect(() => {
-    void reload();
+    let cancelled = false;
+    void repo.getAllBodyMeasurements().then((data) => {
+      if (!cancelled) setRows(data);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    if (settings?.lengthUnit) setUnit(settings.lengthUnit);
-  }, [settings?.lengthUnit]);
 
   const systems = useMemo(() => systemsWithDefs(showOptional), [showOptional]);
 
@@ -123,13 +127,10 @@ export function BodyMapPage() {
   );
 
   const dates = useMemo(() => distinctMeasurementDates(rows), [rows]);
-
-  useEffect(() => {
-    if (dates.length >= 2) {
-      if (!compareA) setCompareA(dates[0]);
-      if (!compareB) setCompareB(dates[dates.length - 1]);
-    }
-  }, [dates, compareA, compareB]);
+  const compareA =
+    compareAOverride ?? (dates.length >= 2 ? dates[0]! : '');
+  const compareB =
+    compareBOverride ?? (dates.length >= 2 ? dates[dates.length - 1]! : '');
 
   const comparison = useMemo(() => {
     if (!compareA || !compareB) return [];

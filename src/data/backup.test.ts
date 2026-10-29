@@ -200,6 +200,9 @@ describe('validateBackupPayload', () => {
     expect(validated.version).toBe(1);
     expect(validated.settings.startingWeightKg).toBe(96);
     expect(validated.weights).toHaveLength(1);
+    expect(validated.labPanels).toEqual([]);
+    expect(validated.dailyScores).toEqual([]);
+    expect(validated.journalTags).toEqual([]);
   });
 
   it('rejects non-objects', () => {
