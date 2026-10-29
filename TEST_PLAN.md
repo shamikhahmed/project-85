@@ -1,6 +1,6 @@
 # Test Plan
 
-## Automated (`npm test`) — last run 2026-10-28 (deep audit): **98 passed / 19 files**
+## Automated (`npm test`) — last run 2026-10-29 (v0.11): **135 passed / 27 files**
 - [x] Daily Mission day-kind + sleep-adaptive briefing
 - [x] Plateau vs short stable; daily-vs-trend calm copy
 - [x] Birthday projection arrival estimate when rate supports it (local calendar dates)
@@ -19,21 +19,21 @@
 - [x] Weight trend insufficient-data / calm labels
 - [x] Recovery plan constructive only
 - [x] Biological age remains `not_implemented`
+- [x] Plan sessions/phases/targets/macros/migration + check-in + training-log helpers
+- [x] **v0.11** `fallbackFor` covers every trainingPlan muscle; shoulder-caution excludes dips; displayName priority; swap date reset; last-log separation by real name
+- [x] **v0.11** auto-sync throttle (15 min), overlap window, PWA unsupported; manual > Apple > Google; no Apple+Google step sum
 
-## Quality gates — last run 2026-10-28 (deep audit)
+## Quality gates — last run 2026-10-29 (v0.11)
 - [x] `npm run typecheck` (exit 0)
-- [x] `npm run lint` (exit 0; warnings only; no errors)
-- [x] `npm run build` (exit 0; PWA SW + manifest; brand masters excluded from precache)
-- [x] `npm audit --omit=dev` (0 vulnerabilities)
-- [x] Cursor browser visual pass: desktop + 390×844 (prior session)
-- [x] PWA: SW generated on build; navigateFallback configured
-- [ ] iPhone 16 Simulator re-QA after this audit (not re-run this pass)
-- [ ] Playwright preview smoke (attempted when server available)
+- [x] `npm run lint` (exit 0; pre-existing warnings only; no errors)
+- [x] `npm run build` (exit 0)
+- [ ] `npx cap sync ios` / `npx cap sync android`
+- [ ] `xcodebuild` simulator Debug `CODE_SIGNING_ALLOWED=NO`
+- [ ] Visual: 390×844 + 1440×900 light/dark on `/` `/train` `/log` `/health` `/settings` `/progress` `/history`
+- [ ] Manual swap E2E in browser (swap → log → reload → next day reset)
 
 ## Manual / remaining
-- [ ] Water delete regression with IndexedDB harness
-- [ ] Light theme visual pass
-- [ ] Add to Home Screen install on physical iPhone (needs HTTPS or LAN host)
-- [ ] Full Nightly Truth end-to-end on device
 - [ ] Signed HealthKit device pull (real samples)
+- [ ] Health Connect device authorize + auto-sync
 - [ ] WidgetKit App Group install on device
+- [ ] Add to Home Screen install on physical iPhone

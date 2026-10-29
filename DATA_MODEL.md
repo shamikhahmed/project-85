@@ -1,7 +1,7 @@
 # Data Model — PROJECT 85
 
 ## Storage
-Dexie IndexedDB database `project85` (**v3**). Local-only; no sync.
+Dexie IndexedDB database `project85` (**v4**). Local-only; no sync.
 
 ## Tables
 `settings`, `weights`, `foods`, `foodLibrary`, `steps`, `water`, `workouts`, `sleep`, `cigarettes`, `notes`, `scores`, `xp`, `achievements`
@@ -12,9 +12,17 @@ Dexie IndexedDB database `project85` (**v3**). Local-only; no sync.
 ### v3+
 `healthRecords`, `healthConnections`
 
-## Plan logging (v0.10)
+### v4+
+`exerciseSwaps` — historical machine-swap log (`date`, `dayKey`, `code`, `planName`, `swappedName`, `reason`)
+
+## Plan logging (v0.10+)
 - Train tab logs one top set per exercise into `workouts` (type `strength`, `notes` = `Plan: <session>`, `exercises[]` with `name`, `weightKg`, `reps`). Re-logging the same exercise on the same day replaces it.
 - `settings.planVersion` (2 = Project New Me migration applied) and `settings.dayTypeCalories`.
+- **v0.11 swaps:** active map in `settings.todayExerciseSwaps` (date-keyed; resets next day). History in `exerciseSwaps`. Display/log name = swap > Block B > plan name.
+
+## Health sync (v0.11)
+- `settings.autoSyncHealth`, `lastAutoSyncAt`, `offerHealthWriteBack`
+- Steps/weight/sleep `source`: `manual` | `apple_health` | `google_health` — manual wins on conflict.
 
 ## Critical rules
 - **Steps:** `setStepsForDate` **replaces** the day’s total (never adds).

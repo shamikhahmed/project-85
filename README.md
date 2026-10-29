@@ -23,11 +23,15 @@ npm run preview
 GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 ```
 
-## What’s in v0.10
+## What’s in v0.11
 
-New: **Train** tab with the full Project New Me plan, weekly missions, Sunday checkpoints, Sunday check-in for Claude, and the PDF plan library (`public/plan/`). Day-specific calories.
+New: **exercise swaps** (busy/broken/pain + DB fallback), **native auto health sync** (launch/resume, 15‑min throttle, Android Health Connect), morning weight/sleep line, step bar, swap insights.
 
-### Earlier (v0.9)
+### Earlier (v0.10)
+
+**Train** tab with the full Project New Me plan, weekly missions, Sunday checkpoints, Sunday check-in for Claude, and the PDF plan library (`public/plan/`). Day-specific calories.
+
+### Earlier (v0.9+)
 
 | Area | Status |
 |------|--------|

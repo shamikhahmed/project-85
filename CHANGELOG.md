@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.0 — Exercise swaps + auto health sync (2026-10-29)
+
+- **Exercise swaps:** Train cards offer Busy / Broken / Not available / Pain reasons with tappable alts + no-equipment/DB fallback (`fallbackFor`). Swap > Block B > plan name for logging; today-only persistence; undo; history insights.
+- **Auto health sync (native only):** launch + resume with 15-minute throttle; full Capgo metric pull (weight, BF%, steps, distance, active/basal/total energy, dietary energy, water, sleep asleep/in-bed, RHR, HRV, workouts); projects into day tables with manual-wins; PWA stays honest (“needs installed app”).
+- **Android:** `@capacitor/android` + `android/` platform, Health Connect history permission + privacy policy asset.
+- **Optional write-back:** Settings toggle + Quick Log “Also save to Apple Health” (off by default).
+- **Polish:** morning weight/sleep line, calorie estimated label, low-sleep → Basic mode on Train, step progress bar, swap insights on History.
+- Dexie **v4** `exerciseSwaps` table. Tests: **135** passing.
+
 ## v0.10.0 — Project New Me plan (2026-10-29)
 
 - **Train tab** (`/train`): Push / Pull / Legs / Upper / Lower + two Saturday options. Every exercise has sets with kg and lb, rest, cues, why it's there, two alternatives, advanced technique, Block B swap and a demo link. Warm-up, cardio and cooldown per day.

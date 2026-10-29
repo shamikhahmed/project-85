@@ -285,6 +285,22 @@ export function Dashboard() {
             </>
           )}
         </p>
+        {hasWeight && yesterdaySleepHours != null && (
+          <p className="muted" style={{ margin: '8px 0 0', fontSize: 'var(--text-sm)' }}>
+            Weight {currentDisplay}
+            {(() => {
+              const last7 = weightSeries.filter((w) => w.date <= today).slice(-7);
+              if (last7.length < 5) return '';
+              const avg = last7.reduce((a, b) => a + b.weightKg, 0) / last7.length;
+              const delta = trend.avg7ChangeKg;
+              return ` (7-day avg ${avg.toFixed(1)}${
+                delta != null ? `, ${delta >= 0 ? '+' : ''}${delta.toFixed(1)}/wk` : ''
+              })`;
+            })()}{' '}
+            · Slept {Math.floor(yesterdaySleepHours)}h{' '}
+            {String(Math.round((yesterdaySleepHours % 1) * 60)).padStart(2, '0')}m
+          </p>
+        )}
       </header>
 
       <TodayTrainingPanel date={today} />
@@ -414,7 +430,28 @@ export function Dashboard() {
             <h2>Today</h2>
             <span className={`badge ${STATUS_CLASS[status]}`}>{STATUS_FRIENDLY[status]}</span>
           </div>
-          <div className="grid-metrics">
+          <div className="step-nudge" aria-label="Step goal">
+            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+              <span className="label">Steps toward {settings.stepsTarget.toLocaleString()}</span>
+              <span className="mono" style={{ fontSize: 'var(--text-sm)' }}>
+                {agg.steps ?? 0}
+              </span>
+            </div>
+            <div
+              className="step-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={settings.stepsTarget}
+              aria-valuenow={agg.steps ?? 0}
+            >
+              <div
+                style={{
+                  width: `${Math.min(100, ((agg.steps ?? 0) / settings.stepsTarget) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+          <div className="grid-metrics" style={{ marginTop: 12 }}>
             <MetricChip
               label="Steps"
               value={`${agg.steps ?? '—'} / ${settings.stepsTarget}`}
@@ -422,7 +459,7 @@ export function Dashboard() {
               status={agg.steps != null && agg.steps >= settings.stepsTarget ? 'done' : 'open'}
             />
             <MetricChip
-              label="Calories"
+              label="Calories · estimated"
               value={
                 agg.foodEntryCount === 0
                   ? 'Not tracked'
@@ -439,7 +476,9 @@ export function Dashboard() {
                     : 'provisional'
               }
               detail={
-                agg.foodEntryCount > 0 && !agg.honestyAnswered ? 'Honesty check open' : undefined
+                agg.foodEntryCount > 0
+                  ? `Eaten ${Math.round(agg.calories)} vs target ${calorieTargetFor(settings, agg.date)} (estimated)`
+                  : undefined
               }
             />
             <MetricChip
