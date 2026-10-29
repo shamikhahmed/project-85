@@ -31,6 +31,7 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState('');
   const [weight, setWeight] = useState('');
+  const [alsoWriteHealth, setAlsoWriteHealth] = useState(false);
   const [query, setQuery] = useState('');
   const [recentFoods, setRecentFoods] = useState<FoodEntry[]>([]);
   const savingRef = useRef(false);
@@ -42,6 +43,7 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
     setQuery('');
     setSteps(agg?.steps != null ? String(agg.steps) : '');
     setWeight(agg?.primaryWeightKg != null ? String(agg.primaryWeightKg) : '');
+    setAlsoWriteHealth(false);
   }, [open, initialMode, agg?.steps, agg?.primaryWeightKg]);
 
   useEffect(() => {
@@ -168,8 +170,14 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
         weightKg: n,
         isEstimate: false,
         enteredLate: selectedDate !== toLocalISODate(),
+        source: 'manual',
       });
-    }, 'Weight saved');
+      if (alsoWriteHealth && settings?.offerHealthWriteBack) {
+        const { writeWeightToHealth } = await import('../native/healthKitBridge');
+        const wr = await writeWeightToHealth(n);
+        if (!wr.ok) setToast(wr.detail);
+      }
+    }, alsoWriteHealth ? 'Weight saved (+ Health write attempted)' : 'Weight saved');
   };
 
   return (
@@ -365,6 +373,16 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
                     onChange={(e) => setWeight(e.target.value)}
                   />
                 </label>
+                {settings?.offerHealthWriteBack && (
+                  <label className="row">
+                    <input
+                      type="checkbox"
+                      checked={alsoWriteHealth}
+                      onChange={(e) => setAlsoWriteHealth(e.target.checked)}
+                    />
+                    Also save to Apple Health
+                  </label>
+                )}
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={saveWeight}>
                   Save weight
                 </button>

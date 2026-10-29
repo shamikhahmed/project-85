@@ -4,8 +4,7 @@
  * - Browser PWA: always unavailable (no HealthKit store).
  * - Native Capacitor iOS/Android: availability + authorization + sample reads.
  *
- * Live data still requires a signed iOS build with HealthKit entitlement and
- * usage strings. See NATIVE_HEALTHKIT.md.
+ * Live data still requires a signed iOS/Android build. See NATIVE_HEALTHKIT.md.
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -29,6 +28,7 @@ export interface BridgeSample {
   deviceName: string | null;
   sourceApp: string | null;
   sourceRecordId: string | null;
+  sleepState?: string | null;
 }
 
 const TYPE_MAP: Record<
@@ -66,12 +66,30 @@ const TYPE_MAP: Record<
     metricId: 'active_energy',
     category: 'energy',
   },
+  basalCalories: {
+    dataType: 'basalCalories',
+    metricId: 'basal_energy',
+    category: 'energy',
+  },
+  totalCalories: {
+    dataType: 'totalCalories',
+    metricId: 'total_energy',
+    category: 'energy',
+  },
+  dietaryEnergyConsumed: {
+    dataType: 'dietaryEnergyConsumed',
+    metricId: 'nutrition_import',
+    category: 'nutrition',
+  },
   dietaryWater: {
     dataType: 'dietaryWater',
     metricId: 'hydration',
     category: 'nutrition',
   },
 };
+
+/** Metrics requested in the brief that Capgo has no type for — skip + log. */
+export const UNSUPPORTED_HEALTH_METRICS = ['protein'] as const;
 
 async function loadHealthPlugin() {
   try {
@@ -136,6 +154,9 @@ const DEFAULT_READ: HealthDataType[] = [
   'steps',
   'distance',
   'calories',
+  'basalCalories',
+  'totalCalories',
+  'dietaryEnergyConsumed',
   'heartRate',
   'restingHeartRate',
   'heartRateVariability',
@@ -162,7 +183,11 @@ export async function requestHealthAuthorization(): Promise<{
   const Health = await loadHealthPlugin();
   if (!Health) return { ok: false, detail: 'Health plugin missing' };
   try {
-    const status = await Health.requestAuthorization({ read: DEFAULT_READ });
+    const status = await Health.requestAuthorization({
+      read: DEFAULT_READ,
+      write: ['weight'],
+      requestHistoryAccess: true,
+    });
     const granted = status.readAuthorized?.length ?? 0;
     return {
       ok: granted > 0,
@@ -191,6 +216,7 @@ function mapSample(
     deviceName: sample.deviceType ?? null,
     sourceApp: sample.sourceName ?? null,
     sourceRecordId: sample.platformId ?? sample.sourceId ?? null,
+    sleepState: sample.sleepState ?? null,
   };
 }
 
@@ -201,7 +227,10 @@ export async function queryAuthorizedQuantitySamples(opts: {
 }): Promise<BridgeSample[]> {
   if (!Capacitor.isNativePlatform()) return [];
   const mapping = TYPE_MAP[opts.identifier];
-  if (!mapping) return [];
+  if (!mapping) {
+    console.info(`[health] skip unknown identifier: ${opts.identifier}`);
+    return [];
+  }
   const Health = await loadHealthPlugin();
   if (!Health) return [];
   try {
@@ -212,24 +241,97 @@ export async function queryAuthorizedQuantitySamples(opts: {
       limit: 500,
       ascending: true,
     });
-    return (result.samples ?? []).map((s) =>
-      mapSample(s, mapping.metricId, mapping.category),
+    return (result.samples ?? []).map((s) => {
+      // Sleep: keep asleep samples as sleep_asleep; in-bed as sleep_in_bed.
+      if (mapping.dataType === 'sleep' && s.sleepState === 'inBed') {
+        return mapSample(s, 'sleep_in_bed', 'sleep');
+      }
+      return mapSample(s, mapping.metricId, mapping.category);
+    });
+  } catch (e) {
+    console.info(
+      `[health] readSamples failed for ${opts.identifier}:`,
+      e instanceof Error ? e.message : e,
     );
-  } catch {
     return [];
   }
 }
 
-/** Pull several common types for the last N days. */
-export async function pullCommonHealthMetrics(days = 7): Promise<BridgeSample[]> {
+export async function queryWorkouts(opts: {
+  from: string;
+  to: string;
+}): Promise<BridgeSample[]> {
   if (!Capacitor.isNativePlatform()) return [];
-  const to = new Date().toISOString();
-  const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const Health = await loadHealthPlugin();
+  if (!Health) return [];
+  try {
+    const result = await Health.queryWorkouts({
+      startDate: opts.from,
+      endDate: opts.to,
+      limit: 100,
+    });
+    return (result.workouts ?? []).map((w) => ({
+      metricId: 'workout',
+      category: 'activity' as const,
+      value: Math.round((w.duration ?? 0) / 60),
+      unit: 'min',
+      startAt: w.startDate,
+      endAt: w.endDate ?? null,
+      deviceName: null,
+      sourceApp: w.sourceName ?? null,
+      sourceRecordId: w.platformId ?? w.sourceId ?? null,
+    }));
+  } catch (e) {
+    console.info('[health] queryWorkouts failed:', e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
+/** Optional write-back: save a weight sample to Apple Health / Health Connect. */
+export async function writeWeightToHealth(weightKg: number, at = new Date()): Promise<{
+  ok: boolean;
+  detail: string;
+}> {
+  if (!Capacitor.isNativePlatform()) {
+    return { ok: false, detail: 'Write-back only works in the native app.' };
+  }
+  const Health = await loadHealthPlugin();
+  if (!Health) return { ok: false, detail: 'Health plugin missing' };
+  try {
+    await Health.saveSample({
+      dataType: 'weight',
+      value: weightKg,
+      unit: 'kilogram',
+      startDate: at.toISOString(),
+    });
+    return { ok: true, detail: 'Weight saved to Apple Health / Health Connect' };
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'saveSample failed' };
+  }
+}
+
+/** Pull all mapped types (+ workouts). Logs unsupported brief metrics once. */
+export async function pullCommonHealthMetrics(
+  days = 7,
+  range?: { from: string; to: string },
+): Promise<BridgeSample[]> {
+  if (!Capacitor.isNativePlatform()) return [];
+  for (const m of UNSUPPORTED_HEALTH_METRICS) {
+    console.info(`[health] skip unsupported Capgo type: ${m}`);
+  }
+  const to = range?.to ?? new Date().toISOString();
+  const from =
+    range?.from ?? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const keys = Object.keys(TYPE_MAP);
   const out: BridgeSample[] = [];
   for (const key of keys) {
     const rows = await queryAuthorizedQuantitySamples({ identifier: key, from, to });
     out.push(...rows);
   }
+  out.push(...(await queryWorkouts({ from, to })));
   return out;
+}
+
+export function healthTypeMapKeys(): string[] {
+  return Object.keys(TYPE_MAP);
 }

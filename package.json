@@ -1,7 +1,7 @@
 {
   "name": "project-85",
   "private": true,
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "deploy:pages": "GITHUB_PAGES=1 npm run build && cp dist/index.html dist/404.html && touch dist/.nojekyll && npx gh-pages -d dist -t"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",

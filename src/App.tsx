@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppNav } from './components/AppNav';
+import { CapAutoHealthSync } from './components/CapAutoHealthSync';
 import { CapDeepLinks } from './components/CapDeepLinks';
 import { InstallPwaBanner } from './components/InstallPwa';
 import { NightlyTruthCheck } from './components/NightlyTruthCheck';
@@ -77,6 +78,7 @@ export default function App() {
     <Router basename={routerBasename}>
       <div className="app-shell">
         <CapDeepLinks />
+        <CapAutoHealthSync />
         <AppNav />
         <main className="main-content">
           <InstallPwaBanner />

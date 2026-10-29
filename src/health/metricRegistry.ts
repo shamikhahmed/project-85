@@ -71,6 +71,19 @@ export const METRIC_REGISTRY: MetricCapability[] = [
     ],
   },
   {
+    id: 'basal_energy',
+    label: 'Basal / resting energy',
+    category: 'energy',
+    unit: 'kcal',
+    nature: 'derived',
+    typicalCadence: 'daily',
+    notes: 'BasalCaloriesBurned / resting energy — keep distinct from active.',
+    providers: [
+      { provider: 'apple_health', support: 'requires_native', permissionNote: 'BasalEnergyBurned' },
+      { provider: 'google_health', support: 'requires_oauth', permissionNote: 'basal-metabolic-rate' },
+    ],
+  },
+  {
     id: 'total_energy',
     label: 'Total energy',
     category: 'energy',
@@ -138,6 +151,32 @@ export const METRIC_REGISTRY: MetricCapability[] = [
       { provider: 'apple_health', support: 'requires_native', permissionNote: 'SleepAnalysis' },
       { provider: 'google_health', support: 'requires_oauth', permissionNote: 'sleep' },
       { provider: 'zepp_via_apple', support: 'via_hub', permissionNote: 'Stages if written to AH' },
+    ],
+  },
+  {
+    id: 'sleep_in_bed',
+    label: 'Time in bed',
+    category: 'sleep',
+    unit: 'min',
+    nature: 'derived',
+    typicalCadence: 'nightly session',
+    notes: 'In-bed window — not the same as asleep minutes.',
+    providers: [
+      { provider: 'apple_health', support: 'requires_native', permissionNote: 'SleepAnalysis inBed' },
+      { provider: 'google_health', support: 'requires_oauth', permissionNote: 'sleep session' },
+    ],
+  },
+  {
+    id: 'workout',
+    label: 'Workouts',
+    category: 'activity',
+    unit: 'min',
+    nature: 'measured',
+    typicalCadence: 'per session',
+    notes: 'Imported workout sessions; duration in minutes.',
+    providers: [
+      { provider: 'apple_health', support: 'requires_native', permissionNote: 'HKWorkout' },
+      { provider: 'google_health', support: 'requires_oauth', permissionNote: 'ExerciseSession' },
     ],
   },
   {

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { formatDistanceToNow } from 'date-fns';
 import { FoodLibraryManager } from '../components/FoodLibraryManager';
 import { PwaStatusCard } from '../components/InstallPwa';
 import * as repo from '../data/repository';
 import type { RestoreMode } from '../data/repository';
+import { maybeRunAutoHealthSync } from '../health/autoSync';
 import { useAppStore } from '../store/useAppStore';
 import type { BiologicalSex, ThemeMode } from '../domain/types';
 import { Link } from 'react-router-dom';
@@ -14,8 +17,14 @@ export function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [restoreMode, setRestoreMode] = useState<RestoreMode>('merge_keep_newer');
   const [replaceConfirm, setReplaceConfirm] = useState('');
+  const [healthStatus, setHealthStatus] = useState<string>('');
+  const isNative = Capacitor.isNativePlatform();
 
   if (!settings) return null;
+
+  const lastSyncedLabel = settings.lastAutoSyncAt
+    ? formatDistanceToNow(new Date(settings.lastAutoSyncAt), { addSuffix: true })
+    : 'never';
 
   const save = async (patch: Parameters<typeof repo.updateSettings>[0]) => {
     await repo.updateSettings(patch);
@@ -242,6 +251,65 @@ export function SettingsPage() {
           />
           Reminder preference (local only — never mandatory)
         </label>
+      </section>
+
+      <section className="panel stack">
+        <h2 style={{ fontSize: '1.05rem' }}>Health auto-sync</h2>
+        {isNative ? (
+          <>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={settings.autoSyncHealth !== false}
+                onChange={(e) => void save({ autoSyncHealth: e.target.checked })}
+              />
+              Auto-sync on launch and resume (throttled to once per 15 minutes)
+            </label>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={!!settings.offerHealthWriteBack}
+                onChange={(e) => void save({ offerHealthWriteBack: e.target.checked })}
+              />
+              Offer “Also save to Apple Health” when logging weight (off by default)
+            </label>
+            <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+              Last synced: {lastSyncedLabel}
+              {healthStatus ? ` · ${healthStatus}` : ''}
+            </p>
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const r = await maybeRunAutoHealthSync({ force: true });
+                  setHealthStatus(
+                    r.ran
+                      ? `Sync now: ${r.apple.status} (${r.apple.imported} samples)`
+                      : r.reason,
+                  );
+                  await refreshSettings();
+                  setToast(r.ran ? 'Health sync finished' : r.reason);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Sync now
+            </button>
+            <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
+              Status stays honest — “connected” only after a real successful sync. See{' '}
+              <Link to="/health">Health</Link>.
+            </p>
+          </>
+        ) : (
+          <p className="muted" style={{ margin: 0 }}>
+            Auto-sync needs the installed iPhone app (or Android with Health Connect). The Safari
+            PWA cannot read Apple Health — no fake “connected” state here.
+          </p>
+        )}
       </section>
 
       <FoodLibraryManager />

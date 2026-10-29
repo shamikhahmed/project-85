@@ -9,13 +9,14 @@ import type { HealthMetricRecord, HealthProvider } from './types';
 import { mergeHealthRecords } from './dedupe';
 import {
   checkNativeHealthAvailability,
-  queryAuthorizedQuantitySamples,
+  pullCommonHealthMetrics,
 } from '../native/healthKitBridge';
 import {
   diagnoseAllConnections,
   markProviderSyncSuccess,
   mergeConnectionDiagnostics,
 } from './adapters';
+import { projectHealthRecordsIntoApp } from './projectHealthIntoApp';
 
 const now = () => new Date().toISOString();
 
@@ -188,11 +189,49 @@ export async function syncManualIntoHealthStore(): Promise<number> {
   });
 }
 
-/** Attempt HealthKit pull when native Health plugin reports available. */
+function samplesToRecords(
+  samples: Awaited<ReturnType<typeof pullCommonHealthMetrics>>,
+  provider: HealthProvider,
+): HealthMetricRecord[] {
+  const ts = now();
+  return samples.map((s) => {
+    let value = s.value;
+    let unit = s.unit;
+    // Capgo sleep often returns duration minutes already; if value looks like hours (< 24) and unit is hour, convert.
+    if (s.metricId.startsWith('sleep') && /hour/i.test(unit)) {
+      value = Math.round(value * 60);
+      unit = 'min';
+    }
+    return {
+      id: newId('hk'),
+      metricId: s.metricId,
+      category: s.category,
+      value,
+      unit,
+      originalValue: s.value,
+      originalUnit: s.unit,
+      startAt: s.startAt,
+      endAt: s.endAt,
+      timeZone: null,
+      ingestedAt: ts,
+      provider,
+      deviceName: s.deviceName,
+      sourceApp: s.sourceApp,
+      sourceRecordId: s.sourceRecordId,
+      kind: 'imported' as const,
+      quality: 'high' as const,
+      deletedAt: null,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+  });
+}
+
+/** Attempt HealthKit / Health Connect pull when native Health plugin reports available. */
 export async function syncAppleHealthIfAvailable(opts?: {
   from?: string;
   to?: string;
-}): Promise<{ imported: number; status: string }> {
+}): Promise<{ imported: number; status: string; projected?: { steps: number; weights: number; sleep: number; water: number } }> {
   return withHealthSyncLock(async () => {
     const bridge = await checkNativeHealthAvailability();
     if (!bridge.available) {
@@ -202,55 +241,56 @@ export async function syncAppleHealthIfAvailable(opts?: {
     const to = opts?.to ?? new Date().toISOString();
     const from =
       opts?.from ??
-      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const samples = await queryAuthorizedQuantitySamples({
-      identifier: 'steps',
-      from,
-      to,
-    });
+    const provider: HealthProvider =
+      bridge.platform === 'android' ? 'google_health' : 'apple_health';
 
-    const incoming: HealthMetricRecord[] = samples.map((s) => ({
-      id: newId('hk'),
-      metricId: s.metricId,
-      category: s.category,
-      value: s.value,
-      unit: s.unit,
-      originalValue: s.value,
-      originalUnit: s.unit,
-      startAt: s.startAt,
-      endAt: s.endAt,
-      timeZone: null,
-      ingestedAt: now(),
-      provider: 'apple_health' as HealthProvider,
-      deviceName: s.deviceName,
-      sourceApp: s.sourceApp,
-      sourceRecordId: s.sourceRecordId,
-      kind: 'imported' as const,
-      quality: 'high' as const,
-      deletedAt: null,
-      createdAt: now(),
-      updatedAt: now(),
-    }));
+    let samples;
+    try {
+      samples = await pullCommonHealthMetrics(30, { from, to });
+    } catch (e) {
+      // Failed sync keeps previous status and data — only stamp lastAttemptAt.
+      const prevConn = await db.healthConnections.toArray();
+      const states = mergeConnectionDiagnostics(diagnoseAllConnections(), prevConn).map((c) =>
+        c.provider === provider
+          ? {
+              ...c,
+              lastAttemptAt: now(),
+              updatedAt: now(),
+              notes: e instanceof Error ? e.message : 'Sync failed',
+            }
+          : c,
+      );
+      await db.healthConnections.bulkPut(states);
+      return {
+        imported: 0,
+        status: e instanceof Error ? e.message : 'Sync failed — previous data kept',
+      };
+    }
+
+    const incoming = samplesToRecords(samples, provider);
 
     if (incoming.length) {
       const existing = await db.healthRecords.toArray();
       const merged = mergeHealthRecords(existing, incoming);
       await replaceHealthRecords(merged);
+      const projected = await projectHealthRecordsIntoApp(merged);
       const prevConn = await db.healthConnections.toArray();
+      const label = provider === 'google_health' ? 'Health Connect' : 'HealthKit';
       const states = markProviderSyncSuccess(
         prevConn,
-        'apple_health',
-        `Imported ${incoming.length} HealthKit sample(s). Originals preserved in healthRecords.`,
+        provider,
+        `Imported ${incoming.length} ${label} sample(s). Originals preserved in healthRecords.`,
       );
       await db.healthConnections.bulkPut(states);
-      return { imported: incoming.length, status: 'ok' };
+      return { imported: incoming.length, status: 'ok', projected };
     }
 
     // Empty pull is not success — keep prior connection truth; record attempt only.
     const prevConn = await db.healthConnections.toArray();
     const states = mergeConnectionDiagnostics(diagnoseAllConnections(), prevConn).map((c) =>
-      c.provider === 'apple_health'
+      c.provider === provider
         ? { ...c, lastAttemptAt: now(), updatedAt: now() }
         : c,
     );
@@ -259,17 +299,23 @@ export async function syncAppleHealthIfAvailable(opts?: {
     return {
       imported: 0,
       status:
-        'No HealthKit samples in range — authorize via Connect Apple Health, or no step data yet.',
+        'No health samples in range — authorize via Connect, or no data yet.',
     };
   });
 }
 
-export async function runFullHealthSync(): Promise<{
+export async function runFullHealthSync(opts?: {
+  from?: string;
+  to?: string;
+}): Promise<{
   manualMirrored: number;
   apple: { imported: number; status: string };
 }> {
-  // Nested locks serialize; manual then apple.
+  // Nested locks serialize; manual then apple/android.
   const manualMirrored = await syncManualIntoHealthStore();
-  const apple = await syncAppleHealthIfAvailable();
+  const apple = await syncAppleHealthIfAvailable(opts);
   return { manualMirrored, apple };
 }
+
+/** Exported for tests — same lock helper. */
+export { withHealthSyncLock };
