@@ -63,6 +63,24 @@ function days(a: ISODate, b: ISODate): number {
   return differenceInCalendarDays(parseLocalDate(b), parseLocalDate(a));
 }
 
+/** Daily step target from the weekly missions: 8k in week 1, 10k from week 2, 12k in week 10+. */
+export function planStepsTarget(date: ISODate): number {
+  const w = planWeek(date);
+  if (w <= 1) return 8000;
+  if (w >= 10) return 12000;
+  return 10000;
+}
+
+/** Settings with plan-driven targets applied (unless the user pinned their own). */
+export function withPlanTargets<T extends { stepsTarget: number; stepsTargetFollowsPlan?: boolean }>(
+  settings: T,
+  date: ISODate,
+): T {
+  if (settings.stepsTargetFollowsPlan === false) return settings;
+  if (date > PLAN_END) return settings;
+  return { ...settings, stepsTarget: planStepsTarget(date) };
+}
+
 /** 1-based plan week (week 1 = 3-8 Nov). 0 before start. Capped at 11 (birthday week). */
 export function planWeek(date: ISODate): number {
   if (date < PLAN_START) return 0;
@@ -123,6 +141,16 @@ export function targetWeightOn(settings: AppSettings, date: ISODate): number {
   const t = Math.min(total, Math.max(0, days(settings.startDate, date)));
   const kg = settings.startingWeightKg - ((settings.startingWeightKg - settings.targetWeightKg) * t) / total;
   return Math.round(kg * 10) / 10;
+}
+
+/** Coach reaction to a single weigh-in vs the plan line. One day is noise, so the copy stays calm. */
+export function weighInReaction(settings: AppSettings, date: ISODate, kg: number): string | null {
+  if (date < settings.startDate || date > settings.deadline) return null;
+  const line = targetWeightOn(settings, date);
+  const diff = Math.round((kg - line) * 10) / 10;
+  if (Math.abs(diff) <= 0.3) return `On the line (plan today ${line} kg).`;
+  if (diff < 0) return `${Math.abs(diff)} kg ahead of the line. Keep protein high.`;
+  return `${diff} kg above the line. One day is mostly water; watch the 7-day average.`;
 }
 
 /** Sunday checkpoints: target 7-day average is the line value 3 days before (the window centre). */

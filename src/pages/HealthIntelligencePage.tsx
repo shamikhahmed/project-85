@@ -426,10 +426,13 @@ export function HealthIntelligencePage() {
             <div className="label">Fitness age · VO₂max</div>
             {fitnessAge != null && vo2Median != null ? (
               <>
-                <div className="bi-value mono">{Math.round(fitnessAge)}</div>
+                <div className="bi-value mono">
+                  {fitnessAge <= 25 ? '≤25' : fitnessAge >= 75 ? '75+' : Math.round(fitnessAge)}
+                </div>
                 <p className="muted bi-hint">
                   Median VO₂ {vo2Median.toFixed(1)} (30d)
                   {chronoAge != null ? ` · you are ${chronoAge}` : ''}
+                  {fitnessSex === 'other' ? ' · using the men’s reference table (set sex in Settings)' : ''}
                 </p>
               </>
             ) : (

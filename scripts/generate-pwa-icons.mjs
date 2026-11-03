@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const outDir = path.join(root, 'public');
 const brandDir = path.join(outDir, 'brand');
+const sourceSvg = path.join(brandDir, 'icon-source.svg');
 const sourcePng = path.join(brandDir, 'icon-source.png');
 const master4k = path.join(brandDir, 'icon-master-4k.png');
 
@@ -22,6 +23,17 @@ async function ensureMaster() {
     throw new Error(
       'Missing public/brand/icon-source.png — place the premium icon source there first.',
     );
+  }
+
+  try {
+    await access(sourceSvg);
+    await sharp(sourceSvg, { density: 384 })
+      .resize(4096, 4096)
+      .flatten({ background: '#06080A' })
+      .png({ compressionLevel: 9 })
+      .toFile(sourcePng);
+  } catch {
+    // No vector source — use the existing PNG.
   }
 
   const meta = await sharp(sourcePng).metadata();
@@ -76,16 +88,10 @@ await exportIcon(master, 'apple-touch-icon.png', 180);
 await sharp(master).resize(64, 64).png().toFile(path.join(outDir, 'favicon-64.png'));
 await sharp(master).resize(32, 32).png().toFile(path.join(outDir, 'favicon-32.png'));
 
+// Favicon SVG mirrors the vector brand source.
 await writeFile(
   path.join(outDir, 'favicon.svg'),
-  `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" fill="#0B0D10"/>
-  <circle cx="32" cy="32" r="22" fill="none" stroke="#1a2210" stroke-width="5"/>
-  <circle cx="32" cy="32" r="22" fill="none" stroke="#C4F36B" stroke-width="5" stroke-linecap="round"
-    stroke-dasharray="110 140" transform="rotate(-120 32 32)"/>
-  <text x="32" y="40" text-anchor="middle" fill="#F5F7FA" font-family="system-ui,-apple-system,Helvetica,sans-serif" font-size="22" font-weight="700" letter-spacing="-1">85</text>
-</svg>`,
+  await readFile(path.join(brandDir, 'icon-source.svg'), 'utf8'),
 );
 
 // Capacitor iOS App Icon (single 1024 universal asset)
@@ -103,6 +109,36 @@ try {
   console.log('wrote iOS AppIcon-512@2x.png (1024×1024)');
 } catch {
   console.log('ios/ AppIcon set not present — skipped native icon');
+}
+
+// Capacitor Android launcher icons
+const androidRes = path.join(root, 'android/app/src/main/res');
+try {
+  await access(androidRes);
+  const densities = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
+  for (const [d, size] of Object.entries(densities)) {
+    const dir = path.join(androidRes, `mipmap-${d}`);
+    await sharp(master).resize(size, size, { kernel: sharp.kernel.lanczos3 }).png().toFile(path.join(dir, 'ic_launcher.png'));
+    const round = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}"/></svg>`,
+    );
+    await sharp(master)
+      .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+      .composite([{ input: round, blend: 'dest-in' }])
+      .png()
+      .toFile(path.join(dir, 'ic_launcher_round.png'));
+    // Adaptive foreground: 108dp canvas, art in the inner 72dp safe zone.
+    const fg = Math.round(size * 2.25);
+    const inner = Math.round(fg * (72 / 108));
+    const art = await sharp(master).resize(inner, inner, { kernel: sharp.kernel.lanczos3 }).png().toBuffer();
+    await sharp({ create: { width: fg, height: fg, channels: 4, background: { r: 6, g: 8, b: 10, alpha: 1 } } })
+      .composite([{ input: art, gravity: 'center' }])
+      .png()
+      .toFile(path.join(dir, 'ic_launcher_foreground.png'));
+  }
+  console.log('wrote Android launcher icons');
+} catch {
+  console.log('android/ not present — skipped Android icons');
 }
 
 console.log('PWA icons ready (from 4K master)');

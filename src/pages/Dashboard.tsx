@@ -19,6 +19,15 @@ import { assessWeightTrend } from '../lib/weightTrend';
 import { useAppStore, useWeightProgress } from '../store/useAppStore';
 import { calorieTargetFor, missionFor, planPhase, sessionFor, PLAN_START } from '../domain/plan';
 import type { ISODate } from '../domain/types';
+import { format, parseISO } from 'date-fns';
+
+function prettyDay(iso: string, withYear = false): string {
+  try {
+    return format(parseISO(iso), withYear ? 'd MMM yyyy' : 'd MMM');
+  } catch {
+    return iso;
+  }
+}
 import { coachLine } from '../health/scores';
 
 const STATUS_CLASS: Record<string, string> = {
@@ -246,7 +255,7 @@ export function Dashboard() {
               <span className="hero-brand-num">85</span>
             </h1>
             <p className="hero-meta muted">
-              {settings.startDate} → {settings.deadline}
+              {prettyDay(settings.startDate)} → {prettyDay(settings.deadline, true)}
             </p>
           </div>
           <ProgressRing
@@ -298,6 +307,14 @@ export function Dashboard() {
             <>
               No morning weight logged yet — progress stays blank until the first honest weigh-in.
               <br />
+              <button
+                type="button"
+                className="btn btn-primary hero-cta"
+                onClick={() => openQuick('weight')}
+              >
+                Log first weigh-in
+              </button>
+              <br />
               {trendLine}
             </>
           )}
@@ -339,8 +356,7 @@ export function Dashboard() {
           <Link to="/motivation">Motivation</Link>
         </div>
         <p className="muted" style={{ marginTop: 8, fontSize: 'var(--text-sm)' }}>
-          Food & water stay optional — shown as not logged when empty. Wearables need native
-          bridges (see Health).
+          Food and water are optional — empty means not logged, never zero.
         </p>
       </section>
 
@@ -527,7 +543,7 @@ export function Dashboard() {
             <span className="dim" style={{ fontSize: 'var(--text-caption)' }}>
               Workout {agg.workoutTypes.length ? agg.workoutTypes.join(', ') : '—'} · Sleep{' '}
               {agg.sleepHours != null ? `${agg.sleepHours} h` : '—'} · Cigs{' '}
-              {agg.cigarettesLogged ? agg.cigaretteCount : '—'} · Score {score?.total ?? 0}/100
+              {agg.cigarettesLogged ? agg.cigaretteCount : '—'} · Score {score && score.total > 0 ? `${score.total}/100` : '—'}
             </span>
             <Link to="/discipline">Review detail</Link>
           </div>

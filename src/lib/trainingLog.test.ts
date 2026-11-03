@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkoutEntry } from '../domain/types';
-import { lastLogsByName, loggedSetRow, mergeExercise, parseRepRange, progressionHint } from './trainingLog';
+import { isNewBest, lastLogsByName, loggedSetRow, mergeExercise, parseRepRange, progressionHint } from './trainingLog';
 
 const wo = (date: string, exercises: WorkoutEntry['exercises'], updatedAt = `${date}T20:00:00.000Z`): WorkoutEntry => ({
   id: `w-${date}-${updatedAt}`, date, type: 'strength', exercises, notes: 'Plan: Push', createdAt: updatedAt, updatedAt,
@@ -38,5 +38,26 @@ describe('training log helpers', () => {
     const merged = mergeExercise([{ name: 'Leg press', weightKg: 150, reps: 10 }, { name: 'Squat', weightKg: 30 }], { name: 'leg press', weightKg: 170, reps: 8 });
     expect(merged).toHaveLength(2);
     expect(merged.find((e) => e.name === 'leg press')?.weightKg).toBe(170);
+  });
+});
+
+describe('isNewBest', () => {
+  const w = (date: string, weightKg: number, reps: number) =>
+    ({ id: date, date, updatedAt: date, exercises: [{ name: 'Leg press', weightKg, reps, sets: 1 }] }) as never;
+
+  it('first ever log is a baseline, not a PR', () => {
+    expect(isNewBest([], 'Leg press', '2026-11-05', 100, 10)).toBe(false);
+  });
+
+  it('heavier weight or more reps at the top weight is a PR', () => {
+    const hist = [w('2026-11-03', 100, 8), w('2026-11-04', 90, 12)];
+    expect(isNewBest(hist, 'leg press', '2026-11-05', 102.5, 6)).toBe(true);
+    expect(isNewBest(hist, 'Leg press', '2026-11-05', 100, 9)).toBe(true);
+    expect(isNewBest(hist, 'Leg press', '2026-11-05', 100, 8)).toBe(false);
+    expect(isNewBest(hist, 'Leg press', '2026-11-05', 95, 15)).toBe(false);
+  });
+
+  it('ignores logs from the same day or later', () => {
+    expect(isNewBest([w('2026-11-05', 120, 5)], 'Leg press', '2026-11-05', 110, 5)).toBe(false);
   });
 });

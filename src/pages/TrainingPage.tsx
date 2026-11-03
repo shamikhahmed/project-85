@@ -3,6 +3,8 @@ import { addDays, format } from 'date-fns';
 import plan from '../domain/trainingPlan.json';
 import { useAppStore } from '../store/useAppStore';
 import * as repo from '../data/repository';
+import { RestTimer, type RestState } from '../components/RestTimer';
+import { parseRestSeconds } from '../domain/restTimer';
 import { shouldForceBasic } from '../health/scores';
 import {
   PLAN_END,
@@ -30,6 +32,7 @@ import { parseLocalDate, toLocalISODate } from '../lib/dates';
 import { sleepDurationHours } from '../lib/dates';
 import {
   PLAN_NOTE_PREFIX,
+  isNewBest,
   lastLogsByName,
   loggedSetRow,
   progressionHint,
@@ -96,6 +99,7 @@ export function TrainingPage() {
   const [day, setDay] = useState<DayKey>(() => defaultDay(today));
   const [checkin, setCheckin] = useState<string | null>(null);
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
+  const [rest, setRest] = useState<RestState>(null);
   const [swaps, setSwaps] = useState<ActiveSwapMap>({});
   const [lastNightSleepH, setLastNightSleepH] = useState<number | null>(null);
   const [todayRecovery, setTodayRecovery] = useState<number | null>(null);
@@ -178,9 +182,10 @@ export function TrainingPage() {
 
   const saveSet = async (name: string, weightKg: number | undefined, reps: number | undefined) => {
     const ex: WorkoutExercise = { name, weightKg, reps, sets: 1, notes: 'top set' };
+    const best = isNewBest(history, name, today, weightKg, reps);
     await repo.logPlanExercise(today, sessionLabel, ex);
     await Promise.all([loadHistory(), refreshDay()]);
-    setToast(`${name} logged`);
+    setToast(best ? `🏆 New best on ${name}: ${weightKg} kg${reps != null ? ` × ${reps}` : ''}` : `${name} logged`);
   };
 
   const makeCheckin = async () => {
@@ -210,8 +215,15 @@ export function TrainingPage() {
 
   const loggedCount = todaySession?.exercises?.length ?? 0;
 
+  const startRest = (ex: PlanExercise, label: string) => {
+    const secs = parseRestSeconds(ex.rest);
+    if (secs == null) return;
+    setRest({ endsAt: Date.now() + secs * 1000, total: secs, label });
+  };
+
   return (
     <div className="stack page">
+      <RestTimer rest={rest} onChange={setRest} />
       <header className="panel page-header stack">
         <div>
           <p className="briefing-kicker">
@@ -369,6 +381,7 @@ export function TrainingPage() {
                   swap={swap}
                   shoulderCaution={settings.shoulderCaution}
                   onSave={saveSet}
+                  onStartRest={() => startRest(ex, name)}
                   onSwap={async (swappedName, reason) => {
                     const map = await repo.setExerciseSwap({
                       date: today,
@@ -516,6 +529,7 @@ function ExerciseCard({
   swap,
   shoulderCaution,
   onSave,
+  onStartRest,
   onSwap,
   onUndoSwap,
 }: {
@@ -530,6 +544,7 @@ function ExerciseCard({
   swap?: { name: string; reason: SwapReason };
   shoulderCaution: boolean;
   onSave: (name: string, weightKg: number | undefined, reps: number | undefined) => Promise<void>;
+  onStartRest: () => void;
   onSwap: (swappedName: string, reason: SwapReason) => Promise<void>;
   onUndoSwap: () => Promise<void>;
 }) {
@@ -560,6 +575,7 @@ function ExerciseCard({
     setBusy(true);
     try {
       await onSave(name, k, r);
+      onStartRest();
       setKgEdit(null);
       setRepsEdit(null);
       setFreshSwap(false);
@@ -714,6 +730,11 @@ function ExerciseCard({
 
         <div className="ex-meta">
           <strong>Rest:</strong> {ex.rest} {ex.warmupSet ? '· Warm-up set first (new exercise)' : ''}
+          {parseRestSeconds(ex.rest) != null && (
+            <button type="button" className="btn btn-ghost ex-rest-btn" onClick={onStartRest}>
+              Start rest timer
+            </button>
+          )}
           {sessionNote ? ` · ${sessionNote}` : ''}
         </div>
         <ul className="ex-cues">

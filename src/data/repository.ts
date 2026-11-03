@@ -32,6 +32,7 @@ import type {
 import type { ActiveSwapMap, SwapReason } from '../domain/exerciseSwap';
 import { swapsForDate } from '../domain/exerciseSwap';
 import { toLocalISODate } from '../lib/dates';
+import { withPlanTargets } from '../domain/plan';
 import { buildDayAggregate } from '../lib/aggregates';
 import { eachISODate } from '../lib/dates';
 import { mergeRowsKeepNewer, rowTimestamp, validateBackupPayload } from './backup';
@@ -58,7 +59,7 @@ export async function ensureInitialized(): Promise<AppSettings> {
   await initPromise;
   const settings = await db.settings.get('settings');
   if (!settings) throw new Error('Settings missing after init');
-  return migrateSettings(settings);
+  return withPlanTargets(migrateSettings(settings), toLocalISODate());
 }
 
 /** One-time move to the Project New Me plan (3 Nov 2026, 96 kg, 240 g protein, day-specific kcal). */

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.13.0 — New icon, rest timer, PRs, plan-aware targets (2026-11-03)
+
+- **New app icon:** vector source (`public/brand/icon-source.svg`) rendered at 4K; exported for PWA, iOS 1024, Android (all densities, round + adaptive) and favicon.
+- **Rest timer (Train):** starts after each logged top set or on demand; wall-clock based so it survives screen lock; +30s / Skip; beep + vibration at zero.
+- **PR detection:** 🏆 toast when a top set beats every earlier log (heavier, or more reps at the best weight). First log is a baseline.
+- **Weigh-in coach reaction:** weight toast compares to the plan line (on the line / ahead / above, calm copy).
+- **Steps follow the plan:** 8k week 1 → 10k from week 2 → 12k final weeks; a manual target in Settings pins your own.
+- **Today polish:** "Log first weigh-in" button in the hero; readable dates; empty-day score shows — not 0/100; week card no longer says "Welcome back" on day 1; removed dev-speak copy.
+- **Fitness age:** shows ≤25 / 75+ at table edges; says when the men's table is used because sex isn't set.
+
 ## v0.12.0 — Body age + readiness scores (2026-10-29)
 
 - **Body age (Health):** separate Fitness Age (30d median VO₂max, HUNT) and PhenoAge (Levine 2018 manual labs with unit pickers); citations in-app; never blended.

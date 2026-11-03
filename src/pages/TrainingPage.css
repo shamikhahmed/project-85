@@ -57,3 +57,57 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
 .ex-reason button,.ex-alt-chips button{min-height:var(--touch);padding:0 12px;border-radius:var(--radius-pill);border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);font:600 var(--text-sm)/1.2 var(--font-system);text-align:left;max-width:100%}
 .ex-reason button.active,.ex-alt-chips button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .ex-pain{margin:0;font-size:var(--text-sm);color:#f5c542}
+
+/* Rest timer — floats above the tab bar */
+.rest-timer {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 40;
+  max-width: 520px;
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-panel);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
+}
+.rest-timer-bar {
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.25s linear;
+}
+.rest-timer-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.rest-timer-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rest-timer-label {
+  font-size: var(--text-caption, 12px);
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rest-timer-clock {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+.rest-timer.done .rest-timer-clock {
+  color: var(--accent);
+}
+.ex-rest-btn {
+  margin-left: 8px;
+  min-height: 36px;
+  padding: 4px 10px;
+}

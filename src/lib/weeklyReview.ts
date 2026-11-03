@@ -108,7 +108,7 @@ export function buildWeeklyReview(
 
   let headline = 'Review the trend, not just the highlights.';
   if (logged.length === 0) {
-    headline = 'Welcome back. Your previous effort still counts.';
+    headline = 'Clean slate this week. One honest log today starts it.';
   } else if (weightChangeKg != null && weightChangeKg > 0.4) {
     headline = 'One week’s scale move isn’t the whole story — check the rolling average.';
   } else if ((stepHitRate ?? 0) >= 80 && foodDays.length >= 4) {

@@ -201,6 +201,8 @@ export interface AppSettings {
   planVersion?: number;
   /** Native shell: auto-pull HealthKit / Health Connect (default on). */
   autoSyncHealth?: boolean;
+  /** Steps target follows the plan week (8k → 10k → 12k). Undefined = true. */
+  stepsTargetFollowsPlan?: boolean;
   /** ISO timestamp of last successful auto-sync attempt window. */
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */

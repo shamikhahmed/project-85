@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultSettings } from './defaults';
-import { macrosFor, missionFor, planPhase, planWeek, sessionFor, sundayCheckpoints, targetWeightOn } from './plan';
+import { macrosFor, missionFor, planPhase, planStepsTarget, planWeek, sessionFor, sundayCheckpoints, targetWeightOn, weighInReaction, withPlanTargets } from './plan';
 import { applyPlanV2 } from '../data/repository';
 
 const S = createDefaultSettings('2026-11-01T00:00:00.000Z');
@@ -84,5 +84,30 @@ describe('plan v2 migration', () => {
     expect(m.planVersion).toBe(2);
     const edited = { ...m, proteinTargetG: 230 };
     expect(applyPlanV2(edited).proteinTargetG).toBe(230);
+  });
+});
+
+describe('plan-driven targets', () => {
+  it('steps follow the weekly missions', () => {
+    expect(planStepsTarget('2026-11-04')).toBe(8000);
+    expect(planStepsTarget('2026-11-12')).toBe(10000);
+    expect(planStepsTarget('2027-01-10')).toBe(12000);
+  });
+
+  it('a pinned manual target wins', () => {
+    const s = { stepsTarget: 7000, stepsTargetFollowsPlan: false };
+    expect(withPlanTargets(s, '2026-11-12').stepsTarget).toBe(7000);
+    expect(withPlanTargets({ stepsTarget: 7000 }, '2026-11-12').stepsTarget).toBe(10000);
+  });
+});
+
+describe('weighInReaction', () => {
+  const s = applyPlanV2(createDefaultSettings());
+  it('stays calm and specific', () => {
+    const line = targetWeightOn(s, '2026-11-20');
+    expect(weighInReaction(s, '2026-11-20', line)).toMatch(/On the line/);
+    expect(weighInReaction(s, '2026-11-20', line - 1)).toMatch(/1 kg ahead/);
+    expect(weighInReaction(s, '2026-11-20', line + 0.8)).toMatch(/0.8 kg above.*7-day average/);
+    expect(weighInReaction(s, '2026-10-01', 96)).toBeNull();
   });
 });

@@ -166,8 +166,16 @@ export function SettingsPage() {
           label="Steps"
           type="number"
           value={String(settings.stepsTarget)}
-          onCommit={(v) => void save({ stepsTarget: Number(v) })}
+          onCommit={(v) => void save({ stepsTarget: Number(v), stepsTargetFollowsPlan: false })}
         />
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={settings.stepsTargetFollowsPlan !== false}
+            onChange={(e) => void save({ stepsTargetFollowsPlan: e.target.checked })}
+          />
+          Steps follow the plan (8k week 1 · 10k from week 2 · 12k final weeks)
+        </label>
         <Field
           label="Sleep (hours)"
           type="number"

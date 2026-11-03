@@ -295,6 +295,11 @@ button {
   line-height: 1.45;
 }
 
+.hero-cta {
+  width: 100%;
+  margin: var(--space-3) 0 var(--space-2);
+}
+
 .hero-foot strong {
   color: var(--text-muted);
   font-weight: 600;

@@ -1,8 +1,47 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" fill="#0B0D10"/>
-  <circle cx="32" cy="32" r="22" fill="none" stroke="#1a2210" stroke-width="5"/>
-  <circle cx="32" cy="32" r="22" fill="none" stroke="#C4F36B" stroke-width="5" stroke-linecap="round"
-    stroke-dasharray="110 140" transform="rotate(-120 32 32)"/>
-  <text x="32" y="40" text-anchor="middle" fill="#F5F7FA" font-family="system-ui,-apple-system,Helvetica,sans-serif" font-size="22" font-weight="700" letter-spacing="-1">85</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B2027"/>
+      <stop offset="1" stop-color="#06080A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.74" cy="0.72" r="0.55">
+      <stop offset="0" stop-color="#C4F36B" stop-opacity="0.32"/>
+      <stop offset="0.45" stop-color="#C4F36B" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#C4F36B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E6FFB3"/>
+      <stop offset="1" stop-color="#B4EC4C"/>
+    </linearGradient>
+    <filter id="blur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+
+  <!-- quiet chart grid -->
+  <g stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="4">
+    <line x1="150" y1="330" x2="874" y2="330"/>
+    <line x1="150" y1="520" x2="874" y2="520"/>
+  </g>
+  <!-- target line -->
+  <line x1="150" y1="730" x2="874" y2="730" stroke="#C4F36B" stroke-opacity="0.35"
+        stroke-width="6" stroke-dasharray="22 20" stroke-linecap="round"/>
+
+  <!-- trend line glow + stroke -->
+  <path id="trend" d="M190 268 C 300 268, 330 400, 420 410 S 520 470, 590 540 S 700 690, 770 730"
+        fill="none" stroke="#C4F36B" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.55" filter="url(#blur)"/>
+  <path d="M190 268 C 300 268, 330 400, 420 410 S 520 470, 590 540 S 700 690, 770 730"
+        fill="none" stroke="url(#line)" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- start marker -->
+  <circle cx="190" cy="268" r="46" fill="#0B0E12" stroke="#E6FFB3" stroke-width="18"/>
+
+  <!-- goal marker -->
+  <circle cx="770" cy="730" r="120" fill="#C4F36B" opacity="0.18" filter="url(#blur)"/>
+  <circle cx="770" cy="730" r="78" fill="#C4F36B"/>
+  <circle cx="770" cy="730" r="30" fill="#0B0E12"/>
 </svg>

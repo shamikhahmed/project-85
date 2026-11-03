@@ -67,3 +67,34 @@ export function mergeExercise(list: WorkoutExercise[] | undefined, ex: WorkoutEx
 }
 
 export const PLAN_NOTE_PREFIX = 'Plan: ';
+
+/**
+ * New personal best for one exercise: heavier than any earlier log, or the same top
+ * weight for more reps. The first ever log is a baseline, not a PR.
+ */
+export function isNewBest(
+  workouts: WorkoutEntry[],
+  name: string,
+  date: ISODate,
+  weightKg: number | undefined,
+  reps: number | undefined,
+): boolean {
+  if (weightKg == null) return false;
+  const key = name.trim().toLowerCase();
+  let bestKg: number | null = null;
+  let bestReps = 0;
+  for (const w of workouts) {
+    if (w.date >= date) continue;
+    for (const ex of w.exercises ?? []) {
+      if (ex.name.trim().toLowerCase() !== key || ex.weightKg == null) continue;
+      if (bestKg == null || ex.weightKg > bestKg) {
+        bestKg = ex.weightKg;
+        bestReps = ex.reps ?? 0;
+      } else if (ex.weightKg === bestKg) {
+        bestReps = Math.max(bestReps, ex.reps ?? 0);
+      }
+    }
+  }
+  if (bestKg == null) return false;
+  return weightKg > bestKg || (weightKg === bestKg && (reps ?? 0) > bestReps);
+}

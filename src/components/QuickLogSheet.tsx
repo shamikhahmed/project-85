@@ -5,6 +5,7 @@ import type { FoodEntry, FoodLibraryItem } from '../domain/types';
 import * as repo from '../data/repository';
 import { previousISODate, toLocalISODate } from '../lib/dates';
 import { useAppStore } from '../store/useAppStore';
+import { weighInReaction } from '../domain/plan';
 
 export type QuickLogMode = 'meal' | 'water' | 'steps' | 'weight' | null;
 
@@ -177,7 +178,12 @@ export function QuickLogSheet({ open, initialMode = 'meal', onClose }: Props) {
         const wr = await writeWeightToHealth(n);
         if (!wr.ok) setToast(wr.detail);
       }
-    }, alsoWriteHealth ? 'Weight saved (+ Health write attempted)' : 'Weight saved');
+    }, [
+      alsoWriteHealth ? 'Weight saved (+ Health write attempted)' : 'Weight saved',
+      settings ? weighInReaction(settings, selectedDate, n) : null,
+    ]
+      .filter(Boolean)
+      .join(' · '));
   };
 
   return (
