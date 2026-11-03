@@ -5,6 +5,8 @@ import { useAppStore } from '../store/useAppStore';
 import * as repo from '../data/repository';
 import { RestTimer, type RestState } from '../components/RestTimer';
 import { parseRestSeconds } from '../domain/restTimer';
+import { carryOver, skipOptions, type SkipChoice } from '../domain/skipDay';
+import { MuscleRecoveryGrid } from '../components/MuscleRecoveryGrid';
 import { shouldForceBasic } from '../health/scores';
 import {
   PLAN_END,
@@ -95,6 +97,8 @@ export function TrainingPage() {
   const settings = useAppStore((s) => s.settings);
   const setToast = useAppStore((s) => s.setToast);
   const refreshDay = useAppStore((s) => s.refreshDay);
+  const refreshSettings = useAppStore((s) => s.refreshSettings);
+  const [skipOpen, setSkipOpen] = useState(false);
   const today = toLocalISODate();
   const [day, setDay] = useState<DayKey>(() => defaultDay(today));
   const [checkin, setCheckin] = useState<string | null>(null);
@@ -215,6 +219,19 @@ export function TrainingPage() {
 
   const loggedCount = todaySession?.exercises?.length ?? 0;
 
+  const skipChoices = skipOptions(today);
+  const skipToday = settings.skippedSessions?.[today];
+  const carry = carryOver(today, settings.skippedSessions);
+  const saveSkip = async (choice: SkipChoice | null) => {
+    const next = { ...settings.skippedSessions };
+    if (choice == null) delete next[today];
+    else next[today] = { session: session.key, choice };
+    await repo.updateSettings({ skippedSessions: next });
+    await refreshSettings();
+    setSkipOpen(false);
+    setToast(choice == null ? 'Skip undone' : 'Plan adjusted — see you tomorrow');
+  };
+
   const startRest = (ex: PlanExercise, label: string) => {
     const secs = parseRestSeconds(ex.rest);
     if (secs == null) return;
@@ -241,6 +258,62 @@ export function TrainingPage() {
           <br />
           <strong>Week {mission.week} mission:</strong> {mission.text}
         </div>
+        {carry && (
+          <div className="train-banner" role="status">
+            <strong>Carried over from yesterday:</strong>{' '}
+            {carry.choice === 'tomorrow'
+              ? `do ${carry.session} today instead of the scheduled session.`
+              : `start with ${carry.lifts.join(' and ')} (top set only), then today's session.`}
+            {carry.choice === 'tomorrow' && carry.session !== day && (
+              <>
+                {' '}
+                <button type="button" className="btn btn-ghost" onClick={() => setDay(carry.session as DayKey)}>
+                  Open {carry.session}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {skipToday ? (
+          <div className="train-banner skip-done" role="status">
+            Skipped today: <strong>{skipToday.choice === 'drop' ? 'dropped' : skipToday.choice === 'merge' ? 'merging into tomorrow' : 'moved to tomorrow'}</strong>.{' '}
+            <button type="button" className="btn btn-ghost" onClick={() => void saveSkip(null)}>
+              Undo
+            </button>
+          </div>
+        ) : (
+          skipChoices &&
+          loggedCount === 0 && (
+            <div className="skip-coach">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                aria-expanded={skipOpen}
+                onClick={() => setSkipOpen((o) => !o)}
+              >
+                Can't train today?
+              </button>
+              {skipOpen && (
+                <div className="skip-options">
+                  {skipChoices.map((o) => (
+                    <button
+                      key={o.choice}
+                      type="button"
+                      className={`skip-option${o.recommended ? ' recommended' : ''}`}
+                      onClick={() => void saveSkip(o.choice)}
+                    >
+                      <span className="skip-title">
+                        {o.title}
+                        {o.recommended && <span className="skip-badge">Coach pick</span>}
+                      </span>
+                      <span className="skip-detail">{o.detail}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        )}
         {forceBasic && (
           <div className="train-banner warn" role="status">
             {lastNightSleepH != null && lastNightSleepH < 6.5
@@ -266,6 +339,8 @@ export function TrainingPage() {
           </button>
         ))}
       </nav>
+
+      <MuscleRecoveryGrid workouts={history} />
 
       {day === 'rest' && (
         <section className="panel stack">

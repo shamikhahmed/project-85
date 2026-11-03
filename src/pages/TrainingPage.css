@@ -111,3 +111,80 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
   min-height: 36px;
   padding: 4px 10px;
 }
+
+/* Muscle recovery grid */
+.recovery-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.recovery-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+.recovery-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recovery-pct {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+.recovery-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.recovery-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--text-dim);
+}
+.recovery-cell.ready .recovery-bar > span { background: var(--accent); }
+.recovery-cell.mid .recovery-bar > span { background: #f5c542; }
+.recovery-cell.low .recovery-bar > span { background: #ff7a6b; }
+.recovery-cell.ready .recovery-pct { color: var(--accent); }
+
+/* Skip-day coach */
+.skip-coach { display: flex; flex-direction: column; gap: 8px; }
+.skip-coach > .btn { align-self: flex-start; }
+.skip-options { display: flex; flex-direction: column; gap: 8px; }
+.skip-option {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  min-height: var(--touch);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.skip-option.recommended { border-color: var(--accent); background: var(--accent-soft); }
+.skip-title { font-weight: 650; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.skip-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.skip-detail { font-size: var(--text-sm); color: var(--text-muted); }

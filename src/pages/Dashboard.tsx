@@ -4,6 +4,7 @@ import { MetricChip } from '../components/MetricChip';
 import { ProgressRing } from '../components/ProgressRing';
 import { QuickLogSheet, type QuickLogMode } from '../components/QuickLogSheet';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { SupplementsCard } from '../components/SupplementsCard';
 import * as repo from '../data/repository';
 import { buildDailyBriefing, type QuickActionKind } from '../lib/briefing';
 import { assessComeback, type ComebackState } from '../lib/comeback';
@@ -568,6 +569,8 @@ export function Dashboard() {
           </div>
         </section>
       )}
+
+      <SupplementsCard date={today} />
 
       <WeeklyReviewCard compact />
 

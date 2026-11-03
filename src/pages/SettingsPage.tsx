@@ -10,6 +10,76 @@ import { useAppStore } from '../store/useAppStore';
 import type { BiologicalSex, ThemeMode } from '../domain/types';
 import { applyTheme } from '../lib/theme';
 import { Link } from 'react-router-dom';
+import { addSupplement, TIMINGS, type Supplement, type SupplementTiming } from '../domain/supplements';
+
+function SupplementStackEditor({
+  stack,
+  onChange,
+}: {
+  stack: Supplement[];
+  onChange: (next: Supplement[]) => void;
+}) {
+  const [name, setName] = useState('');
+  const [timing, setTiming] = useState<SupplementTiming>('morning');
+  const add = () => {
+    const next = addSupplement(stack, name, timing);
+    if (next !== stack) onChange(next);
+    setName('');
+  };
+  return (
+    <section className="panel stack" id="supplements">
+      <h2 style={{ fontSize: '1.05rem' }}>Supplements</h2>
+      <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>
+        Your daily stack. Tick them off on Today.
+      </p>
+      {stack.length > 0 && (
+        <ul className="supp-list">
+          {stack.map((s) => (
+            <li key={s.name}>
+              <span>
+                {s.name} <span className="dim">· {TIMINGS.find((t) => t.id === s.timing)?.label}</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                aria-label={`Remove ${s.name}`}
+                onClick={() => onChange(stack.filter((x) => x.name !== s.name))}
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="supp-add">
+        <input
+          aria-label="Supplement name"
+          placeholder="e.g. Creatine 5 g"
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') add();
+          }}
+        />
+        <select
+          aria-label="When"
+          value={timing}
+          onChange={(e) => setTiming(e.target.value as SupplementTiming)}
+        >
+          {TIMINGS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="btn btn-primary" disabled={!name.trim()} onClick={add}>
+          Add
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
@@ -207,6 +277,11 @@ export function SettingsPage() {
           onCommit={(v) => void save({ cigaretteTarget: Number(v) })}
         />
       </section>
+
+      <SupplementStackEditor
+        stack={settings.supplements ?? []}
+        onChange={(supplements) => void save({ supplements })}
+      />
 
       <section className="panel stack">
         <h2 style={{ fontSize: '1.05rem' }}>Appearance & experience</h2>

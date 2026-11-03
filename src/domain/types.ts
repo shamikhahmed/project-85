@@ -203,6 +203,12 @@ export interface AppSettings {
   autoSyncHealth?: boolean;
   /** Steps target follows the plan week (8k → 10k → 12k). Undefined = true. */
   stepsTargetFollowsPlan?: boolean;
+  /** Skip-day coach decisions by date (see domain/skipDay). */
+  skippedSessions?: Record<string, { session: 'push' | 'pull' | 'legs' | 'upper' | 'lower' | 'saturday' | 'rest'; choice: 'tomorrow' | 'merge' | 'drop' }>;
+  /** Supplements the user takes, with timing. */
+  supplements?: { name: string; timing: 'morning' | 'pre' | 'post' | 'evening' }[];
+  /** Supplements ticked per date. */
+  supplementLog?: Record<string, string[]>;
   /** ISO timestamp of last successful auto-sync attempt window. */
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */

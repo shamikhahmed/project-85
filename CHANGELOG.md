@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.14.0 — Skip-day coach, muscle recovery, supplements (2026-11-03)
+
+- **Skip-day coach (Train):** "Can't train today?" offers move-to-tomorrow, merge key lifts into tomorrow, or drop — with a coach pick (move when tomorrow is free, else merge). Next day shows a carry-over banner; undo any time. Stored in settings so backups keep it.
+- **Muscle recovery grid (Train):** 10 groups from logged top sets (plan, Block B and alternative names), timed from the save time; 72 h window for big groups, 48 h for small.
+- **Supplements:** build a stack with timing in Settings; tick each one off on Today (x/y taken). Stored per date in settings.
+
 ## v0.13.0 — New icon, rest timer, PRs, plan-aware targets (2026-11-03)
 
 - **New app icon:** vector source (`public/brand/icon-source.svg`) rendered at 4K; exported for PWA, iOS 1024, Android (all densities, round + adaptive) and favicon.

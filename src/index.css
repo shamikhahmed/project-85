@@ -1642,3 +1642,28 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Supplements */
+.supp-group { display: flex; flex-direction: column; gap: 6px; }
+.supp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.supp-chip {
+  min-height: var(--touch);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.supp-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 650; }
+.supp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.supp-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.supp-list li > span { min-width: 0; overflow-wrap: anywhere; }
+.supp-add { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+.supp-add input, .supp-add select { min-width: 0; min-height: var(--touch); }
+@media (max-width: 360px) {
+  .supp-add { grid-template-columns: 1fr 1fr; }
+  .supp-add input { grid-column: 1 / -1; }
+}
