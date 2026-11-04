@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.15.0 — Weekly auto-report (2026-11-04)
+
+- **Sunday report:** closed Mon–Sun week vs the week before (▲/▼ per row) and vs the plan line: 7-day average weight, steps, protein, sleep, sessions done of planned, days logged.
+- **One fix for next week:** picked in order — logging gaps, missed sessions, protein, steps, sleep, then weight vs line. Up to two wins called out.
+- **Where:** Today from Sunday to Tuesday until "Got it"; Progress always shows the last closed week. Share sends a plain-text summary (share sheet or clipboard). Built from logged days only.
+
 ## v0.14.0 — Skip-day coach, muscle recovery, supplements (2026-11-03)
 
 - **Skip-day coach (Train):** "Can't train today?" offers move-to-tomorrow, merge key lifts into tomorrow, or drop — with a coach pick (move when tomorrow is free, else merge). Next day shows a carry-over banner; undo any time. Stored in settings so backups keep it.

@@ -21,6 +21,7 @@ import {
 } from '../lib/weightProgress';
 import { assessWeightTrend, dailyWeightVsTrendMessage } from '../lib/weightTrend';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { WeeklyReportCard } from '../components/WeeklyReportCard';
 import { useAppStore } from '../store/useAppStore';
 
 export function ProgressPage() {
@@ -158,6 +159,8 @@ export function ProgressPage() {
           . Single mornings do not rewrite the plan.
         </p>
       </section>
+
+      <WeeklyReportCard mode="progress" />
 
       <WeeklyReviewCard />
 

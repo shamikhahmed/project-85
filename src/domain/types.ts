@@ -209,6 +209,8 @@ export interface AppSettings {
   supplements?: { name: string; timing: 'morning' | 'pre' | 'post' | 'evening' }[];
   /** Supplements ticked per date. */
   supplementLog?: Record<string, string[]>;
+  /** Sunday of the last weekly report the user dismissed. */
+  weeklyReportSeen?: string;
   /** ISO timestamp of last successful auto-sync attempt window. */
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */

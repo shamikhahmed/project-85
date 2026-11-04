@@ -5,6 +5,7 @@ import { ProgressRing } from '../components/ProgressRing';
 import { QuickLogSheet, type QuickLogMode } from '../components/QuickLogSheet';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { SupplementsCard } from '../components/SupplementsCard';
+import { WeeklyReportCard } from '../components/WeeklyReportCard';
 import * as repo from '../data/repository';
 import { buildDailyBriefing, type QuickActionKind } from '../lib/briefing';
 import { assessComeback, type ComebackState } from '../lib/comeback';
@@ -337,6 +338,8 @@ export function Dashboard() {
           </p>
         )}
       </header>
+
+      <WeeklyReportCard mode="today" />
 
       <TodayTrainingPanel date={today} />
 
