@@ -5,7 +5,7 @@ export type SwapReason = 'busy' | 'broken' | 'not_available' | 'pain';
 export const SWAP_REASONS: { id: SwapReason; label: string }[] = [
   { id: 'busy', label: 'Busy' },
   { id: 'broken', label: 'Broken' },
-  { id: 'not_available', label: 'Not available' },
+  { id: 'not_available', label: 'Missing' },
   { id: 'pain', label: 'Pain' },
 ];
 

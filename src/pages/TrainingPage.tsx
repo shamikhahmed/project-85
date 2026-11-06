@@ -4,6 +4,12 @@ import plan from '../domain/trainingPlan.json';
 import { useAppStore } from '../store/useAppStore';
 import * as repo from '../data/repository';
 import { RestTimer, type RestState } from '../components/RestTimer';
+import { ExerciseGif } from '../components/ExerciseGif';
+import { SwapPanel } from '../components/SwapPanel';
+import { WarmupList } from '../components/WarmupList';
+import { WorkoutPlayer } from '../components/WorkoutPlayer';
+import { demoUrl } from '../domain/exerciseMedia';
+import type { PlayerExercise } from '../domain/workoutPlayer';
 import { parseRestSeconds } from '../domain/restTimer';
 import { carryOver, skipOptions, type SkipChoice } from '../domain/skipDay';
 import { MuscleRecoveryGrid } from '../components/MuscleRecoveryGrid';
@@ -19,7 +25,6 @@ import {
   type PlanPhase,
 } from '../domain/plan';
 import {
-  SWAP_REASONS,
   fallbackFor,
   orderedAlternatives,
   reasonLabel,
@@ -62,11 +67,11 @@ interface PlanExercise {
 }
 
 const BASE_DAYS: { key: DayKey; label: string; session: string }[] = [
-  { key: 'push', label: 'Push', session: 'Push' },
-  { key: 'pull', label: 'Pull', session: 'Pull' },
-  { key: 'legs', label: 'Legs', session: 'Legs' },
-  { key: 'upper', label: 'Upper', session: 'Upper' },
-  { key: 'lower', label: 'Lower', session: 'Lower' },
+  { key: 'push', label: 'Mon · Push', session: 'Push' },
+  { key: 'pull', label: 'Tue · Pull', session: 'Pull' },
+  { key: 'legs', label: 'Wed · Legs', session: 'Legs' },
+  { key: 'upper', label: 'Thu · Upper', session: 'Upper' },
+  { key: 'lower', label: 'Fri · Lower', session: 'Lower' },
   { key: 'arms', label: 'Sat · Arms', session: 'Arms + Delts' },
   { key: 'core', label: 'Sat · Core', session: 'Cardio + Core' },
   { key: 'rest', label: 'Rest', session: 'Rest' },
@@ -105,6 +110,7 @@ export function TrainingPage() {
   const [history, setHistory] = useState<WorkoutEntry[]>([]);
   const [rest, setRest] = useState<RestState>(null);
   const [swaps, setSwaps] = useState<ActiveSwapMap>({});
+  const [playing, setPlaying] = useState(false);
   const [lastNightSleepH, setLastNightSleepH] = useState<number | null>(null);
   const [todayRecovery, setTodayRecovery] = useState<number | null>(null);
   const [todayStrain, setTodayStrain] = useState<number | null>(null);
@@ -217,6 +223,18 @@ export function TrainingPage() {
     }
   };
 
+  const playerExercises = useMemo<PlayerExercise[]>(
+    () =>
+      exercises.map((ex) => {
+        const n = displayName(ex);
+        return { name: n, media: null, muscle: ex.muscle, sets: ex.sets, rest: ex.rest, cue: n === ex.name ? (ex.cues[0] ?? null) : null };
+      }),
+    [exercises, displayName],
+  );
+  const lastKg = useMemo(
+    () => Object.fromEntries(Object.entries(lastLogs).map(([k, v]) => [k, v?.weightKg])),
+    [lastLogs],
+  );
   const loggedCount = todaySession?.exercises?.length ?? 0;
 
   const skipChoices = skipOptions(today);
@@ -407,26 +425,30 @@ export function TrainingPage() {
                 PDF
               </a>
             </div>
-            <ul className="train-list">
-              {[...plan.warmupBase, ...(isLower ? plan.warmupLower : plan.warmupUpper)].map(
-                ([n, dose, cue]) => (
-                  <li key={n}>
-                    <span>
-                      <strong>{n}</strong>
-                      <br />
-                      <span className="dim">{cue}</span>
-                    </span>
-                    <span>{dose}</span>
-                  </li>
-                ),
-              )}
-            </ul>
+            <WarmupList rows={[...plan.warmupBase, ...(isLower ? plan.warmupLower : plan.warmupUpper)]} />
             {!isLower && (
               <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
                 No band "dislocates" over the head — that end position is how a shoulder comes out.
               </p>
             )}
           </section>
+
+          <button type="button" className="btn btn-primary train-play" onClick={() => setPlaying(true)}>
+            ▶ Start workout
+            <span>
+              {exercises.length} · {sessionLabel}
+            </span>
+          </button>
+          {playing && (
+            <WorkoutPlayer
+              title={sessionLabel}
+              exercises={playerExercises}
+              lastKg={lastKg}
+              doneNames={(todaySession?.exercises ?? []).map((e) => e.name)}
+              onLog={saveSet}
+              onClose={() => setPlaying(false)}
+            />
+          )}
 
           <p className="muted" style={{ margin: '0 4px' }}>
             {loggedCount > 0
@@ -490,14 +512,7 @@ export function TrainingPage() {
 
           <section className="panel stack">
             <h2 style={{ fontSize: 'var(--text-lg)' }}>Cooldown · 5 min</h2>
-            <ul className="train-list">
-              {(isLower ? plan.cooldownLower : plan.cooldownUpper).map(([n, d]) => (
-                <li key={n}>
-                  <span>{n}</span>
-                  <span>{d}</span>
-                </li>
-              ))}
-            </ul>
+            <WarmupList rows={isLower ? plan.cooldownLower : plan.cooldownUpper} />
           </section>
         </>
       )}
@@ -698,6 +713,7 @@ function ExerciseCard({
             lighter and recalibrate the weight.
           </div>
         )}
+        <ExerciseGif key={name} name={name} />
         <table className="ex-sets">
           <thead>
             <tr>
@@ -717,45 +733,17 @@ function ExerciseCard({
           </tbody>
         </table>
 
-        <div className="ex-swap">
-          <strong>Machine busy or broken?</strong>
-          <div className="ex-reason" role="group" aria-label="Swap reason">
-            {SWAP_REASONS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className={reason === r.id ? 'active' : ''}
-                aria-pressed={reason === r.id}
-                onClick={() => setReason(r.id)}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-          {reason === 'pain' && (
-            <p className="ex-pain" role="alert">
-              Stop — don&apos;t push through pain. Prefer the lowest-load option first.
-            </p>
-          )}
-          <div className="ex-alt-chips">
-            {alts.map((alt) => (
-              <button
-                key={alt}
-                type="button"
-                className={swap?.name === alt ? 'active' : ''}
-                disabled={busy}
-                onClick={() => void pickAlt(alt)}
-              >
-                {alt}
-              </button>
-            ))}
-          </div>
-          {swap && (
-            <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void onUndoSwap()}>
-              Undo swap / back to plan
-            </button>
-          )}
-        </div>
+        <SwapPanel
+          planName={planName}
+          muscle={ex.muscle}
+          alts={alts}
+          reason={reason}
+          onReason={setReason}
+          current={swap?.name ?? null}
+          busy={busy}
+          onPick={(alt) => void pickAlt(alt)}
+          onUndo={() => void onUndoSwap()}
+        />
 
         <div className="ex-log">
           <div className="ex-log-head">
@@ -838,7 +826,7 @@ function ExerciseCard({
             {ex.note}
           </div>
         )}
-        <a className="btn" href={ex.demo} target="_blank" rel="noopener">
+        <a className="btn" href={swap || usingBlockB ? demoUrl(name) : ex.demo} target="_blank" rel="noopener">
           Watch demo
         </a>
       </div>

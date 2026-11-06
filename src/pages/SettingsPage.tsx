@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { OPEN_TOUR_EVENT } from '../components/AppTour';
 import { Capacitor } from '@capacitor/core';
 import { formatDistanceToNow } from 'date-fns';
 import { FoodLibraryManager } from '../components/FoodLibraryManager';
@@ -285,6 +286,9 @@ export function SettingsPage() {
 
       <section className="panel stack">
         <h2 style={{ fontSize: '1.05rem' }}>Appearance & experience</h2>
+        <button type="button" className="btn" onClick={() => window.dispatchEvent(new Event(OPEN_TOUR_EVENT))}>
+          Take the tour
+        </button>
         <label>
           <span className="label">Theme</span>
           <select

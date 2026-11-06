@@ -211,6 +211,8 @@ export interface AppSettings {
   supplementLog?: Record<string, string[]>;
   /** Sunday of the last weekly report the user dismissed. */
   weeklyReportSeen?: string;
+  /** First-open app tour finished. */
+  tourDone?: boolean;
   /** ISO timestamp of last successful auto-sync attempt window. */
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */

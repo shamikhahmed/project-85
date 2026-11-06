@@ -5,6 +5,7 @@ import { CapAutoHealthSync } from './components/CapAutoHealthSync';
 import { CapDeepLinks } from './components/CapDeepLinks';
 import { InstallPwaBanner } from './components/InstallPwa';
 import { NightlyTruthCheck } from './components/NightlyTruthCheck';
+import { AppTour } from './components/AppTour';
 import { Dashboard } from './pages/Dashboard';
 import { DailyLog } from './pages/DailyLog';
 import { ProgressPage } from './pages/ProgressPage';
@@ -100,6 +101,7 @@ export default function App() {
           </Routes>
         </main>
         <NightlyTruthCheck />
+        <AppTour />
         {toast && (
           <div className="toast" role="status">
             {toast}

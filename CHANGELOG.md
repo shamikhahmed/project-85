@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.16.0 — Exercise animations, workout player, tour (2026-11-06)
+
+- **Animations:** Gym visual GIFs on every exercise card with a match (135 of 175 names, each checked by eye; no GIF beats a wrong one). Tiny corner credit. CDN with GitHub raw fallback; still image under reduced motion.
+- **Start workout:** full-screen player — one set at a time, animation, rest countdown with beeps and voice cues, wake lock, top-set logging.
+- **Swaps redone:** reason segment, quick options with thumbnails, "See all" card sheet with animation, video and "Use this". Swapped exercise gets its own animation, video link and log.
+- **Warm-up/cool-down demos:** thumbnail rows; tap for the animation and a form video.
+- **App tour** on first open; Settings → Take the tour. Day tabs now show the weekday (Mon · Push …).
+
 ## v0.15.0 — Weekly auto-report (2026-11-04)
 
 - **Sunday report:** closed Mon–Sun week vs the week before (▲/▼ per row) and vs the plan line: 7-day average weight, steps, protein, sleep, sessions done of planned, days logged.
