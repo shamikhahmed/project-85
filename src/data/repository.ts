@@ -37,7 +37,7 @@ import { buildDayAggregate } from '../lib/aggregates';
 import { eachISODate } from '../lib/dates';
 import { mergeRowsKeepNewer, rowTimestamp, validateBackupPayload } from './backup';
 import { db, newId } from './db';
-import { mergeExercise, PLAN_NOTE_PREFIX } from '../lib/trainingLog';
+import { CUSTOM_NOTE_PREFIX, mergeExercise, PLAN_NOTE_PREFIX } from '../lib/trainingLog';
 
 export { backupToCsv, validateBackupPayload } from './backup';
 
@@ -500,6 +500,27 @@ export async function logPlanExercise(
   exercise: WorkoutExercise,
 ): Promise<WorkoutEntry> {
   const note = `${PLAN_NOTE_PREFIX}${sessionLabel}`;
+  const sameDay = await db.workouts.where('date').equals(date).toArray();
+  const existing = sameDay.find((w) => w.notes === note);
+  return upsertWorkout({
+    id: existing?.id,
+    date,
+    type: 'strength',
+    notes: note,
+    exercises: mergeExercise(existing?.exercises, exercise),
+  });
+}
+
+/**
+ * Log one exercise of a muscle-builder session ("Custom: Chest + Biceps").
+ * Same rules as plan sessions: one workout per title per day, same exercise replaced.
+ */
+export async function logCustomExercise(
+  date: string,
+  title: string,
+  exercise: WorkoutExercise,
+): Promise<WorkoutEntry> {
+  const note = `${CUSTOM_NOTE_PREFIX}${title}`;
   const sameDay = await db.workouts.where('date').equals(date).toArray();
   const existing = sameDay.find((w) => w.notes === note);
   return upsertWorkout({

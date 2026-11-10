@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.17.0 — Muscle builder + exercise library (2026-11-10)
+
+- **Train has tabs:** My plan · Build · Library. The plan is unchanged.
+- **Build:** pick 1–6 muscles in priority order (12 to choose from, each with a focus such as upper chest or long head), 1–6 exercises per muscle (3-3-4, 4-3-3-4-3-2 …), 2–5 sets, Gym / Dumbbells / Home, supersets on or off. The app picks the exercises, orders them, and sets reps, rest and warm-ups.
+- **How it decides (original method):** exercises are chosen to cover each muscle's parts, and what other picks already train counts as half (presses cover front delts, so shoulder picks go to side and rear). The order comes from a fatigue simulation: helpers that limit a lift (triceps for presses, grip for rows, core for squats) go after it, and your first muscle gets the freshest slot. Supersets only pair moves that share no working muscle and don't limit each other. Each card says why it's there and the predicted strength left when you reach it.
+- **Session tools:** volume per muscle against the ~11-set plateau, time estimate, swap one exercise (rest stays put), remove, shuffle, save as a template, start in the workout player (supersets alternate set by set with a 15 s switch), log top sets with progression hints. Recovery shows on each muscle chip, "Pick what's ready" suggests a session, and a built session keeps its order when you log.
+- **Library:** 177 exercises with animations, cues, what each works and where you can do it; search, filter by muscle and equipment, "Add to build".
+- Builder logs count in the muscle-recovery grid. Shoulder caution keeps dips out of builds.
+
 ## v0.16.0 — Exercise animations, workout player, tour (2026-11-06)
 
 - **Animations:** Gym visual GIFs on every exercise card with a match (135 of 175 names, each checked by eye; no GIF beats a wrong one). Tiny corner credit. CDN with GitHub raw fallback; still image under reduced motion.

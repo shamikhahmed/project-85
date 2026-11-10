@@ -8,7 +8,7 @@ export function loggedSetRow(sets: string[][]): string[] | null {
 
 /** Parse "6-8, failure" → {lo:6, hi:8}; "15" → {lo:15, hi:15}; "12 per leg" → {lo:12, hi:12}. */
 export function parseRepRange(reps: string): { lo: number; hi: number } | null {
-  const m = reps.match(/(\d+)\s*-\s*(\d+)/);
+  const m = reps.match(/(\d+)\s*[-–]\s*(\d+)/);
   if (m) return { lo: Number(m[1]), hi: Number(m[2]) };
   const n = reps.match(/\d+/);
   return n ? { lo: Number(n[0]), hi: Number(n[0]) } : null;
@@ -67,6 +67,8 @@ export function mergeExercise(list: WorkoutExercise[] | undefined, ex: WorkoutEx
 }
 
 export const PLAN_NOTE_PREFIX = 'Plan: ';
+/** Notes prefix for muscle-builder sessions. */
+export const CUSTOM_NOTE_PREFIX = 'Custom: ';
 
 /**
  * New personal best for one exercise: heavier than any earlier log, or the same top

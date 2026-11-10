@@ -23,6 +23,10 @@ npm run preview
 GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 ```
 
+## What’s in v0.17
+
+New: **muscle builder** (Train → Build) — pick muscles in priority order and how many exercises each; the app picks, orders (fatigue simulation), pairs supersets and prescribes sets, reps, rest and warm-ups. **Exercise library** (Train → Library) with 177 animated exercises. See `CHANGELOG.md`.
+
 ## What’s in v0.11
 
 New: **exercise swaps** (busy/broken/pain + DB fallback), **native auto health sync** (launch/resume, 15‑min throttle, Android Health Connect), morning weight/sleep line, step bar, swap insights.

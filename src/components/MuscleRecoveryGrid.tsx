@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { muscleRecovery } from '../domain/muscleRecovery';
+import { LIBRARY_MUSCLE_INDEX } from '../domain/exerciseLibrary';
 import type { WorkoutEntry } from '../domain/types';
 
 /** 10-cell grid: how recovered each muscle group is since it was last trained. */
 export function MuscleRecoveryGrid({ workouts }: { workouts: WorkoutEntry[] }) {
-  const rows = useMemo(() => muscleRecovery(workouts, new Date()), [workouts]);
+  const rows = useMemo(() => muscleRecovery(workouts, new Date(), LIBRARY_MUSCLE_INDEX), [workouts]);
   const trained = rows.some((r) => r.pct != null);
 
   return (

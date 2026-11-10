@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildPlayerSteps, stepAnnouncement, type PlayerExercise } from '../domain/workoutPlayer';
+import {
+  SUPERSET_GAP_SEC,
+  buildPlayerSteps,
+  stepAnnouncement,
+  type PlayerExercise,
+  type PlayerStep,
+} from '../domain/workoutPlayer';
 import { formatClock } from '../domain/restTimer';
 import { beep, speak, stopSpeaking } from '../lib/voice';
 import { ExerciseGif } from './ExerciseGif';
@@ -17,6 +23,11 @@ interface Props {
 }
 
 const VOICE_KEY = 'p85-player-voice';
+
+/** The other exercise in this step's superset. */
+function partnerName(steps: PlayerStep[], step: PlayerStep): string {
+  return steps.find((s) => s.group === step.group && s.exIndex !== step.exIndex)?.name ?? 'its partner';
+}
 
 function readVoice(): boolean {
   try {
@@ -138,6 +149,8 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
   };
 
   const exCount = exercises.length;
+  // Inside a superset the short gap is a switch to the partner exercise, not a rest.
+  const switching = !!step.group && next?.group === step.group && next.exIndex !== step.exIndex && step.restSec <= SUPERSET_GAP_SEC;
   const progress = (idx + (resting ? 1 : 0)) / steps.length;
 
   return (
@@ -173,7 +186,7 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
         </section>
       ) : resting ? (
         <section className="player-main player-rest">
-          <span className="player-kicker">{'Rest'}</span>
+          <span className="player-kicker">{switching ? `Superset ${step.group} · switch` : 'Rest'}</span>
           <div className="player-clock" aria-live="polite">
             {formatClock(left)}
           </div>
@@ -200,6 +213,7 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
           <div className="player-head">
             <h2>{step.name}</h2>
             <span className="muted">{step.muscle}</span>
+            {step.group && <span className="player-ss">Superset {step.group} · alternate with {partnerName(steps, step)}</span>}
           </div>
           <div className="player-dots" aria-label={`${'Set'} ${step.setNo} ${'of'} ${step.setCount}`}>
             {Array.from({ length: step.setCount }, (_, i) => (

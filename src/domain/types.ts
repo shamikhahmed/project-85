@@ -157,6 +157,19 @@ export interface ProgressPhoto {
   updatedAt: string;
 }
 
+/** A muscle-builder session kept as a template: the setup plus the exact exercises. */
+export interface SavedWorkout {
+  id: string;
+  name: string;
+  createdAt: string;
+  setting: 'gym' | 'dumbbells' | 'home';
+  sets: number;
+  supersets: boolean;
+  picks: { muscle: string; count: number; focus: string }[];
+  /** Exercise ids per muscle; `kept` = chosen by the builder, not added by hand */
+  slots: { id: string; muscle: string; kept?: boolean }[];
+}
+
 export interface AppSettings {
   id: 'settings';
   startDate: ISODate;
@@ -213,6 +226,8 @@ export interface AppSettings {
   weeklyReportSeen?: string;
   /** First-open app tour finished. */
   tourDone?: boolean;
+  /** Workouts saved from the muscle builder (Train → Build). */
+  customWorkouts?: SavedWorkout[];
   /** ISO timestamp of last successful auto-sync attempt window. */
   lastAutoSyncAt?: string | null;
   /** Offer writing manual weight back to Apple Health (default off). */

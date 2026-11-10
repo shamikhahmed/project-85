@@ -13,6 +13,12 @@ import type { PlayerExercise } from '../domain/workoutPlayer';
 import { parseRestSeconds } from '../domain/restTimer';
 import { carryOver, skipOptions, type SkipChoice } from '../domain/skipDay';
 import { MuscleRecoveryGrid } from '../components/MuscleRecoveryGrid';
+import { WorkoutBuilder } from '../components/WorkoutBuilder';
+import { useWorkoutBuilder } from '../components/useWorkoutBuilder';
+import { ExerciseLibrary } from '../components/ExerciseLibrary';
+import { addExercise } from '../domain/builderState';
+import { EXERCISE_BY_ID, fitsSetting, muscleLabel } from '../domain/exerciseLibrary';
+import { MAX_COUNT, SHOULDER_RISK } from '../domain/workoutBuilder';
 import { shouldForceBasic } from '../health/scores';
 import {
   PLAN_END,
@@ -98,7 +104,7 @@ function defaultDay(today: string): DayKey {
   return s.key;
 }
 
-export function TrainingPage() {
+function PlanTraining() {
   const settings = useAppStore((s) => s.settings);
   const setToast = useAppStore((s) => s.setToast);
   const refreshDay = useAppStore((s) => s.refreshDay);
@@ -185,6 +191,19 @@ export function TrainingPage() {
     (w) => w.date === today && w.notes === `${PLAN_NOTE_PREFIX}${sessionLabel}`,
   );
 
+  const playerExercises = useMemo<PlayerExercise[]>(
+    () =>
+      exercises.map((ex) => {
+        const n = displayName(ex);
+        return { name: n, media: null, muscle: ex.muscle, sets: ex.sets, rest: ex.rest, cue: n === ex.name ? (ex.cues[0] ?? null) : null };
+      }),
+    [exercises, displayName],
+  );
+  const lastKg = useMemo(
+    () => Object.fromEntries(Object.entries(lastLogs).map(([k, v]) => [k, v?.weightKg])),
+    [lastLogs],
+  );
+
   if (!settings) return null;
   const macros = macrosFor(settings, today);
   const isLower = day === 'legs' || day === 'lower';
@@ -223,18 +242,6 @@ export function TrainingPage() {
     }
   };
 
-  const playerExercises = useMemo<PlayerExercise[]>(
-    () =>
-      exercises.map((ex) => {
-        const n = displayName(ex);
-        return { name: n, media: null, muscle: ex.muscle, sets: ex.sets, rest: ex.rest, cue: n === ex.name ? (ex.cues[0] ?? null) : null };
-      }),
-    [exercises, displayName],
-  );
-  const lastKg = useMemo(
-    () => Object.fromEntries(Object.entries(lastLogs).map(([k, v]) => [k, v?.weightKg])),
-    [lastLogs],
-  );
   const loggedCount = todaySession?.exercises?.length ?? 0;
 
   const skipChoices = skipOptions(today);
@@ -257,7 +264,7 @@ export function TrainingPage() {
   };
 
   return (
-    <div className="stack page">
+    <div className="stack">
       <RestTimer rest={rest} onChange={setRest} />
       <header className="panel page-header stack">
         <div>
@@ -584,6 +591,94 @@ export function TrainingPage() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+type TrainTab = 'plan' | 'build' | 'library';
+const TAB_KEY = 'p85-train-tab';
+const TABS: { id: TrainTab; label: string }[] = [
+  { id: 'plan', label: 'My plan' },
+  { id: 'build', label: 'Build' },
+  { id: 'library', label: 'Library' },
+];
+
+function readTab(): TrainTab {
+  try {
+    const t = localStorage.getItem(TAB_KEY);
+    return t === 'build' || t === 'library' ? t : 'plan';
+  } catch {
+    return 'plan';
+  }
+}
+
+/** Train: the 10-week plan, the muscle builder and the exercise library. */
+export function TrainingPage() {
+  const settings = useAppStore((s) => s.settings);
+  const setToast = useAppStore((s) => s.setToast);
+  const [tab, setTabState] = useState<TrainTab>(readTab);
+  const builder = useWorkoutBuilder(settings?.shoulderCaution ?? true);
+
+  const setTab = (t: TrainTab) => {
+    setTabState(t);
+    try {
+      localStorage.setItem(TAB_KEY, t);
+    } catch {
+      /* private mode */
+    }
+    window.scrollTo({ top: 0 });
+  };
+
+  const addToBuild = (id: string) => {
+    const e = EXERCISE_BY_ID.get(id);
+    if (!e) return;
+    const { state, result, liveReadiness, today, shoulderCaution } = builder;
+    const r = addExercise(state, result?.exercises ?? [], id, shoulderCaution, liveReadiness, today);
+    if (r.ok) {
+      builder.setState(r.state);
+      setTab('build');
+      setToast(`${e.name} added to ${muscleLabel(r.muscle)}`);
+      return;
+    }
+    const where = fitsSetting(e, 'home') ? 'Home' : fitsSetting(e, 'dumbbells') ? 'Dumbbells' : 'Gym';
+    setToast(
+      r.reason === 'setting'
+        ? SHOULDER_RISK.has(id) && shoulderCaution
+          ? 'Left out while shoulder caution is on (Settings)'
+          : `${e.name} needs ${where === 'Gym' ? 'gym' : where.toLowerCase()} equipment — set Build to ${where} first`
+        : r.reason === 'already'
+          ? `${e.name} is already in your workout`
+          : r.reason === 'full'
+            ? 'Six muscles is the most — take one out in Build first'
+            : r.reason === 'max'
+              ? `${muscleLabel(r.muscle!)} already has ${MAX_COUNT} exercises`
+              : 'Could not add that one',
+    );
+  };
+
+  return (
+    <div className="stack page">
+      <div className="seg-control train-tabs" role="tablist" aria-label="Train">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`train-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`train-panel-${t.id}`}
+            className={tab === t.id ? 'active' : ''}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`train-panel-${tab}`} aria-labelledby={`train-tab-${tab}`}>
+        {tab === 'plan' && <PlanTraining />}
+        {tab === 'build' && <WorkoutBuilder api={builder} onOpenLibrary={() => setTab('library')} />}
+        {tab === 'library' && <ExerciseLibrary onAdd={addToBuild} shoulderCaution={builder.shoulderCaution} />}
+      </div>
     </div>
   );
 }

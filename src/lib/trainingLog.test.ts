@@ -17,6 +17,7 @@ describe('training log helpers', () => {
     expect(parseRepRange('15')).toEqual({ lo: 15, hi: 15 });
     expect(parseRepRange('12 per leg')).toEqual({ lo: 12, hi: 12 });
     expect(parseRepRange('Max')).toBeNull();
+    expect(parseRepRange('10–16 / side')).toEqual({ lo: 10, hi: 16 });
   });
   it('finds the most recent log per exercise before a date', () => {
     const hist = [
