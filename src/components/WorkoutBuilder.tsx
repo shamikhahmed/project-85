@@ -42,6 +42,7 @@ import {
   setCount,
   setFocus,
   setMuscles,
+  setCardio,
   setSets,
   setSetting,
   setSupersets,
@@ -52,6 +53,20 @@ import {
   toggleMuscle,
   type BuilderState,
 } from '../domain/builderState';
+import {
+  CARDIO_EFFORT,
+  CARDIO_MINUTES,
+  CARDIO_MODES,
+  CARDIO_MODE_BY_ID,
+  CARDIO_WHEN,
+  cardioImpact,
+  cardioLabel,
+  defaultCardio,
+  loggedCardio,
+  type CardioBlock,
+  type CardioMode,
+  type CardioWhen,
+} from '../domain/cardioLoad';
 import type { SavedWorkout, WorkoutExercise } from '../domain/types';
 import { parseLocalDate } from '../lib/dates';
 import { CUSTOM_NOTE_PREFIX, isNewBest, lastLogsByName, progressionHint, type LastLog } from '../lib/trainingLog';
@@ -65,6 +80,8 @@ const SETTING_HINT: Record<Setting, string> = {
   home: 'Bodyweight and a resistance band — no bar, no bench.',
 };
 const fmtDay = (iso: string) => format(parseLocalDate(iso), 'd MMM');
+const WHEN_WORD: Record<CardioWhen, string> = { earlier: 'earlier today', before: 'before', after: 'after', later: 'later today' };
+const withCardio = (r: BuildResult) => (r.cardioMinutes > 0 ? ` + ${r.cardioMinutes} min cardio` : '');
 const toTop = () => window.scrollTo({ top: 0 });
 
 export function WorkoutBuilder({ api, onOpenLibrary }: { api: BuilderApi; onOpenLibrary: () => void }) {
@@ -86,7 +103,8 @@ export function WorkoutBuilder({ api, onOpenLibrary }: { api: BuilderApi; onOpen
     () => Object.fromEntries(Object.entries(lastLogs).map(([k, v]) => [k, v?.weightKg])),
     [lastLogs],
   );
-  const players = useMemo(() => toPlayerExercises(list), [list]);
+  const players = useMemo(() => toPlayerExercises(list, state.cardio), [list, state.cardio]);
+  const logged = useMemo(() => loggedCardio(history, today), [history, today]);
   const codes = useMemo(() => exerciseCodes(list), [list]);
   const trained = Object.values(liveReadiness).some((v) => v != null);
 
@@ -129,6 +147,7 @@ export function WorkoutBuilder({ api, onOpenLibrary }: { api: BuilderApi; onOpen
           result={result}
           readiness={liveReadiness}
           trained={trained}
+          logged={logged}
           onBuild={() => {
             setState(buildNow(state, liveReadiness, today));
             toTop();
@@ -146,7 +165,7 @@ export function WorkoutBuilder({ api, onOpenLibrary }: { api: BuilderApi; onOpen
                     type="button"
                     className="wb-saved-open"
                     onClick={() => {
-                      setState(fromTemplate(t, liveReadiness, today));
+                      setState(fromTemplate(t, liveReadiness, today, state.cardio));
                       toTop();
                     }}
                   >
@@ -182,9 +201,14 @@ export function WorkoutBuilder({ api, onOpenLibrary }: { api: BuilderApi; onOpen
           <p className="briefing-kicker">Custom session · {SETTING_LABEL[state.setting]}</p>
           <h1 className="wb-title">{title}</h1>
           <p className="muted wb-sub">
-            {list.length} exercises · {workSets} working sets · about {result.minutes} min
+            {list.length} exercises · {workSets} working sets · about {result.minutes} min{withCardio(result)}
             {pairs > 0 ? ` · ${pairs} superset${pairs > 1 ? 's' : ''}` : ''}
           </p>
+          {state.cardio.length > 0 && (
+            <p className="dim wb-caption wb-cardio-sum">
+              Cardio · {state.cardio.map((b) => `${cardioLabel(b)} ${WHEN_WORD[b.when]}`).join(' · ')}
+            </p>
+          )}
         </div>
         <div className="wb-actions">
           <button
@@ -311,6 +335,7 @@ function BuilderSetup({
   result,
   readiness,
   trained,
+  logged,
   onBuild,
 }: {
   state: BuilderState;
@@ -318,6 +343,7 @@ function BuilderSetup({
   result: BuildResult | null;
   readiness: Partial<Record<MuscleId, number | null>>;
   trained: boolean;
+  logged: CardioBlock | null;
   onBuild: () => void;
 }) {
   const full = state.picks.length >= MAX_MUSCLES;
@@ -481,10 +507,16 @@ function BuilderSetup({
               onChange={(e) => setState(setSupersets(state, e.target.checked))}
             />
           </label>
+          <CardioPicker
+            blocks={state.cardio}
+            sets={state.sets}
+            logged={logged}
+            onChange={(when, block) => setState(setCardio(state, when, block))}
+          />
 
           {result && (
             <p className="muted wb-caption" aria-live="polite">
-              {exCount} exercises · {workSets} working sets · about {result.minutes} min
+              {exCount} exercises · {workSets} working sets · about {result.minutes} min{withCardio(result)}
             </p>
           )}
           <button type="button" className="btn btn-primary wb-build" onClick={onBuild}>
@@ -521,6 +553,110 @@ function Stepper({
         +
       </button>
     </div>
+  );
+}
+
+/** Cardio today: when (any of four), then machine, minutes and effort for each. */
+function CardioPicker({
+  blocks,
+  sets,
+  logged,
+  onChange,
+}: {
+  blocks: CardioBlock[];
+  sets: number;
+  logged: CardioBlock | null;
+  onChange: (when: CardioWhen, block: Omit<CardioBlock, 'when'> | null) => void;
+}) {
+  const has = (w: CardioWhen) => blocks.some((b) => b.when === w);
+  return (
+    <div className="wb-cardio">
+      <span className="wb-opt-label">
+        Cardio today
+        <small>Cardio before tires the muscles it uses; cardio after needs some energy left. The workout adjusts to both.</small>
+      </span>
+      <div className="wb-focus wb-cardio-when" role="group" aria-label="When is your cardio?">
+        {CARDIO_WHEN.map((w) => {
+          const on = has(w.id);
+          return (
+            <button
+              key={w.id}
+              type="button"
+              aria-pressed={on}
+              className={on ? 'on' : ''}
+              onClick={() => onChange(w.id, on ? null : defaultCardio(w.id))}
+            >
+              {w.label}
+            </button>
+          );
+        })}
+      </div>
+      {logged && !has('earlier') && (
+        <button type="button" className="btn btn-ghost wb-mini wb-cardio-logged" onClick={() => onChange('earlier', logged)}>
+          Logged today: {CARDIO_MODE_BY_ID.get(logged.mode)?.label} · {logged.minutes} min — count it as earlier today
+        </button>
+      )}
+      {blocks.map((b) => (
+        <CardioRow key={b.when} b={b} sets={sets} onChange={(next) => onChange(b.when, next)} />
+      ))}
+    </div>
+  );
+}
+
+function CardioRow({ b, sets, onChange }: { b: CardioBlock; sets: number; onChange: (b: Omit<CardioBlock, 'when'>) => void }) {
+  const when = CARDIO_WHEN.find((w) => w.id === b.when)!;
+  const effort = CARDIO_EFFORT.find((e) => e.id === b.effort)!;
+  const down = [...CARDIO_MINUTES].reverse().find((m) => m < b.minutes);
+  const up = CARDIO_MINUTES.find((m) => m > b.minutes);
+  const id = `wb-cardio-${b.when}`;
+  return (
+    <fieldset className="wb-cardio-row" aria-describedby={`${id}-impact`}>
+      <legend>
+        {when.label} <small>{when.hint}</small>
+      </legend>
+      <div className="wb-cardio-line">
+        <select
+          className="input wb-cardio-mode"
+          aria-label={`${when.label}: machine`}
+          value={b.mode}
+          onChange={(e) => onChange({ ...b, mode: e.target.value as CardioMode })}
+        >
+          {CARDIO_MODES.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <div className="wb-stepper wb-stepper-min" role="group" aria-label={`${when.label}: minutes`}>
+          <button type="button" aria-label="Fewer minutes" disabled={down == null} onClick={() => down != null && onChange({ ...b, minutes: down })}>
+            −
+          </button>
+          <output className="mono" aria-live="polite">
+            {b.minutes} min
+          </output>
+          <button type="button" aria-label="More minutes" disabled={up == null} onClick={() => up != null && onChange({ ...b, minutes: up })}>
+            +
+          </button>
+        </div>
+      </div>
+      <div className="seg-control wb-seg" role="radiogroup" aria-label={`${when.label}: effort`}>
+        {CARDIO_EFFORT.map((e) => (
+          <button
+            key={e.id}
+            type="button"
+            role="radio"
+            aria-checked={b.effort === e.id}
+            className={b.effort === e.id ? 'active' : ''}
+            onClick={() => onChange({ ...b, effort: e.id })}
+          >
+            {e.label}
+          </button>
+        ))}
+      </div>
+      <p id={`${id}-impact`} className="dim wb-caption">
+        {effort.label}: {effort.talk}. {cardioImpact(b, sets)}
+      </p>
+    </fieldset>
   );
 }
 
@@ -675,7 +811,7 @@ function BuiltCard({
                 : 'No log yet'}
             </span>
           </div>
-          <p className="ex-hint">{timed ? 'Hold a few seconds longer than last time, with the same clean shape.' : progressionHint(last, b.reps)}</p>
+          <p className="ex-hint">{timed ? 'Hold a few seconds longer than last time, with the same clean shape.' : progressionHint(last, b.reps, b.cardioHold === 'none' ? '1-2' : '2-3')}</p>
           <div className="ex-log-row">
             <label htmlFor={`${idBase}-kg`}>
               kg

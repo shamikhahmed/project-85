@@ -11,6 +11,8 @@ export interface PlayerExercise {
   cue: string | null;
   /** Superset letter: two neighbours with the same letter alternate set by set. */
   group?: string | null;
+  /** False for steps with nothing to log (a cardio block): no kg / reps boxes. */
+  logs?: boolean;
 }
 
 export interface PlayerStep {
@@ -55,7 +57,7 @@ export function buildPlayerSteps(exercises: PlayerExercise[]): PlayerStep[] {
       guide: row[2] ?? '',
       setNo: j + 1,
       setCount: same.length,
-      logs: row === loggedSetRow(ex.sets),
+      logs: ex.logs !== false && row === loggedSetRow(ex.sets),
       restSec,
       cue: ex.cue,
       group,

@@ -5,6 +5,7 @@
  */
 import { EXERCISE_BY_ID, MUSCLE_BY_ID, SETTING_LABEL, type MuscleId, type Setting } from './exerciseLibrary';
 import type { ISODate, SavedWorkout } from './types';
+import { sanitizeCardio, type CardioBlock, type CardioWhen } from './cardioLoad';
 import {
   MAX_COUNT,
   MAX_MUSCLES,
@@ -34,6 +35,8 @@ export interface BuilderState {
   /** Recovery when the session was built — frozen so logging a set doesn't reshuffle it */
   readiness: Partial<Record<MuscleId, number | null>>;
   builtOn: ISODate | null;
+  /** Cardio the same day (one block per timing) — kept like sets and supersets, a habit */
+  cardio: CardioBlock[];
 }
 
 export const BUILDER_KEY = 'p85-builder-v1';
@@ -53,6 +56,7 @@ export function initialBuilder(): BuilderState {
     built: false,
     readiness: {},
     builtOn: null,
+    cardio: [],
   };
 }
 
@@ -105,6 +109,7 @@ export function parseBuilder(raw: unknown): BuilderState {
     built: raw.built === true && picks.length > 0,
     readiness,
     builtOn: typeof raw.builtOn === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.builtOn) ? raw.builtOn : null,
+    cardio: sanitizeCardio(raw.cardio),
   };
 }
 
@@ -168,6 +173,15 @@ export function setSets(s: BuilderState, sets: number): BuilderState {
 
 export function setSupersets(s: BuilderState, on: boolean): BuilderState {
   return { ...s, supersets: on };
+}
+
+/**
+ * Set (or with null, clear) the cardio block for one timing. Like sets, it changes the session in
+ * place — same exercises, adjusted order, sets and effort.
+ */
+export function setCardio(s: BuilderState, when: CardioWhen, block: Omit<CardioBlock, 'when'> | null): BuilderState {
+  const rest = s.cardio.filter((b) => b.when !== when);
+  return { ...s, cardio: sanitizeCardio(block ? [...rest, { ...block, when }] : rest) };
 }
 
 /** Build: show the session, with today's recovery frozen into it. */
@@ -300,6 +314,8 @@ export function fromTemplate(
   t: SavedWorkout,
   readiness: BuilderState['readiness'],
   today: ISODate,
+  /** Today's cardio stays: it belongs to the day, not to the saved workout */
+  cardio: CardioBlock[] = [],
 ): BuilderState {
   const s = parseBuilder({
     setting: t.setting,
@@ -308,6 +324,7 @@ export function fromTemplate(
     supersets: t.supersets,
     seed: 1,
     pinned: t.slots,
+    cardio,
   });
   return { ...s, built: s.picks.length > 0, readiness, builtOn: today };
 }

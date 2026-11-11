@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { EXERCISE_BY_ID, LIBRARY, MUSCLES, type MuscleId, type Setting } from './exerciseLibrary';
 import { buildPlayerSteps } from './workoutPlayer';
+import { CARDIO_MODES, type CardioBlock, type CardioEffort, type CardioWhen } from './cardioLoad';
 import {
   MAX_COUNT,
   SHOULDER_RISK,
@@ -28,6 +29,7 @@ import {
   moveUp,
   parseBuilder,
   removeAt,
+  setCardio,
   setCount,
   setFocus,
   setSets,
@@ -41,6 +43,16 @@ import {
 } from './builderState';
 
 const SETTINGS: Setting[] = ['gym', 'dumbbells', 'home'];
+const WHENS: CardioWhen[] = ['earlier', 'before', 'after', 'later'];
+const EFFORTS: CardioEffort[] = ['easy', 'moderate', 'hard'];
+function randomCardio(rng: () => number): CardioBlock[] {
+  return WHENS.filter(() => rng() < 0.4).map((when) => ({
+    when,
+    mode: CARDIO_MODES[Math.floor(rng() * CARDIO_MODES.length)].id,
+    minutes: [5, 10, 12, 20, 30, 45, 60, 90][Math.floor(rng() * 8)],
+    effort: EFFORTS[Math.floor(rng() * 3)],
+  }));
+}
 const BAD_TEXT = /undefined|NaN|null|\[object/;
 
 /** Rules every build must keep. Returns what broke. */
@@ -55,7 +67,11 @@ function hardRules(input: BuildInput, r: BuildResult): string[] {
     if (!serves(b.ex, b.muscle)) errs.push(`${b.ex.id} does not train ${b.muscle}`);
     if (!(b.freshness >= 0.2 && b.freshness <= 1)) errs.push(`${b.ex.id} freshness ${b.freshness}`);
     const work = b.rows.filter((x) => !x.warmup);
-    if (work.length !== b.workSets || b.workSets !== Math.round(input.sets)) errs.push(`${b.ex.id} ${work.length} work sets`);
+    const want = Math.round(input.sets) - (b.cardioHold === 'set' ? 1 : 0);
+    if (work.length !== b.workSets || b.workSets !== want) errs.push(`${b.ex.id} ${work.length} work sets, hold ${b.cardioHold}`);
+    if (b.cardioHold === 'set' && Math.round(input.sets) < 3) errs.push(`${b.ex.id} trimmed below 2 sets`);
+    if (b.cardioHold !== 'none' && !(input.cardio ?? []).some((c) => c.when === 'after' || c.when === 'later')) errs.push(`${b.ex.id} held with no cardio ahead`);
+    if (b.cardioHold !== 'none' && work.some((x) => /failure|never grind|1 rep\b|1–2/.test(x.guide))) errs.push(`${b.ex.id} held but pushed to failure`);
     const firstWork = b.rows.findIndex((x) => !x.warmup);
     if (b.rows.slice(firstWork).some((x) => x.warmup)) errs.push(`${b.ex.id} warm-up after a work set`);
     if (!(b.restSec >= 45 && b.restSec <= 240)) errs.push(`${b.ex.id} rest ${b.restSec}`);
@@ -98,8 +114,13 @@ function hardRules(input: BuildInput, r: BuildResult): string[] {
     if (c) errs.push(`${b.ex.id} before ${c.ex.id}`);
   });
 
-  const steps = buildPlayerSteps(toPlayerExercises(r.exercises));
-  const rows = r.exercises.reduce((n, b) => n + b.rows.length, 0);
+  const cardio = input.cardio ?? [];
+  const steps = buildPlayerSteps(toPlayerExercises(r.exercises, cardio));
+  const extra = r.exercises.length ? cardio.filter((c) => c.when === 'before' || c.when === 'after').length : 0;
+  const rows = r.exercises.reduce((n, b) => n + b.rows.length, 0) + extra;
+  const onSite = cardio.filter((c) => c.when === 'before' || c.when === 'after').reduce((n, c) => n + c.minutes, 0);
+  if (r.exercises.length && r.cardioMinutes !== onSite) errs.push(`cardio minutes ${r.cardioMinutes} ≠ ${onSite}`);
+  if (cardio.length && r.exercises.length && r.notes.filter((n) => /Morán|light enough|warm-up costs|Sporer|other muscles than/.test(n)).length > 1) errs.push('more than one cardio note');
   if (steps.length !== rows) errs.push(`player ${steps.length} steps for ${rows} sets`);
   steps.forEach((s, i) => {
     if (i < steps.length - 1 && !(s.restSec > 0)) errs.push(`player step ${i} rest ${s.restSec}`);
@@ -119,6 +140,7 @@ const inputOf = (s: BuilderState, caution: boolean): BuildInput => ({
   avoid: s.avoid,
   shoulderCaution: caution,
   readiness: s.readiness,
+  cardio: s.cardio,
 });
 
 describe('builder sweep', () => {
@@ -151,6 +173,7 @@ describe('builder sweep', () => {
     const rng = mulberry32(2026);
     const pickOf = <T,>(xs: readonly T[]) => xs[Math.floor(rng() * xs.length)];
     const errs: string[] = [];
+    const held = { none: 0, reps: 0, set: 0 };
     for (let k = 0; k < 400; k++) {
       const n = 1 + Math.floor(rng() * 6);
       const muscles = [...MUSCLES].sort(() => rng() - 0.5).slice(0, n);
@@ -169,12 +192,17 @@ describe('builder sweep', () => {
         seed: Math.floor(rng() * 1e6),
         shoulderCaution: rng() < 0.7,
         readiness,
+        cardio: rng() < 0.5 ? randomCardio(rng) : [],
       };
       const r = buildWorkout(input);
+      for (const b of r.exercises) held[b.cardioHold]++;
       for (const e of hardRules(input, r)) errs.push(`#${k} ${JSON.stringify(picks.map((p) => `${p.muscle}${p.count}`))} ${input.setting}: ${e}`);
       if (k % 20 === 0) expect(buildWorkout(input).exercises.map((b) => b.ex.id)).toEqual(r.exercises.map((b) => b.ex.id));
     }
     expect(errs.slice(0, 15)).toEqual([]);
+    // The random cardio really exercised both kinds of hold.
+    expect(held.reps).toBeGreaterThan(20);
+    expect(held.set).toBeGreaterThan(20);
   }, 60_000);
 
   it('survives random sequences of edits, and the saved state reads back the same', () => {
@@ -189,7 +217,7 @@ describe('builder sweep', () => {
         const before = list;
         const check: ((now: string[]) => void)[] = [];
         const m = MUSCLES[Math.floor(rng() * MUSCLES.length)];
-        const op = Math.floor(rng() * 13);
+        const op = Math.floor(rng() * 14);
         let what = '';
         const did = (label: string, next: BuilderState) => {
           what = label;
@@ -236,9 +264,16 @@ describe('builder sweep', () => {
           }
         } else if (op === 12 && s.built && list.length) {
           what = 'template';
-          const back = fromTemplate(JSON.parse(JSON.stringify(toTemplate(s, list, 'T', 't', 'now'))), {}, '2026-11-11');
+          const back = fromTemplate(JSON.parse(JSON.stringify(toTemplate(s, list, 'T', 't', 'now'))), {}, '2026-11-11', s.cardio);
           const again = buildWorkout(inputOf(back, caution)).exercises.map((b) => b.ex.id);
           if (again.join() !== list.map((b) => b.ex.id).join()) errs.push(`seq ${seq}: template changed the session`);
+          if (JSON.stringify(back.cardio) !== JSON.stringify(s.cardio)) errs.push(`seq ${seq}: template dropped the cardio`);
+        } else if (op === 13) {
+          const when = WHENS[Math.floor(rng() * 4)];
+          const pickBlock = rng() < 0.3 ? null : randomCardio(() => 0.1)[0] ?? null;
+          const block = pickBlock && { mode: CARDIO_MODES[Math.floor(rng() * CARDIO_MODES.length)].id, minutes: pickBlock.minutes, effort: EFFORTS[Math.floor(rng() * 3)] };
+          did(`cardio ${when} ${block ? `${block.mode} ${block.effort}` : 'off'}`, setCardio(s, when, block));
+          if ((s.cardio.find((c) => c.when === when) ? 1 : 0) !== (block ? 1 : 0)) errs.push(`seq ${seq}: ${what} did not stick`);
         }
         if (JSON.stringify(parseBuilder(JSON.parse(JSON.stringify(s)))) !== JSON.stringify(s)) errs.push(`seq ${seq} ${what}: saved state reads back different`);
         if (s.picks.length > 6 || s.picks.some((p) => p.count < 1 || p.count > MAX_COUNT)) errs.push(`seq ${seq} ${what}: bad picks`);

@@ -17,7 +17,7 @@ import { WorkoutBuilder } from '../components/WorkoutBuilder';
 import { useWorkoutBuilder } from '../components/useWorkoutBuilder';
 import { ExerciseLibrary } from '../components/ExerciseLibrary';
 import { addExercise } from '../domain/builderState';
-import { EXERCISE_BY_ID, fitsSetting, muscleLabel } from '../domain/exerciseLibrary';
+import { EXERCISE_BY_ID, fitsSetting, kitNeeded, muscleLabel } from '../domain/exerciseLibrary';
 import { MAX_COUNT, SHOULDER_RISK } from '../domain/workoutBuilder';
 import { shouldForceBasic } from '../health/scores';
 import {
@@ -645,7 +645,7 @@ export function TrainingPage() {
       r.reason === 'setting'
         ? SHOULDER_RISK.has(id) && shoulderCaution
           ? 'Left out while shoulder caution is on (Settings)'
-          : `${e.name} needs ${where === 'Gym' ? 'gym' : where.toLowerCase()} equipment — set Build to ${where} first`
+          : `${e.name} needs ${kitNeeded(e)} — set Build to ${where} first`
         : r.reason === 'already'
           ? `${e.name} is already in your workout`
           : r.reason === 'full'

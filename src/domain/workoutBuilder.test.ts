@@ -271,6 +271,14 @@ describe('buildWorkout — prescription', () => {
     expect(big.notes.join(' ')).toMatch(/Past about 11/);
   });
 
+  it('puts every over-volume muscle in one warning, not one card each', () => {
+    const r = build([pick('chest', 5), pick('back', 5), pick('calves', 5)], { sets: 5 });
+    const warn = r.notes.filter((n) => n.includes('Past about 11'));
+    expect(warn).toHaveLength(1);
+    for (const m of ['Chest', 'Back', 'Calves']) expect(warn[0]).toContain(m);
+    expect(warn[0]).not.toMatch(/undefined|NaN/);
+  });
+
   it('estimates the session length', () => {
     const short = build([pick('abs', 2)]);
     const long = build([pick('chest', 4), pick('back', 4), pick('shoulders', 4)]);
@@ -344,5 +352,128 @@ describe('builder helpers', () => {
     expect(work[1].restSec).toBe(120);
     expect(steps.filter((s) => /warm/i.test(s.setLabel)).every((s) => s.restSec === 45)).toBe(true);
     expect(sessionTitle([pick('chest'), pick('back')])).toBe('Chest + Back');
+  });
+});
+
+describe('buildWorkout — cardio the same day', () => {
+  const legsChest = [pick('quads', 3), pick('chest', 3)];
+  const LOWER = new Set(['quads', 'hamstrings', 'glutes', 'calves']);
+  const legs = (r: ReturnType<typeof build>) => r.exercises.filter((b) => LOWER.has(b.ex.primary));
+  const fresh = (r: ReturnType<typeof build>, id: string) => r.exercises.find((b) => b.ex.id === id)!.freshness;
+  const cardioNotes = (r: ReturnType<typeof build>) =>
+    r.notes.filter((n) => /cardio|bike|run|walk|warm-up|Sporer|Morán/.test(n) && !/Shoulder caution/.test(n));
+
+  it('changes nothing without cardio, and nothing for an easy warm-up', () => {
+    const none = build(legsChest, { sets: 4 });
+    expect(JSON.stringify(build(legsChest, { sets: 4, cardio: [] }))).toBe(JSON.stringify(none));
+    const warm = build(legsChest, { sets: 4, cardio: [{ when: 'before', mode: 'bike', minutes: 5, effort: 'easy' }] });
+    expect(ids(warm)).toEqual(ids(none));
+    expect(warm.exercises.map((b) => [b.workSets, b.freshness, b.rows])).toEqual(none.exercises.map((b) => [b.workSets, b.freshness, b.rows]));
+    expect(warm.cardioMinutes).toBe(5);
+    expect(cardioNotes(warm)).toEqual([expect.stringMatching(/warm-up costs no reps/)]);
+  });
+
+  it('starts the legs part-tired after hard cycling, but not the chest (Sporer & Wenger 2003)', () => {
+    const none = build(legsChest, { sets: 4 });
+    const bike = build(legsChest, { sets: 4, cardio: [{ when: 'before', mode: 'bike', minutes: 30, effort: 'hard' }] });
+    expect(ids(bike).slice().sort()).toEqual(ids(none).slice().sort()); // same exercises, maybe a new order
+    for (const b of legs(bike)) {
+      expect(b.freshness).toBeLessThan(fresh(none, b.ex.id));
+      expect(b.why.join(' ')).toMatch(/part-tired from the bike before/);
+    }
+    for (const b of bike.exercises.filter((x) => x.ex.primary === 'chest')) {
+      expect(b.freshness).toBeGreaterThanOrEqual(fresh(none, b.ex.id) - 0.05);
+    }
+    const note = cardioNotes(bike).join(' ');
+    expect(note).toMatch(/Sporer & Wenger 2003/);
+    expect(note).toMatch(/Murlasits 2018/);
+    // Legs wait while the bike wears off; the first exercise says so instead of "you are fresh".
+    expect(LOWER.has(bike.exercises[0].ex.primary)).toBe(false);
+    expect(bike.exercises[0].why.join(' ')).toMatch(/recover from the bike/);
+  });
+
+  it('counts only the lasting part of cardio done hours earlier', () => {
+    const none = build(legsChest, { sets: 4 });
+    const before = build(legsChest, { sets: 4, cardio: [{ when: 'before', mode: 'run', minutes: 45, effort: 'moderate' }] });
+    const earlier = build(legsChest, { sets: 4, cardio: [{ when: 'earlier', mode: 'run', minutes: 45, effort: 'moderate' }] });
+    const squat = earlier.exercises.find((b) => b.ex.primary === 'quads' && b.ex.kind === 'compound')!;
+    expect(squat.freshness).toBeLessThan(fresh(none, squat.ex.id));
+    expect(squat.freshness).toBeGreaterThan(Math.min(...legs(before).map((b) => b.freshness)));
+    expect(earlier.cardioMinutes).toBe(0);
+    expect(cardioNotes(earlier).join(' ')).toMatch(/earlier today/);
+  });
+
+  it('saves the legs for hard cardio after: 2–3 reps short and a set fewer, chest untouched', () => {
+    const r = build(legsChest, { sets: 4, cardio: [{ when: 'after', mode: 'bike', minutes: 20, effort: 'hard' }] });
+    for (const b of legs(r)) {
+      expect(b.cardioHold).toBe('set');
+      expect(b.workSets).toBe(3);
+      const guides = b.rows.filter((x) => !x.warmup).map((x) => x.guide);
+      expect(guides.at(-1)).toBe('2 in the tank — cardio next');
+      expect(guides.join(' ')).not.toMatch(/failure|never grind|1 rep|1–2/);
+      expect(b.why.join(' ')).toMatch(/One set fewer .* for the bike after/);
+    }
+    for (const b of r.exercises.filter((x) => x.ex.primary === 'chest')) {
+      expect(b.cardioHold).toBe('none');
+      expect(b.workSets).toBe(4);
+    }
+    expect(r.cardioMinutes).toBe(20);
+    expect(cardioNotes(r)).toEqual([expect.stringMatching(/Saving your legs for the bike after: 3 exercises do a set fewer/)]);
+  });
+
+  it('holds every exercise back before a long hard session, but never below 2 sets', () => {
+    const r = build(legsChest, { sets: 4, cardio: [{ when: 'after', mode: 'run', minutes: 40, effort: 'hard' }] });
+    expect(r.exercises.every((b) => b.cardioHold !== 'none')).toBe(true);
+    const two = build(legsChest, { sets: 2, cardio: [{ when: 'after', mode: 'run', minutes: 90, effort: 'hard' }] });
+    expect(two.exercises.every((b) => b.workSets === 2 && b.cardioHold === 'reps')).toBe(true);
+  });
+
+  it("leaves the session as planned for the plan's own short finisher", () => {
+    const r = build(legsChest, { sets: 4, cardio: [{ when: 'after', mode: 'incline', minutes: 12, effort: 'moderate' }] });
+    expect(r.exercises.every((b) => b.cardioHold === 'none')).toBe(true);
+    expect(ids(r)).toEqual(ids(build(legsChest, { sets: 4 })));
+    expect(cardioNotes(r)).toEqual([expect.stringMatching(/light enough/)]);
+  });
+
+  it('holds back for a run later today too, less than straight after', () => {
+    const later = build(legsChest, { sets: 4, cardio: [{ when: 'later', mode: 'run', minutes: 45, effort: 'moderate' }] });
+    expect(legs(later).every((b) => b.cardioHold === 'reps')).toBe(true);
+    expect(later.exercises.filter((b) => b.ex.primary === 'chest').every((b) => b.cardioHold === 'none')).toBe(true);
+    expect(legs(later)[0].rows.filter((x) => !x.warmup).at(-1)!.guide).toBe('2 in the tank — cardio later');
+    expect(later.cardioMinutes).toBe(0);
+    // Running on a leg day gets the gentler-machine hint, with both sides of the evidence.
+    expect(cardioNotes(later).join(' ')).toMatch(/Wilson 2012.*Schumann 2022/);
+  });
+
+  it('puts the cardio into the player as steps of its own that log nothing', () => {
+    const cardio = [
+      { when: 'before', mode: 'bike', minutes: 5, effort: 'easy' },
+      { when: 'after', mode: 'incline', minutes: 12, effort: 'moderate' },
+    ] as const;
+    const r = build(legsChest, { cardio: [...cardio] });
+    const players = toPlayerExercises(r.exercises, [...cardio]);
+    expect(players.length).toBe(r.exercises.length + 2);
+    expect(players[0]).toMatchObject({ name: 'Bike', media: '2138-H1PESYI', logs: false });
+    expect(players.at(-1)).toMatchObject({ name: 'Incline walk', logs: false, sets: [['Cardio', '12 min', 'Moderate: short sentences only']] });
+    const steps = buildPlayerSteps(players);
+    expect(steps.filter((s) => s.logs).length).toBe(r.exercises.length);
+    expect(steps[0].restSec).toBeGreaterThan(0);
+    expect(steps.at(-1)!.restSec).toBe(0);
+    expect(toPlayerExercises(r.exercises).length).toBe(r.exercises.length);
+  });
+
+  it('is repeatable and keeps every note readable', () => {
+    const input = {
+      sets: 4,
+      cardio: [
+        { when: 'earlier', mode: 'swim', minutes: 40, effort: 'hard' },
+        { when: 'after', mode: 'rower', minutes: 25, effort: 'hard' },
+      ] as BuildInput['cardio'],
+    };
+    const picks = [pick('back', 3), pick('shoulders', 2), pick('quads', 2)];
+    expect(JSON.stringify(build(picks, input))).toBe(JSON.stringify(build(picks, input)));
+    const r = build(picks, input);
+    for (const t of [...r.notes, ...r.exercises.flatMap((b) => b.why)]) expect(t).not.toMatch(/undefined|NaN|null|\[object/);
+    expect(cardioNotes(r).length).toBe(1);
   });
 });

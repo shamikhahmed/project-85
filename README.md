@@ -23,6 +23,10 @@ npm run preview
 GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 ```
 
+## What’s in v0.18
+
+New: the builder plans around **cardio the same day** — before lifting it tires the muscles the machine uses (reorders and says so), after lifting it keeps 2–3 reps in the tank and trims a set for long hard blocks. Research-fitted; sources in `CHANGELOG.md` and `src/domain/cardioLoad.ts`.
+
 ## What’s in v0.17
 
 New: **muscle builder** (Train → Build) — pick muscles in priority order and how many exercises each; the app picks, orders (fatigue simulation), pairs supersets and prescribes sets, reps, rest and warm-ups. **Exercise library** (Train → Library) with 177 animated exercises. See `CHANGELOG.md`.

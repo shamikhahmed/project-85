@@ -587,7 +587,9 @@ export async function clearExerciseSwap(
 }
 
 export async function getExerciseSwapLogs(): Promise<ExerciseSwapLog[]> {
-  return db.exerciseSwaps.orderBy('createdAt').reverse().toArray();
+  // createdAt is not an index, so sort here (orderBy on it throws a SchemaError).
+  const rows = await db.exerciseSwaps.toArray();
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /** REPLACE steps from health only when the day is empty or already health-sourced (manual wins). */

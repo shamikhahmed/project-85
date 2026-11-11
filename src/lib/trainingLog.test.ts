@@ -31,6 +31,7 @@ describe('training log helpers', () => {
   });
   it('gives double-progression hints', () => {
     expect(progressionHint(undefined, '6-8')).toMatch(/First time/);
+    expect(progressionHint(undefined, '6-8', '2-3')).toMatch(/leaves 2-3 reps/);
     expect(progressionHint({ date: '2026-11-09', weightKg: 60, reps: 8 }, '6-8, failure')).toMatch(/add 2.5-5 kg/);
     expect(progressionHint({ date: '2026-11-09', weightKg: 12, reps: 8 }, '6-8')).toMatch(/add 1-2.5 kg/);
     expect(progressionHint({ date: '2026-11-09', weightKg: 60, reps: 6 }, '6-8')).toMatch(/aim for 7\+ reps/);

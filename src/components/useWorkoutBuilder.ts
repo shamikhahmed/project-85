@@ -65,6 +65,7 @@ export function useWorkoutBuilder(shoulderCaution: boolean) {
             shoulderCaution,
             // A built session keeps the recovery it was built with, so logging a set never reshuffles it.
             readiness: state.built ? state.readiness : liveReadiness,
+            cardio: state.cardio,
           })
         : null,
     [state, shoulderCaution, liveReadiness],

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.18.0 — Cardio-aware builder (2026-11-11)
+
+- **Cardio today (Build):** add cardio earlier today, before lifting, after lifting or later today — machine (walk, incline walk, run, bike, elliptical, stairs, rower, swim), minutes and effort by the talk test (easy: you can chat · moderate: short sentences · hard: can't talk). Cardio already logged today is offered as "earlier today". Each block says in one line what it will change.
+- **Cardio before:** tires the muscles the machine drives, not the rest — a hard bike or run takes reps off squats but leaves bench press alone (Sporer & Wenger 2003; Panissa 2015, 2016). Those muscles start part-tired in the fatigue simulation, so other muscles go first while the legs recover, and the cards say so. An easy warm-up of 15 min or less costs nothing. Cardio hours earlier counts only its lasting part. The model is fitted to Panissa 2016 (hard 25-min run: squat reps ~26% down at 30 min vs 31% measured, 19% at 1 h vs 19%).
+- **Cardio after:** keeps energy for it instead of grinding to failure, which adds a day or two of fatigue for little extra growth (Morán-Navarro 2017; Refalo 2023). Muscles the cardio needs stop 2–3 reps short; for a long hard block they also do one set fewer (never below 2). A short finisher like the plan's 12-min incline walk changes nothing. Lifting first, cardio after is the better order for strength (Murlasits 2018), and the note says so when cardio comes first.
+- **Workout player:** cardio blocks are steps of their own (animation, minutes, effort), before the first lift and after the last; they log nothing.
+- **Builder fixes since v0.17:** no exercise ever pre-exhausts a lift it helps; long sessions stay sane; templates reload as the exact same session; one combined "too many sets" warning instead of one per muscle; the Library says the actual kit missing ("needs a bench", "needs dip bars") instead of "needs dumbbells equipment".
+- **Animations:** every name checked against its clip again; gaps in the plan filled; still image under Reduce Motion.
+- **Fix:** History's swap insights never loaded (sorted on a field that isn't indexed). Now they do.
+
 ## v0.17.0 — Muscle builder + exercise library (2026-11-10)
 
 - **Train has tabs:** My plan · Build · Library. The plan is unchanged.

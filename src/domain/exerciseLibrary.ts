@@ -926,6 +926,17 @@ export function fitsSetting(e: LibExercise, setting: Setting): boolean {
   return true;
 }
 
+/** The kit `e` needs, in plain words ("dumbbells and a bench") — for "set Build to …" hints. */
+export function kitNeeded(e: LibExercise): string {
+  if (!['bodyweight', 'dumbbell', 'band'].includes(e.equip)) return 'gym equipment';
+  const kit: string[] = [];
+  if (e.equip === 'dumbbell') kit.push('dumbbells');
+  if (e.equip === 'band') kit.push('a band');
+  if (e.bar) kit.push(/dip/i.test(e.name) ? 'dip bars' : 'a bar to hang from');
+  if (e.bench) kit.push('a bench');
+  return kit.join(' and ') || 'nothing extra';
+}
+
 /** How well `e` covers each facet of `muscle` (empty when it cannot stand in for it). */
 export function coverageFor(e: LibExercise, muscle: MuscleId): Record<string, number> {
   if (e.primary === muscle) return e.facets;

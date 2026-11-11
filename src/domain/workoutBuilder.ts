@@ -36,6 +36,11 @@
  * 4. Prescribe — reps and rest by lift type (over ~60 s rest helps a little, past ~90 s adds little
  *    for size: Singer et al. 2024), warm-up sets only while a muscle is still cold, and each
  *    muscle's session volume against the ~11 fractional-set plateau (Remmert et al.).
+ *
+ * 5. Cardio the same day (optional; the research is in cardioLoad.ts). Cardio before lifting starts
+ *    the muscles it used part-tired — mostly fading over the session, a little lasting hours — so
+ *    the simulation sees it like any other fatigue; an easy warm-up costs nothing. Cardio still to
+ *    come makes the muscles it uses stop 2–3 reps short, and a big block takes a set off them.
  */
 import {
   EXERCISE_BY_ID,
@@ -54,6 +59,18 @@ import {
 import type { MuscleStatus } from './muscleRecovery';
 import type { PlayerExercise } from './workoutPlayer';
 import { parseRepRange } from '../lib/trainingLog';
+import {
+  CARDIO_EFFORT,
+  CARDIO_MODE_BY_ID,
+  RESERVE_ALL,
+  RESERVE_REPS,
+  RESERVE_SET,
+  cardioDose,
+  cardioEffect,
+  cardioLabel,
+  isWarmupCardio,
+  type CardioBlock,
+} from './cardioLoad';
 
 export interface MusclePick {
   muscle: MuscleId;
@@ -87,7 +104,12 @@ export interface BuildInput {
   shoulderCaution?: boolean;
   /** Recovery per muscle, 0–100 (missing or null = fresh / unknown) */
   readiness?: Partial<Record<MuscleId, number | null>>;
+  /** Cardio the same day: before, after, or as its own session */
+  cardio?: CardioBlock[];
 }
+
+/** What cardio still to come does to an exercise: nothing, stop 2–3 reps short, or that and a set fewer. */
+export type CardioHold = 'none' | 'reps' | 'set';
 
 export type Tier = 'heavy' | 'compound' | 'isolation' | 'small' | 'core';
 
@@ -117,6 +139,8 @@ export interface BuiltExercise {
   /** Pick order within its muscle (0 = picked first, counts most) */
   rank: number;
   pinned: boolean;
+  /** Held back for cardio still to come */
+  cardioHold: CardioHold;
   why: string[];
 }
 
@@ -139,7 +163,10 @@ export interface Shortfall {
 export interface BuildResult {
   exercises: BuiltExercise[];
   volume: VolumeRow[];
+  /** Lifting only */
   minutes: number;
+  /** Cardio inside the session (before + after lifting) */
+  cardioMinutes: number;
   shortfalls: Shortfall[];
   notes: string[];
 }
@@ -240,6 +267,7 @@ export function mulberry32(seed: number): () => number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function joinWords(words: string[]): string {
   if (words.length <= 1) return words.join('');
@@ -436,6 +464,17 @@ interface Slot {
   p: Pick;
   sets: number;
   imp: number;
+  hold: CardioHold;
+}
+
+/** How the body starts the session. */
+interface Start {
+  /** Fatigue that fades exercise by exercise (recent training, cardio just before) */
+  f0: Partial<Record<MuscleId, number>>;
+  /** Fatigue that lasts the whole session (the hours-long part of earlier cardio) */
+  persist: Partial<Record<MuscleId, number>>;
+  /** Whole-body fatigue */
+  g0: number;
 }
 
 function importance(p: Pick, selected: Set<MuscleId>): number {
@@ -462,10 +501,10 @@ interface Sim {
   warm: number[];
 }
 
-function simulate(order: Slot[], f0: Partial<Record<MuscleId, number>>): Sim {
-  const F: Partial<Record<MuscleId, number>> = { ...f0 };
+function simulate(order: Slot[], start: Start): Sim {
+  const F: Partial<Record<MuscleId, number>> = { ...start.f0 };
   const W: Partial<Record<MuscleId, number>> = {};
-  let G = 0;
+  let G = start.g0;
   let score = 0;
   const fresh: number[] = [];
   const warm: number[] = [];
@@ -474,6 +513,7 @@ function simulate(order: Slot[], f0: Partial<Record<MuscleId, number>>): Sim {
     const e = p.ex;
     let drag = 0;
     for (const [m, f] of Object.entries(F) as [MuscleId, number][]) drag += limitOf(e, m) * f;
+    for (const [m, f] of Object.entries(start.persist) as [MuscleId, number][]) drag += limitOf(e, m) * f;
     const q = 1 - LAMBDA * drag - (MU_SYSTEMIC * e.systemic + MU_SKILL * e.skill) * G;
     // Shown with a 20% floor, but scored without one: past the floor more fatigue still costs,
     // so a long session never parks a heavy, technical lift at the end "because it can't get worse".
@@ -522,7 +562,7 @@ interface Scorer {
 const MUSCLE_INDEX = new Map(MUSCLES.map((m, i) => [m.id, i]));
 const K = MUSCLES.length;
 
-function scorer(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Scorer {
+function scorer(slots: Slot[], begin: Start): Scorer {
   const n = slots.length;
   const lim = new Float64Array(n * K);
   const load = new Float64Array(n * K);
@@ -532,6 +572,8 @@ function scorer(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Scorer {
   const muscle = new Int32Array(n);
   const isoBit = new Int32Array(n);
   const needs = new Int32Array(n);
+  /** Drag from fatigue that lasts all session: the same wherever the exercise goes. */
+  const lasting = new Float64Array(n);
   slots.forEach(({ p, sets, imp: w }, k) => {
     const e = p.ex;
     for (const m of MUSCLES) {
@@ -539,6 +581,7 @@ function scorer(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Scorer {
       lim[k * K + i] = limitOf(e, m.id);
       if (e.kind === 'compound' && limitOf(e, m.id) >= PRE_EXHAUST_LIMIT) needs[k] |= 1 << i;
     }
+    for (const [m, f] of Object.entries(begin.persist) as [MuscleId, number][]) lasting[k] += limitOf(e, m) * f;
     for (const [m, v] of worked(e)) load[k * K + MUSCLE_INDEX.get(m)!] += sets * v * LOCAL;
     globalCost[k] = MU_SYSTEMIC * e.systemic + MU_SKILL * e.skill;
     globalAdd[k] = sets * e.systemic * GLOBAL;
@@ -547,16 +590,16 @@ function scorer(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Scorer {
     if (e.kind === 'isolation') isoBit[k] = 1 << MUSCLE_INDEX.get(e.primary)!;
   });
   const start = new Float64Array(K);
-  for (const [m, f] of Object.entries(f0) as [MuscleId, number][]) start[MUSCLE_INDEX.get(m)!] = f;
+  for (const [m, f] of Object.entries(begin.f0) as [MuscleId, number][]) start[MUSCLE_INDEX.get(m)!] = f;
   const F = new Float64Array(K);
   return {
     value(order) {
       F.set(start);
-      let G = 0;
+      let G = begin.g0;
       let score = 0;
       for (let i = 0; i < order.length; i++) {
         const k = order[i];
-        let drag = 0;
+        let drag = lasting[k];
         for (let m = 0; m < K; m++) drag += lim[k * K + m] * F[m];
         const q = 1 - LAMBDA * drag - globalCost[k] * G;
         score += imp[k] * q * (1 - POSITION_FADE * i);
@@ -619,8 +662,8 @@ const PRE_EXHAUST_SOFT = 0.3;
  * right and polished under the hard rule, alongside a second search started compounds-first;
  * the better of the two wins.
  */
-function orderSlots(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Slot[] {
-  const sc = scorer(slots, f0);
+function orderSlots(slots: Slot[], begin: Start): Slot[] {
+  const sc = scorer(slots, begin);
   const toIndex = (order: Slot[]) => order.map((x) => slots.indexOf(x));
   const toSlots = (order: number[]) => order.map((k) => slots[k]);
   const clean = (order: number[]) => sc.preExhaust(order) === 0;
@@ -731,7 +774,11 @@ export function tierOf(e: LibExercise): Tier {
   return 'isolation';
 }
 
-function prescribe(e: LibExercise, workSets: number, warmSets: number) {
+/**
+ * `hold`: cardio still to come — every work set stops 2–3 reps short (the last one 2), never at
+ * failure; `next` says when the cardio is ("cardio next", "cardio later").
+ */
+function prescribe(e: LibExercise, workSets: number, warmSets: number, hold: CardioHold = 'none', next = 'cardio next') {
   const tier = tierOf(e);
   const t = TIERS[tier];
   const veryHeavy = tier === 'heavy' && e.systemic >= 0.9;
@@ -756,12 +803,24 @@ function prescribe(e: LibExercise, workSets: number, warmSets: number) {
     // Muscle is warm, but a heavy lift still gets one ramp set to groove the pattern.
     w('3-5', 'About 70%');
   }
-  const hold = /\d\s*s\b/.test(reps);
+  const timed = /\d\s*s\b/.test(reps);
+  const spare = hold !== 'none';
   for (let i = 1; i <= workSets; i++) {
+    const last = i === workSets;
     rows.push({
       label: `Set ${i}`,
       reps,
-      guide: hold ? 'Hold with good form' : i < workSets ? t.early : t.last,
+      guide: timed
+        ? 'Hold with good form'
+        : spare
+          ? last
+            ? `2 in the tank — ${next}`
+            : tier === 'core'
+              ? t.early
+              : '2–3 reps in the tank'
+          : last
+            ? t.last
+            : t.early,
       warmup: false,
     });
   }
@@ -838,7 +897,26 @@ function volumeOf(list: BuiltExercise[], picked: MuscleId[]): VolumeRow[] {
 
 /* ───────────────────────── reasons ───────────────────────── */
 
-function explain(list: BuiltExercise[], i: number, warm: number[], firstMuscle: MuscleId | null): string[] {
+/** Cardio around the session, for the reasons. */
+interface CardioCtx {
+  /** The block the hold-back is for (straight after, else later today) */
+  ahead: CardioBlock | null;
+  /** The block that tired muscles before the session (cardio first, else earlier today) */
+  behind: CardioBlock | null;
+  /** Cardio fatigue per muscle at the start, fading and lasting parts together */
+  tired: Partial<Record<MuscleId, number>>;
+}
+
+/** Drag from cardio fatigue worth a line on the card (about 5% fewer reps). */
+const TIRED_LINE = 0.06;
+
+function explain(
+  list: BuiltExercise[],
+  i: number,
+  warm: number[],
+  firstMuscle: MuscleId | null,
+  cardio: CardioCtx = { ahead: null, behind: null, tired: {} },
+): string[] {
   const b = list[i];
   const e = b.ex;
   const info = MUSCLE_BY_ID.get(b.muscle)!;
@@ -856,7 +934,11 @@ function explain(list: BuiltExercise[], i: number, warm: number[], firstMuscle: 
   const protects = (Object.entries(e.limit) as [MuscleId, number][])
     .filter(([m, v]) => v >= 0.4 && m !== e.primary && later.some((x) => x.ex.primary === m))
     .map(([m]) => name(m));
-  if (i === 0) {
+  const firstTired = firstMuscle != null && cardio.behind != null && (cardio.tired[firstMuscle] ?? 0) >= 0.1;
+  if (i === 0 && firstTired && b.muscle !== firstMuscle) {
+    const noun = CARDIO_MODE_BY_ID.get(cardio.behind!.mode)?.noun ?? 'cardio';
+    out.push(`First while your ${name(firstMuscle!)} recover from the ${noun}: they come later, with some of it worn off.`);
+  } else if (i === 0) {
     out.push(
       b.muscle === firstMuscle
         ? 'First, while you are fresh: your #1 muscle.'
@@ -889,7 +971,97 @@ function explain(list: BuiltExercise[], i: number, warm: number[], firstMuscle: 
       );
     }
   }
+
+  if (cardio.behind) {
+    let drag = 0;
+    for (const [m, f] of Object.entries(cardio.tired) as [MuscleId, number][]) drag += limitOf(e, m) * f;
+    if (drag >= TIRED_LINE) {
+      const noun = CARDIO_MODE_BY_ID.get(cardio.behind.mode)?.noun ?? 'cardio';
+      out.push(
+        `Starts part-tired from the ${noun} ${cardio.behind.when === 'before' ? 'before' : 'earlier today'}: a few fewer reps than usual is expected — the effort still counts.`,
+      );
+    }
+  }
+  if (b.cardioHold !== 'none' && cardio.ahead) {
+    const noun = CARDIO_MODE_BY_ID.get(cardio.ahead.mode)?.noun ?? 'cardio';
+    const when = cardio.ahead.when === 'after' ? 'after' : 'later today';
+    out.push(
+      b.cardioHold === 'set'
+        ? `One set fewer and 2–3 reps in the tank: leaves your ${LOWER.has(e.primary) ? 'legs' : 'energy'} for the ${noun} ${when}.`
+        : `Stops 2–3 reps short so the ${noun} ${when} still goes well — failure adds fatigue, not much growth.`,
+    );
+  }
   return out;
+}
+
+/**
+ * One note for all the cardio of the day: what it changed, and why (the research is in
+ * cardioLoad.ts). Null when there is no cardio.
+ */
+function cardioNote(blocks: CardioBlock[], list: BuiltExercise[]): string | null {
+  const parts: string[] = [];
+  const trained = new Set(list.flatMap((b) => worked(b.ex).filter(([, v]) => v >= 0.5).map(([m]) => m)));
+  const name = (m: MuscleId) => lower(muscleLabel(m));
+
+  for (const b of blocks) {
+    if (b.when !== 'before' && b.when !== 'earlier') continue;
+    const mode = CARDIO_MODE_BY_ID.get(b.mode);
+    if (!mode) continue;
+    const when = b.when === 'before' ? 'before' : 'earlier today';
+    if (isWarmupCardio(b)) {
+      parts.push(`${cap(cardioLabel(b))} as a warm-up costs no reps — the warm-up sets still do the priming.`);
+      continue;
+    }
+    // Fatigue it leaves at the start: all of it straight before, the lasting part hours later.
+    const share = b.when === 'before' ? 1 : 0.25;
+    const used = (Object.entries(mode.uses) as [MuscleId, number][]).filter(([m]) => trained.has(m));
+    const tired = used.filter(([, s]) => cardioDose(b) * s * share >= (b.when === 'before' ? 0.06 : 0.03)).map(([m]) => m);
+    if (tired.length) {
+      parts.push(
+        b.when === 'before'
+          ? `The ${mode.noun} before leaves your ${joinWords(tired.map(name))} part-tired: fewer reps there, easing as the session goes on (cycling cut leg-press reps for hours while bench press held — Sporer & Wenger 2003).`
+          : `The ${mode.noun} earlier today still costs your ${joinWords(tired.map(name))} a few reps (cycling cut leg-press reps for up to 8 h, gone by 24 h — Sporer & Wenger 2003).`,
+      );
+      if (b.when === 'before' && tired.some((m) => LOWER.has(m))) {
+        parts.push('Lifting first and cardio after is the better order for leg strength (Murlasits 2018).');
+      }
+    } else {
+      parts.push(
+        used.length
+          ? `The ${cardioLabel(b)} ${when} is light enough that the lifting is unchanged.`
+          : `The ${mode.noun} ${when} works other muscles than today's, so the lifting is unchanged (bench press held up after cycling — Sporer & Wenger 2003).`,
+      );
+    }
+  }
+
+  const ahead = blocks.find((b) => b.when === 'after') ?? blocks.find((b) => b.when === 'later');
+  const aheadMode = ahead && CARDIO_MODE_BY_ID.get(ahead.mode);
+  if (ahead && aheadMode) {
+    const when = ahead.when === 'after' ? 'after' : 'later today';
+    const held = list.filter((b) => b.cardioHold !== 'none');
+    const cut = list.filter((b) => b.cardioHold === 'set').length;
+    if (held.length) {
+      const legs = held.every((b) => LOWER.has(b.ex.primary));
+      const all = held.length === list.length;
+      const n = all ? 'every exercise' : `${held.length} exercise${held.length > 1 ? 's' : ''}`;
+      const one = all || held.length === 1;
+      const what =
+        cut === held.length
+          ? `${n} ${one ? 'does' : 'do'} a set fewer and ${one ? 'stops' : 'stop'} 2–3 reps short`
+          : `${n} ${one ? 'stops' : 'stop'} 2–3 reps short${cut ? `, ${cut} of them with a set fewer` : ''}`;
+      parts.push(
+        `Saving ${legs ? 'your legs' : 'energy'} for the ${aheadMode.noun} ${when}: ${what}. Failure adds a day or two of fatigue for little extra growth (Morán-Navarro 2017, Refalo 2023).`,
+      );
+    } else {
+      parts.push(`The ${cardioLabel(ahead)} ${when} is light enough that the lifting stays as planned.`);
+    }
+  }
+
+  const legDay = list.some((b) => LOWER.has(b.ex.primary));
+  if (legDay && blocks.some((b) => b.mode === 'run' && b.effort !== 'easy')) {
+    parts.push('On leg days a bike, elliptical or incline walk is gentler than running (Wilson 2012), though newer data sees little difference (Schumann 2022).');
+  }
+  return parts.length ? parts.join(' ') : null;
 }
 
 /** "Front delts already get work from your presses" — parts covered by other muscles' exercises. */
@@ -919,7 +1091,7 @@ function sharedNotes(list: BuiltExercise[], picks: MusclePick[]): string[] {
 export function buildWorkout(input: BuildInput): BuildResult {
   const picks = sanitizePicks(input.picks);
   const workSets = clamp(Math.round(input.sets) || 3, 1, 6);
-  if (!picks.length) return { exercises: [], volume: [], minutes: 0, shortfalls: [], notes: [] };
+  if (!picks.length) return { exercises: [], volume: [], minutes: 0, cardioMinutes: 0, shortfalls: [], notes: [] };
   const rng = mulberry32(input.seed);
   const { chosen, shortfalls } = selectExercises(input, picks, rng);
   const selected = new Set(picks.map((p) => p.muscle));
@@ -929,20 +1101,37 @@ export function buildWorkout(input: BuildInput): BuildResult {
   for (const [m, pct] of Object.entries(input.readiness ?? {}) as [MuscleId, number | null][]) {
     if (pct != null && pct < 100) f0[m] = 0.35 * (1 - pct / 100);
   }
+  // Cardio before: the muscles it used start part-tired (most of it fades, some lasts all session).
+  const blocks = input.cardio ?? [];
+  const cardio = cardioEffect(blocks);
+  for (const [m, v] of Object.entries(cardio.fast) as [MuscleId, number][]) f0[m] = (f0[m] ?? 0) + v;
+  const begin: Start = { f0, persist: cardio.slow, g0: cardio.global };
 
-  const slots: Slot[] = chosen.map((p) => ({ p, sets: workSets, imp: importance(p, selected) }));
-  let order = orderSlots(slots, f0);
+  // Cardio still to come: the muscles it uses stop short, and a big block takes a set off them.
+  const holdOf = (e: LibExercise): CardioHold => {
+    let r = 0;
+    for (const [m, v] of worked(e)) r = Math.max(r, v * (cardio.reserve[m] ?? 0));
+    if (r >= RESERVE_SET && workSets >= 3) return 'set';
+    return r >= RESERVE_REPS || cardio.reserveAll >= RESERVE_ALL ? 'reps' : 'none';
+  };
+  const slots: Slot[] = chosen.map((p) => {
+    const hold = holdOf(p.ex);
+    return { p, sets: hold === 'set' ? workSets - 1 : workSets, imp: importance(p, selected), hold };
+  });
+  let order = orderSlots(slots, begin);
   let groups: (string | null)[] = order.map(() => null);
   if (input.supersets) ({ order, groups } = pairUp(order));
-  const sim = simulate(order, f0);
+  const sim = simulate(order, begin);
 
+  const ahead = blocks.find((b) => b.when === 'after') ?? blocks.find((b) => b.when === 'later') ?? null;
+  const next = ahead?.when === 'later' ? 'cardio later' : 'cardio next';
   const list: BuiltExercise[] = order.map((s, i) => {
-    const rx = prescribe(s.p.ex, workSets, sim.warm[i]);
+    const rx = prescribe(s.p.ex, s.sets, sim.warm[i], s.hold, next);
     return {
       ex: s.p.ex,
       muscle: s.p.muscle,
       tier: rx.tier,
-      workSets,
+      workSets: s.sets,
       reps: rx.reps,
       restSec: rx.restSec,
       rows: rx.rows,
@@ -951,6 +1140,7 @@ export function buildWorkout(input: BuildInput): BuildResult {
       adds: s.p.adds,
       rank: s.p.rank,
       pinned: s.p.pinned,
+      cardioHold: s.hold,
       why: [],
     };
   });
@@ -963,7 +1153,13 @@ export function buildWorkout(input: BuildInput): BuildResult {
     }
   }
   const firstMuscle = picks[0]?.muscle ?? null;
-  list.forEach((b, i) => (b.why = explain(list, i, sim.warm, firstMuscle)));
+  const tired: Partial<Record<MuscleId, number>> = {};
+  for (const part of [cardio.fast, cardio.slow]) {
+    for (const [m, v] of Object.entries(part) as [MuscleId, number][]) tired[m] = (tired[m] ?? 0) + v;
+  }
+  const behind =
+    blocks.find((b) => b.when === 'before' && !isWarmupCardio(b)) ?? blocks.find((b) => b.when === 'earlier') ?? null;
+  list.forEach((b, i) => (b.why = explain(list, i, sim.warm, firstMuscle, { ahead, behind, tired })));
 
   const volume = volumeOf(
     list,
@@ -983,13 +1179,19 @@ export function buildWorkout(input: BuildInput): BuildResult {
       notes.push(`${muscleLabel(p.muscle)} is ${pct}% recovered — go lighter today or pick another muscle.`);
     }
   }
+  const cardioSays = cardioNote(blocks, list);
+  if (cardioSays) notes.push(cardioSays);
   notes.push(...sharedNotes(list, picks));
-  for (const v of volume) {
-    if (v.picked && v.band === 'over') {
-      notes.push(
-        `${muscleLabel(v.muscle)}: ${v.sets} sets in one session. Past about 11, extra sets add fatigue more than growth — fewer exercises or sets is enough.`,
-      );
-    }
+  const over = volume.filter((v) => v.picked && v.band === 'over');
+  if (over.length === 1) {
+    notes.push(
+      `${muscleLabel(over[0].muscle)}: ${over[0].sets} sets in one session. Past about 11, extra sets add fatigue more than growth — fewer exercises or sets is enough.`,
+    );
+  } else if (over.length > 1) {
+    // One card for all of them: six copies of the same warning would bury the workout.
+    notes.push(
+      `Sets in one session: ${over.map((v) => `${muscleLabel(v.muscle)} ${v.sets}`).join(' · ')}. Past about 11 a muscle, extra sets add fatigue more than growth — fewer exercises or sets is enough.`,
+    );
   }
   if (minutes > 90) notes.push(`About ${minutes} min — long. Fewer exercises or 2 sets each keeps the quality up.`);
   if (
@@ -999,7 +1201,7 @@ export function buildWorkout(input: BuildInput): BuildResult {
     notes.push('Shoulder caution is on (Settings), so dips are left out.');
   }
 
-  return { exercises: list, volume, minutes, shortfalls, notes };
+  return { exercises: list, volume, minutes, cardioMinutes: cardio.minutes, shortfalls, notes };
 }
 
 /** Exercises that could replace one slot, most similar first. */
@@ -1074,9 +1276,12 @@ export function suggestReady(readiness: Partial<Record<MuscleId, number | null>>
   return out;
 }
 
-/** The build as workout-player exercises (superset neighbours alternate set by set). */
-export function toPlayerExercises(list: BuiltExercise[]): PlayerExercise[] {
-  return list.map((b) => ({
+/**
+ * The build as workout-player exercises (superset neighbours alternate set by set), with the
+ * cardio before and after lifting as their own steps.
+ */
+export function toPlayerExercises(list: BuiltExercise[], cardio: CardioBlock[] = []): PlayerExercise[] {
+  const lifts: PlayerExercise[] = list.map((b) => ({
     name: b.ex.name,
     media: b.ex.media,
     muscle: b.muscle === b.ex.primary ? muscleLabel(b.muscle) : `${muscleLabel(b.muscle)} · ${muscleLabel(b.ex.primary)}`,
@@ -1085,6 +1290,26 @@ export function toPlayerExercises(list: BuiltExercise[]): PlayerExercise[] {
     cue: b.ex.cues[0] ?? null,
     group: b.group,
   }));
+  const step = (b: CardioBlock): PlayerExercise | null => {
+    const mode = CARDIO_MODE_BY_ID.get(b.mode);
+    const effort = CARDIO_EFFORT.find((e) => e.id === b.effort);
+    if (!mode || !effort) return null;
+    return {
+      name: mode.label,
+      media: mode.media,
+      muscle: b.when === 'before' ? 'Cardio · before lifting' : 'Cardio · after lifting',
+      sets: [['Cardio', `${b.minutes} min`, `${effort.label}: ${effort.talk}`]],
+      rest: b.when === 'before' ? '60 sec' : '0 sec',
+      cue: isWarmupCardio(b) ? 'Easy pace — just get warm' : null,
+      group: null,
+      logs: false,
+    };
+  };
+  const before = cardio.find((b) => b.when === 'before');
+  const after = cardio.find((b) => b.when === 'after');
+  const first = before ? step(before) : null;
+  const last = after ? step(after) : null;
+  return [...(first ? [first] : []), ...lifts, ...(last ? [last] : [])];
 }
 
 /** "Chest + Biceps + Forearms" — names a custom session. */

@@ -7,6 +7,7 @@ import {
   MUSCLE_BY_ID,
   coverageFor,
   fitsSetting,
+  kitNeeded,
   loadOn,
   type Setting,
 } from './exerciseLibrary';
@@ -103,5 +104,18 @@ describe('exercise library', () => {
     expect(groupsForMuscle(LIBRARY_MUSCLE_INDEX.get('barbell bench press')!)).toEqual(
       expect.arrayContaining(['chest', 'triceps', 'shoulders']),
     );
+  });
+
+  it('names the kit an exercise needs in plain words', () => {
+    const kit = (name: string) => kitNeeded(LIBRARY.find((e) => e.name === name)!);
+    expect(kit('Barbell row')).toBe('gym equipment');
+    expect(kit('Dumbbell bench press')).toBe('dumbbells and a bench');
+    expect(kit('Decline crunch')).toBe('a bench');
+    expect(kit('Chest dip')).toBe('dip bars');
+    expect(kit('Pull-up')).toBe('a bar to hang from');
+    // Every exercise that some setting leaves out gets a real answer.
+    for (const e of LIBRARY) {
+      if (!fitsSetting(e, 'home')) expect(kitNeeded(e), e.name).not.toBe('nothing extra');
+    }
   });
 });

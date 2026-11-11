@@ -43,11 +43,14 @@ export function lastLogsByName(
   return out;
 }
 
-/** Double progression: top of the range last time → add load; otherwise beat the reps. */
-export function progressionHint(last: LastLog | undefined, repRange: string): string {
+/**
+ * Double progression: top of the range last time → add load; otherwise beat the reps.
+ * `tank` is the reps to leave on a first try — '2-3' when the session holds back for cardio.
+ */
+export function progressionHint(last: LastLog | undefined, repRange: string, tank = '1-2'): string {
   const range = parseRepRange(repRange);
   if (!last || last.weightKg == null) {
-    return 'First time: find a weight that leaves 1-2 reps in the tank, then log it.';
+    return `First time: find a weight that leaves ${tank} reps in the tank, then log it.`;
   }
   if (range && last.reps != null && last.reps >= range.hi) {
     const add = last.weightKg >= 40 ? '2.5-5 kg' : '1-2.5 kg';

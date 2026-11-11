@@ -9,6 +9,7 @@ import {
   refreshRecovery,
   removeAt,
   setAllCounts,
+  setCardio,
   setCount,
   setFocus,
   setMuscles,
@@ -178,5 +179,24 @@ describe('builder state', () => {
     expect(back.supersets).toBe(true);
     expect(back.sets).toBe(4);
     expect(ids(back)).toEqual(list.map((b) => b.ex.id));
+  });
+
+  it('keeps one cardio block per timing, and the session keeps it through edits and templates', () => {
+    let s = chestBack();
+    expect(s.cardio).toEqual([]);
+    s = setCardio(s, 'after', { mode: 'incline', minutes: 12, effort: 'moderate' });
+    s = setCardio(s, 'before', { mode: 'bike', minutes: 5, effort: 'easy' });
+    expect(s.cardio.map((b) => b.when)).toEqual(['before', 'after']);
+    s = setCardio(s, 'after', { mode: 'run', minutes: 30, effort: 'hard' });
+    expect(s.cardio).toEqual([
+      { when: 'before', mode: 'bike', minutes: 5, effort: 'easy' },
+      { when: 'after', mode: 'run', minutes: 30, effort: 'hard' },
+    ]);
+    expect(setSetting(s, 'home').cardio).toEqual(s.cardio);
+    expect(JSON.stringify(parseBuilder(JSON.parse(JSON.stringify(s))))).toBe(JSON.stringify(s));
+    expect(parseBuilder({ ...s, cardio: [{ when: 'soon', mode: 'run', minutes: 30, effort: 'hard' }, 'x'] }).cardio).toEqual([]);
+    const back = fromTemplate(toTemplate(s, run(s), 'T', 't', 'now'), {}, TODAY, s.cardio);
+    expect(back.cardio).toEqual(s.cardio);
+    expect(setCardio(s, 'after', null).cardio.map((b) => b.when)).toEqual(['before']);
   });
 });
