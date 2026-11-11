@@ -63,6 +63,18 @@ EXACT = {
     'dumbbell overhead extension, light': 'Dumbbell Seated Triceps Extension', 'db wrist curl': 'Dumbbell Seated Palms Up Wrist Curl',
     'back extension': 'Hyperextensions', 'v-bar pushdown': 'Cable Triceps Pushdown (V-Bar)',
     'assisted pull-up machine': 'Machine Assisted Chin-Up', 'standing calf raise': 'Bodyweight Standing Calf Raise', 'treadmill or bike': 'Walking on Incline Treadmill',
+    # audit 2026-11-11: name ↔ animation cross-check against the library catalog
+    'cable glute kickback': 'Cable Standing Hip Extension', 'one-arm dumbbell row': 'Dumbbell One Arm Bent-Over Row',
+    'single-arm dumbbell row': 'Dumbbell One Arm Bent-Over Row', 'high-to-low cable fly': 'Cable Crossover',
+    "captain's chair knee raise": 'Vertical Leg Raise (On Parallel Bars)',
+    # same animations the builder library uses, each checked by eye
+    'ab crunch machine': 'Machine Seated Crunch', 'face pull': 'Cable Standing Rear Delt Row (With Rope)',
+    'cable reverse fly': 'Cable Standing Cross-Over High Reverse Fly', 'reverse cable fly': 'Cable Standing Cross-Over High Reverse Fly',
+    'good morning, light barbell': 'Good Morning', 'hanging knee raise': 'Hanging Leg Raise',
+    'machine shoulder press': 'Machine Military Press', 'shoulder press machine': 'Machine Military Press',
+    'rear delt fly machine': 'Machine Seated Reverse Fly', 'reverse pec deck': 'Machine Seated Reverse Fly',
+    'preacher curl machine': 'Machine Bicep Curl',
+    'standing calf raise': 'Machine Standing Calf Raise',  # loaded (60 kg) in this plan
 }
 # No good animation in the library: show the video button only (a wrong GIF is worse than none).
 NONE = {'ab crunch machine', 'band external rotation', 'bayesian cable curl', 'cable hip abduction',
@@ -76,6 +88,10 @@ NONE = {'ab crunch machine', 'band external rotation', 'bayesian cable curl', 'c
         'copenhagen plank on knees, 3 x 20 sec', 'band side walk', 'donkey kick on a mat', 'spanish squat with band',
         'band pulldown', 'crunch on a mat', 'plank on knees', 'side plank on knees', 'suitcase carry, one hand',
         'bodyweight box squat', }
+# audit 2026-11-11: these now have a verified animation (EXACT above)
+NONE -= {'ab crunch machine', 'face pull', 'cable reverse fly', 'reverse cable fly', 'good morning, light barbell',
+         'hanging knee raise', 'machine shoulder press', 'shoulder press machine', 'rear delt fly machine',
+         'reverse pec deck', 'preacher curl machine'}
 STOP = {'machine', 'the', 'a', 'with', 'on', 'to', 'and', 'or', 'of', 'grip', 'light', 'slow',
         'seated', 'standing', 'leg', 'day', 'only', 'very', 'easy'}
 KEEP_EVEN_IF_STOP = {'leg'}
