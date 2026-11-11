@@ -159,6 +159,20 @@ describe('buildWorkout — order', () => {
     }
   });
 
+  it('never pre-exhausts, even in a long session that puts a small muscle first', () => {
+    // 13 exercises × 5 sets, grip picked first: the grip work still waits for the hinges it limits.
+    for (const seed of [1, 2, 3]) {
+      const r = build([pick('forearms', 3, 'size'), pick('glutes', 5), pick('calves', 5)], { sets: 5, seed, supersets: seed === 2 });
+      r.exercises.forEach((b, i) => {
+        if (b.ex.kind !== 'isolation') return;
+        const later = r.exercises.slice(i + 1).filter((x) => x.ex.kind === 'compound');
+        for (const c of later) {
+          expect(c.ex.primary === b.ex.primary || (c.ex.limit[b.ex.primary] ?? 0) >= 0.5, `${b.ex.id} before ${c.ex.id}`).toBe(false);
+        }
+      });
+    }
+  });
+
   it('keeps each muscle’s exercises together without supersets', () => {
     const r = build([pick('chest'), pick('biceps'), pick('shoulders'), pick('forearms')]);
     const seq = r.exercises.map((b) => b.muscle);

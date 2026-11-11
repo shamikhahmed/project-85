@@ -25,6 +25,10 @@
  *    barely notices. A local search keeps the order where the
  *    most important work is done freshest. The muscle you pick first counts most: exercises done
  *    first gain the most strength, while order barely changes size gains (Nunes et al. 2021).
+ *    One hard rule on top: a muscle's compound lifts always come before its isolation work.
+ *    Pre-exhausting a muscle costs the compound reps without adding activation (Augustsson 2003,
+ *    Gentil 2007), and in long sessions the simulation alone could trade that away. The same holds
+ *    for a helper that clearly limits a compound: curls wait for the pull-ups.
  *
  * 3. Pair (optional) — a superset joins two neighbours that share no working muscle and don't
  *    limit each other, preferring opposite muscles (chest ↔ back, biceps ↔ triceps).
@@ -110,6 +114,8 @@ export interface BuiltExercise {
   freshness: number;
   /** Facet labels this pick added */
   adds: string[];
+  /** Pick order within its muscle (0 = picked first, counts most) */
+  rank: number;
   pinned: boolean;
   why: string[];
 }
@@ -164,8 +170,12 @@ const GLOBAL = 0.035;
 const PRIORITY = [1.4, 1.22, 1.12, 1.06, 1.03, 1];
 /** Same-muscle neighbours: one station, one focus — blocks unless splitting clearly pays. */
 const BLOCK_BONUS = 0.3;
-/** Doing an isolation first for a muscle that limits a later compound (pre-exhaustion). */
-const PRE_EXHAUST_PENALTY = 0.3;
+/**
+ * Pre-exhaustion line: an isolation never goes before a compound its muscle limits this much —
+ * pushdowns before a bench press, curls before pull-ups, leg extensions before squats (a lift's
+ * own muscle counts as 1). Large and multi-joint before small and single-joint (ACSM 2009).
+ */
+const PRE_EXHAUST_LIMIT = 0.5;
 /** Later positions count a little less: general fatigue, focus, and sessions that run short. */
 const POSITION_FADE = 0.03;
 /** Effective sets a muscle needs in this session before it counts as warm. */
@@ -459,22 +469,18 @@ function simulate(order: Slot[], f0: Partial<Record<MuscleId, number>>): Sim {
   let score = 0;
   const fresh: number[] = [];
   const warm: number[] = [];
-  const isolated = new Set<MuscleId>();
   for (let i = 0; i < order.length; i++) {
     const { p, sets, imp } = order[i];
     const e = p.ex;
     let drag = 0;
     for (const [m, f] of Object.entries(F) as [MuscleId, number][]) drag += limitOf(e, m) * f;
-    const q = clamp(1 - LAMBDA * drag - (MU_SYSTEMIC * e.systemic + MU_SKILL * e.skill) * G, 0.2, 1);
-    fresh.push(q);
+    const q = 1 - LAMBDA * drag - (MU_SYSTEMIC * e.systemic + MU_SKILL * e.skill) * G;
+    // Shown with a 20% floor, but scored without one: past the floor more fatigue still costs,
+    // so a long session never parks a heavy, technical lift at the end "because it can't get worse".
+    fresh.push(clamp(q, 0.2, 1));
     warm.push(W[e.primary] ?? 0);
     score += imp * q * (1 - POSITION_FADE * i);
     if (i > 0 && order[i - 1].p.muscle === p.muscle) score += BLOCK_BONUS;
-    if (e.kind === 'compound') {
-      for (const m of isolated) if (limitOf(e, m) >= 0.5) score -= PRE_EXHAUST_PENALTY;
-    } else {
-      isolated.add(e.primary);
-    }
     for (const [m, v] of worked(e)) {
       F[m] = (F[m] ?? 0) + sets * v * LOCAL;
       W[m] = (W[m] ?? 0) + sets * v;
@@ -486,13 +492,99 @@ function simulate(order: Slot[], f0: Partial<Record<MuscleId, number>>): Sim {
   return { score, fresh, warm };
 }
 
+/** Isolation work that would tire a muscle a compound still needs (see PRE_EXHAUST_LIMIT). */
+export function preExhausts(iso: LibExercise, compound: LibExercise): boolean {
+  return iso.kind === 'isolation' && compound.kind === 'compound' && limitOf(compound, iso.primary) >= PRE_EXHAUST_LIMIT;
+}
+
+/** Move each compound just ahead of the first isolation it must follow; the rest keeps its place. */
+function compoundsFirst(order: Slot[]): Slot[] {
+  const out = order.slice();
+  for (let j = 0; j < out.length; j++) {
+    const c = out[j].p.ex;
+    if (c.kind !== 'compound') continue;
+    const i = out.findIndex((s, k) => k < j && preExhausts(s.p.ex, c));
+    if (i >= 0) out.splice(i, 0, ...out.splice(j, 1));
+  }
+  return out;
+}
+
 /**
- * Best order by first-improvement local search. Moves: lift out a run of 1–3 neighbours (one
- * exercise, or a whole muscle block) and put it back anywhere else.
+ * The simulation's score only, for the order search (thousands of orders per build): the same
+ * sums as `simulate`, on per-exercise vectors over the muscles, without allocating per order.
  */
-function orderSlots(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Slot[] {
-  let best = [...slots].sort((a, b) => b.imp - a.imp);
-  let bestScore = simulate(best, f0).score;
+interface Scorer {
+  value(order: number[]): number;
+  /** Per compound, the isolated muscles done before it that it needs (0 = no pre-exhaustion). */
+  preExhaust(order: number[]): number;
+}
+
+const MUSCLE_INDEX = new Map(MUSCLES.map((m, i) => [m.id, i]));
+const K = MUSCLES.length;
+
+function scorer(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Scorer {
+  const n = slots.length;
+  const lim = new Float64Array(n * K);
+  const load = new Float64Array(n * K);
+  const globalCost = new Float64Array(n);
+  const globalAdd = new Float64Array(n);
+  const imp = new Float64Array(n);
+  const muscle = new Int32Array(n);
+  const isoBit = new Int32Array(n);
+  const needs = new Int32Array(n);
+  slots.forEach(({ p, sets, imp: w }, k) => {
+    const e = p.ex;
+    for (const m of MUSCLES) {
+      const i = MUSCLE_INDEX.get(m.id)!;
+      lim[k * K + i] = limitOf(e, m.id);
+      if (e.kind === 'compound' && limitOf(e, m.id) >= PRE_EXHAUST_LIMIT) needs[k] |= 1 << i;
+    }
+    for (const [m, v] of worked(e)) load[k * K + MUSCLE_INDEX.get(m)!] += sets * v * LOCAL;
+    globalCost[k] = MU_SYSTEMIC * e.systemic + MU_SKILL * e.skill;
+    globalAdd[k] = sets * e.systemic * GLOBAL;
+    imp[k] = w;
+    muscle[k] = MUSCLE_INDEX.get(p.muscle)!;
+    if (e.kind === 'isolation') isoBit[k] = 1 << MUSCLE_INDEX.get(e.primary)!;
+  });
+  const start = new Float64Array(K);
+  for (const [m, f] of Object.entries(f0) as [MuscleId, number][]) start[MUSCLE_INDEX.get(m)!] = f;
+  const F = new Float64Array(K);
+  return {
+    value(order) {
+      F.set(start);
+      let G = 0;
+      let score = 0;
+      for (let i = 0; i < order.length; i++) {
+        const k = order[i];
+        let drag = 0;
+        for (let m = 0; m < K; m++) drag += lim[k * K + m] * F[m];
+        const q = 1 - LAMBDA * drag - globalCost[k] * G;
+        score += imp[k] * q * (1 - POSITION_FADE * i);
+        if (i > 0 && muscle[order[i - 1]] === muscle[k]) score += BLOCK_BONUS;
+        for (let m = 0; m < K; m++) F[m] = (F[m] + load[k * K + m]) * DECAY;
+        G += globalAdd[k];
+      }
+      return score;
+    },
+    preExhaust(order) {
+      let isolated = 0;
+      let count = 0;
+      for (const k of order) {
+        if (isoBit[k]) isolated |= isoBit[k];
+        else for (let both = isolated & needs[k]; both; both &= both - 1) count++;
+      }
+      return count;
+    },
+  };
+}
+
+/**
+ * First-improvement local search. Moves: lift out a run of 1–3 neighbours (one exercise, or a
+ * whole muscle block) and put it back anywhere else.
+ */
+function improve(start: number[], value: (order: number[]) => number, allowed: (order: number[]) => boolean): number[] {
+  let best = start;
+  let bestScore = value(best);
   const n = best.length;
   for (let pass = 0; pass < 40; pass++) {
     let improved = false;
@@ -503,7 +595,8 @@ function orderSlots(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Slot[
           const rest = best.slice();
           const seg = rest.splice(i, len);
           rest.splice(j, 0, ...seg);
-          const s = simulate(rest, f0).score;
+          if (!allowed(rest)) continue;
+          const s = value(rest);
           if (s > bestScore + 1e-9) {
             best = rest;
             bestScore = s;
@@ -515,6 +608,27 @@ function orderSlots(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Slot[
     if (!improved) break;
   }
   return best;
+}
+
+/** Penalty per pre-exhausting step while the first search is still free to pass through one. */
+const PRE_EXHAUST_SOFT = 0.3;
+
+/**
+ * Best order without pre-exhaustion. A free search runs first, with pre-exhaustion only
+ * discouraged, so it can pass through such orders on its way to a better one. Its result is put
+ * right and polished under the hard rule, alongside a second search started compounds-first;
+ * the better of the two wins.
+ */
+function orderSlots(slots: Slot[], f0: Partial<Record<MuscleId, number>>): Slot[] {
+  const sc = scorer(slots, f0);
+  const toIndex = (order: Slot[]) => order.map((x) => slots.indexOf(x));
+  const toSlots = (order: number[]) => order.map((k) => slots[k]);
+  const clean = (order: number[]) => sc.preExhaust(order) === 0;
+  const start = [...slots].sort((a, b) => b.imp - a.imp);
+  const free = improve(toIndex(start), (o) => sc.value(o) - PRE_EXHAUST_SOFT * sc.preExhaust(o), () => true);
+  const a = improve(toIndex(compoundsFirst(toSlots(free))), sc.value, clean);
+  const b = improve(toIndex(compoundsFirst(start)), sc.value, clean);
+  return toSlots(sc.value(b) > sc.value(a) + 1e-9 ? b : a);
 }
 
 /* ───────────────────────── 3. pair ───────────────────────── */
@@ -835,6 +949,7 @@ export function buildWorkout(input: BuildInput): BuildResult {
       group: groups[i],
       freshness: Math.round(sim.fresh[i] * 100) / 100,
       adds: s.p.adds,
+      rank: s.p.rank,
       pinned: s.p.pinned,
       why: [],
     };
@@ -919,7 +1034,11 @@ export function swapOptions(
 
 /** Slots of a build, to hold it in place (swap, remove, save as a template). */
 export function slotsOf(list: BuiltExercise[]): PinnedSlot[] {
-  return list.map((b) => (b.pinned ? { id: b.ex.id, muscle: b.muscle } : { id: b.ex.id, muscle: b.muscle, kept: true }));
+  // In pick order, not session order: a held slot's place among its muscle's slots is its rank
+  // on the rebuild, and rank weighs into the order — so the rebuild comes out the same.
+  return [...list]
+    .sort((a, b) => a.rank - b.rank)
+    .map((b) => (b.pinned ? { id: b.ex.id, muscle: b.muscle } : { id: b.ex.id, muscle: b.muscle, kept: true }));
 }
 
 /** Recovery-grid percentages mapped onto builder muscles (forearms have no group → unknown). */

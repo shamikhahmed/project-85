@@ -64,6 +64,15 @@ describe('builder state', () => {
     expect(moveUp(s, 'forearms').picks[0].muscle).toBe('forearms');
   });
 
+  it('goes back to setup when the last muscle is taken out', () => {
+    const one = buildNow(setMuscles(initialBuilder(), ['chest']), {}, TODAY);
+    expect(one.built).toBe(true);
+    const none = toggleMuscle(one, 'chest');
+    expect(none.picks).toEqual([]);
+    expect(none.built).toBe(false);
+    expect(parseBuilder(JSON.parse(JSON.stringify(none)))).toEqual(none);
+  });
+
   it('sets counts like 4-3-3 and focus per muscle', () => {
     let s = setMuscles(initialBuilder(), ['chest', 'biceps', 'forearms']);
     s = setAllCounts(s, 3);

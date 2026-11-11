@@ -111,7 +111,11 @@ export function parseBuilder(raw: unknown): BuilderState {
 /* ───────────── setup edits (they reset what the builder chose; your own picks stay) ───────────── */
 
 const ownPins = (s: BuilderState) => s.pinned.filter((p) => !p.kept);
-const setup = (s: BuilderState, next: Partial<BuilderState>): BuilderState => ({ ...s, pinned: ownPins(s), avoid: [], ...next });
+const setup = (s: BuilderState, next: Partial<BuilderState>): BuilderState => {
+  const out = { ...s, pinned: ownPins(s), avoid: [], ...next };
+  // Nothing left to train: back to the setup screen, never an empty "built" session.
+  return out.picks.length ? out : { ...out, built: false };
+};
 
 /** Tap a muscle: add it at the end (lowest priority) or take it out with anything pinned for it. */
 export function toggleMuscle(s: BuilderState, m: MuscleId): BuilderState {
@@ -213,14 +217,15 @@ export function shuffle(s: BuilderState, list: BuiltExercise[]): BuilderState {
 export function swapAt(s: BuilderState, list: BuiltExercise[], index: number, newId: string): BuilderState {
   const target = list[index];
   if (!target || !EXERCISE_BY_ID.has(newId)) return s;
-  const pinned = slotsOf(list).map((slot, i) => (i === index ? { id: newId, muscle: target.muscle } : slot));
+  const pinned = slotsOf(list).map((slot) => (slot.id === target.ex.id ? { id: newId, muscle: target.muscle } : slot));
   return { ...s, pinned, avoid: [] };
 }
 
 /** Drop exercise `index`; a muscle with nothing left is taken out. */
 export function removeAt(s: BuilderState, list: BuiltExercise[], index: number): BuilderState {
-  if (!list[index]) return s;
-  const pinned = slotsOf(list).filter((_, i) => i !== index);
+  const gone = list[index];
+  if (!gone) return s;
+  const pinned = slotsOf(list).filter((slot) => slot.id !== gone.ex.id);
   const picks = countsFrom(s.picks, pinned);
   return { ...s, picks, pinned, avoid: [], built: picks.length > 0 && s.built };
 }
