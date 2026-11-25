@@ -49,7 +49,8 @@ describe('runFullHealthSync permission gate', () => {
     vi.resetModules();
   });
 
-  it('returns permission_needed and makes no read calls when never granted', async () => {
+  // 15s: under full-suite worker spawn load the dynamic import + Dexie stub can exceed 5s.
+  it('returns permission_needed and makes no read calls when never granted', { timeout: 15_000 }, async () => {
     // Avoid Dexie: stub syncManual + db paths by testing syncAppleHealthIfAvailable via dynamic import
     // after mocking db lightly.
     vi.doMock('../data/db', () => {
