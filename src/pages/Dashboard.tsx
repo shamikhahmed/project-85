@@ -6,6 +6,7 @@ import { QuickLogSheet, type QuickLogMode } from '../components/QuickLogSheet';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { SupplementsCard } from '../components/SupplementsCard';
 import { WeeklyReportCard } from '../components/WeeklyReportCard';
+import { PageReveal } from '../components/PageReveal';
 import * as repo from '../data/repository';
 import { buildDailyBriefing, type QuickActionKind } from '../lib/briefing';
 import { assessComeback, type ComebackState } from '../lib/comeback';
@@ -208,7 +209,7 @@ export function Dashboard() {
       : trend.message;
 
   return (
-    <div className="stack page">
+    <PageReveal className="stack page">
       <p className="greeting">
         <strong>{timeGreeting()}.</strong>{' '}
         {today < settings.startDate
@@ -582,7 +583,7 @@ export function Dashboard() {
         initialMode={quickMode}
         onClose={() => setQuickOpen(false)}
       />
-    </div>
+    </PageReveal>
   );
 }
 

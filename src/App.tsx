@@ -1,5 +1,7 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect } from 'react';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { softPop } from './lib/motion';
 import { AppNav } from './components/AppNav';
 import { CapAutoHealthSync } from './components/CapAutoHealthSync';
 import { CapDeepLinks } from './components/CapDeepLinks';
@@ -28,6 +30,8 @@ export default function App() {
   const toast = useAppStore((s) => s.toast);
   const setToast = useAppStore((s) => s.setToast);
   const settings = useAppStore((s) => s.settings);
+  const reduce = useReducedMotion();
+  const toastMotion = softPop(reduce);
 
   useEffect(() => {
     void init();
@@ -102,11 +106,29 @@ export default function App() {
         </main>
         <NightlyTruthCheck />
         <AppTour />
-        {toast && (
-          <div className="toast" role="status">
-            {toast}
-          </div>
-        )}
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              key={toast}
+              className="toast"
+              role="status"
+              initial={
+                typeof toastMotion.initial === 'object'
+                  ? { ...toastMotion.initial, x: '-50%' }
+                  : { x: '-50%' }
+              }
+              animate={{ ...toastMotion.animate, x: '-50%' }}
+              exit={
+                typeof toastMotion.exit === 'object'
+                  ? { ...toastMotion.exit, x: '-50%' }
+                  : { opacity: 0, x: '-50%' }
+              }
+              transition={toastMotion.transition}
+            >
+              {toast}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </Router>
   );

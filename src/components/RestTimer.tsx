@@ -1,5 +1,7 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { formatClock, secondsLeft } from '../domain/restTimer';
+import { restTimerMotion } from '../lib/motion';
 
 export type RestState = { endsAt: number; total: number; label: string } | null;
 
@@ -31,6 +33,10 @@ function signalDone() {
   }
 }
 
+/**
+ * Floating rest hero above the tab bar. Enter/exit animate; done state is a
+ * handoff cue ("next set") — never blocks logging or dismiss.
+ */
 export function RestTimer({
   rest,
   onChange,
@@ -40,6 +46,8 @@ export function RestTimer({
 }) {
   const [now, setNow] = useState(() => Date.now());
   const signalled = useRef<number | null>(null);
+  const reduce = useReducedMotion();
+  const motionProps = restTimerMotion(reduce);
 
   useEffect(() => {
     if (!rest) return;
@@ -56,31 +64,49 @@ export function RestTimer({
     }
   }, [rest, left]);
 
-  if (!rest) return null;
-  const done = left === 0;
-  const pct = rest.total > 0 ? Math.min(100, ((rest.total - left) / rest.total) * 100) : 100;
+  const done = Boolean(rest && left === 0);
+  const pct = rest && rest.total > 0 ? Math.min(100, ((rest.total - left) / rest.total) * 100) : 100;
+  // Final 3s: subtle urgency ring (CSS); reduced motion collapses via tokens.
+  const closing = Boolean(rest && !done && left > 0 && left <= 3);
 
   return (
-    <div className={`rest-timer${done ? ' done' : ''}`} role="timer" aria-live="polite">
-      <div className="rest-timer-bar" style={{ width: `${pct}%` }} aria-hidden />
-      <div className="rest-timer-body">
-        <div className="rest-timer-text">
-          <span className="rest-timer-label">{done ? 'Rest done · next set' : `Rest · ${rest.label}`}</span>
-          <span className="rest-timer-clock mono">{formatClock(left)}</span>
-        </div>
-        {!done && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => onChange({ ...rest, endsAt: rest.endsAt + 30_000, total: rest.total + 30 })}
-          >
-            +30s
-          </button>
-        )}
-        <button type="button" className="btn" onClick={() => onChange(null)}>
-          {done ? 'Close' : 'Skip'}
-        </button>
-      </div>
-    </div>
+    <AnimatePresence>
+      {rest && (
+        <motion.div
+          key={rest.endsAt}
+          className={`rest-timer${done ? ' done' : ''}${closing ? ' closing' : ''}`}
+          role="timer"
+          aria-live="polite"
+          initial={motionProps.initial}
+          animate={motionProps.animate}
+          exit={motionProps.exit}
+          transition={motionProps.transition}
+        >
+          <div className="rest-timer-bar" style={{ width: `${pct}%` }} aria-hidden />
+          <div className="rest-timer-ring" aria-hidden />
+          <div className="rest-timer-body">
+            <div className="rest-timer-text">
+              <span className="rest-timer-label">
+                {done ? 'Rest done · next set' : `Rest · ${rest.label}`}
+              </span>
+              <span className="rest-timer-clock mono">{formatClock(left)}</span>
+              {done && <span className="rest-timer-handoff">Ready when you are</span>}
+            </div>
+            {!done && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => onChange({ ...rest, endsAt: rest.endsAt + 30_000, total: rest.total + 30 })}
+              >
+                +30s
+              </button>
+            )}
+            <button type="button" className={`btn${done ? ' btn-primary' : ''}`} onClick={() => onChange(null)}>
+              {done ? 'Next' : 'Skip'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

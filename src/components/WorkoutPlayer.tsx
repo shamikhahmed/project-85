@@ -1,3 +1,4 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SUPERSET_GAP_SEC,
@@ -8,6 +9,8 @@ import {
 } from '../domain/workoutPlayer';
 import { formatClock } from '../domain/restTimer';
 import { beep, speak, stopSpeaking } from '../lib/voice';
+import { playerViewMotion } from '../lib/motion';
+import { CelebrationBurst } from './CelebrationBurst';
 import { ExerciseGif } from './ExerciseGif';
 import './WorkoutPlayer.css';
 
@@ -23,6 +26,8 @@ interface Props {
 }
 
 const VOICE_KEY = 'p85-player-voice';
+/** Brief rest→set handoff before auto-advance (ms). */
+const HANDOFF_MS = 520;
 
 /** The other exercise in this step's superset. */
 function partnerName(steps: PlayerStep[], step: PlayerStep): string {
@@ -40,6 +45,8 @@ function readVoice(): boolean {
 /** Full-screen guided workout: one set at a time, big animation, rest countdown with voice. */
 export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onClose }: Props) {
   const lang = 'en' as const;
+  const reduce = useReducedMotion();
+  const viewMotion = playerViewMotion(reduce);
   const steps = useMemo(() => buildPlayerSteps(exercises), [exercises]);
   const [idx, setIdx] = useState(() => {
     const i = steps.findIndex((s) => !doneNames.some((d) => d.toLowerCase() === s.name.toLowerCase()));
@@ -49,14 +56,22 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
   const [now, setNow] = useState(() => Date.now());
   const [voice, setVoice] = useState(readVoice);
   const [finished, setFinished] = useState(false);
+  const [opened, setOpened] = useState(false);
   const [kg, setKg] = useState('');
   const [reps, setReps] = useState('');
   const [busy, setBusy] = useState(false);
+  const [startBurst, setStartBurst] = useState(false);
+  const [endBurst, setEndBurst] = useState(false);
+  const [setFlash, setSetFlash] = useState(false);
+  const [handoff, setHandoff] = useState(false);
   const lastBeep = useRef<number | null>(null);
+  const handoffTimer = useRef<number | null>(null);
+  const flashTimer = useRef<number | null>(null);
   const step = steps[idx];
   const next = steps[idx + 1];
   const left = restEnd == null ? 0 : Math.max(0, Math.ceil((restEnd - now) / 1000));
   const resting = restEnd != null;
+  const closing = resting && !handoff && left > 0 && left <= 3;
 
   // keep screen on
   useEffect(() => {
@@ -68,6 +83,8 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
       void lock?.release().catch(() => undefined);
       document.body.style.overflow = '';
       stopSpeaking();
+      if (handoffTimer.current != null) window.clearTimeout(handoffTimer.current);
+      if (flashTimer.current != null) window.clearTimeout(flashTimer.current);
     };
   }, []);
 
@@ -79,12 +96,13 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
     setReps('');
   }, [step, lastKg]);
 
-  // announce each new set
+  // announce each new set (after begin)
   useEffect(() => {
-    if (step && voice && !resting && !finished) speak(stepAnnouncement(step), undefined, lang);
-  }, [idx, voice, resting, finished, step, lang]);
+    if (!opened || !step || !voice || resting || finished) return;
+    speak(stepAnnouncement(step), undefined, lang);
+  }, [idx, voice, resting, finished, step, lang, opened]);
 
-  // rest countdown: tick, 3-2-1 beeps, auto-advance
+  // rest countdown: tick, 3-2-1 beeps, handoff then auto-advance
   useEffect(() => {
     if (restEnd == null) return;
     const id = window.setInterval(() => setNow(Date.now()), 250);
@@ -92,7 +110,7 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
   }, [restEnd]);
 
   useEffect(() => {
-    if (restEnd == null) return;
+    if (restEnd == null || handoff) return;
     if (left <= 3 && left > 0 && lastBeep.current !== left) {
       lastBeep.current = left;
       beep();
@@ -100,12 +118,30 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
     if (left === 0) {
       lastBeep.current = null;
       beep(true);
+      setHandoff(true);
+    }
+  }, [left, restEnd, handoff]);
+
+  useEffect(() => {
+    if (!handoff) return;
+    const ms = reduce ? 0 : HANDOFF_MS;
+    handoffTimer.current = window.setTimeout(() => {
+      setHandoff(false);
       setRestEnd(null);
       setIdx((i) => Math.min(i + 1, steps.length - 1));
-    }
-  }, [left, restEnd, steps.length]);
+    }, ms);
+    return () => {
+      if (handoffTimer.current != null) window.clearTimeout(handoffTimer.current);
+    };
+  }, [handoff, reduce, steps.length]);
 
   if (!step) return null;
+
+  const begin = () => {
+    beep();
+    setOpened(true);
+    setStartBurst(true);
+  };
 
   const toggleVoice = () => {
     const v = !voice;
@@ -118,8 +154,23 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
     }
   };
 
+  const flashSet = () => {
+    setSetFlash(true);
+    if (flashTimer.current != null) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setSetFlash(false), reduce ? 0 : 420);
+  };
+
+  const advanceFromRest = () => {
+    if (handoffTimer.current != null) window.clearTimeout(handoffTimer.current);
+    setHandoff(false);
+    setRestEnd(null);
+    setIdx((i) => Math.min(i + 1, steps.length - 1));
+  };
+
   const completeSet = async () => {
     beep(); // unlocks audio on iPhone (inside a tap)
+    // Fire set-complete flash immediately — never gate the Dexie commit on animation.
+    flashSet();
     if (step.logs) {
       const k = kg.trim() === '' ? undefined : Number(kg);
       const r = reps.trim() === '' ? undefined : Number(reps);
@@ -135,26 +186,52 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
     }
     if (!next) {
       setFinished(true);
+      setEndBurst(true);
       if (voice) speak('Workout complete. Well done!', 'ورزش مکمل۔ شاباش!', lang);
       return;
     }
     setNow(Date.now());
+    setHandoff(false);
     setRestEnd(Date.now() + step.restSec * 1000);
     if (voice) speak(`Rest ${step.restSec} seconds. Next: ${next.name === step.name ? next.setLabel : next.name}.`, undefined, lang);
   };
 
   const go = (d: number) => {
+    if (handoffTimer.current != null) window.clearTimeout(handoffTimer.current);
+    setHandoff(false);
     setRestEnd(null);
     setIdx((i) => Math.max(0, Math.min(steps.length - 1, i + d)));
   };
 
   const exCount = exercises.length;
-  // Inside a superset the short gap is a switch to the partner exercise, not a rest.
   const switching = !!step.group && next?.group === step.group && next.exIndex !== step.exIndex && step.restSec <= SUPERSET_GAP_SEC;
   const progress = (idx + (resting ? 1 : 0)) / steps.length;
+  const viewKey = finished ? 'done' : resting ? (handoff ? 'handoff' : 'rest') : `set-${idx}`;
 
   return (
-    <div className="player" role="dialog" aria-modal="true" aria-label={`${'Start workout'}: ${title}`}>
+    <div
+      className={`player${setFlash ? ' set-flash' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${'Start workout'}: ${title}`}
+    >
+      <CelebrationBurst active={startBurst} onDone={() => setStartBurst(false)} />
+      <CelebrationBurst active={endBurst} dense onDone={() => setEndBurst(false)} />
+
+      {!opened && (
+        <div className="player-open">
+          <p className="player-kicker">Session</p>
+          <h2>{title}</h2>
+          <p className="muted">{exCount} exercises · log as you go</p>
+          <button type="button" className="btn btn-primary player-cta" onClick={begin}>
+            Begin
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Exit
+          </button>
+        </div>
+      )}
+
       <header className="player-top">
         <button type="button" className="player-icon" onClick={onClose} aria-label={'Exit'}>
           ✕
@@ -173,75 +250,129 @@ export function WorkoutPlayer({ title, exercises, lastKg, doneNames, onLog, onCl
         <span style={{ width: `${Math.round((finished ? 1 : progress) * 100)}%` }} />
       </div>
 
-      {finished ? (
-        <section className="player-main player-done">
-          <div className="player-emoji" aria-hidden>
-            🎉
-          </div>
-          <h2>{'Workout complete'}</h2>
-          <p className="muted">{title}</p>
-          <button type="button" className="btn btn-primary player-cta" onClick={onClose}>
-            {'Done'}
-          </button>
-        </section>
-      ) : resting ? (
-        <section className="player-main player-rest">
-          <span className="player-kicker">{switching ? `Superset ${step.group} · switch` : 'Rest'}</span>
-          <div className="player-clock" aria-live="polite">
-            {formatClock(left)}
-          </div>
-          <div className="player-next">
-            <span className="player-kicker">{'Up next'}</span>
-            <ExerciseGif name={next!.name} media={next!.media} size="sm" />
-            <strong>{next!.name}</strong>
-            <span className="muted">
-              {next!.setLabel} · {next!.reps}
-            </span>
-          </div>
-          <div className="player-row">
-            <button type="button" className="btn" onClick={() => setRestEnd((e) => (e ?? Date.now()) + 15000)}>
-              +15s
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => go(1)}>
-              {'Skip rest'}
-            </button>
-          </div>
-        </section>
-      ) : (
-        <section className="player-main">
-          <ExerciseGif key={step.name} name={step.name} media={step.media} />
-          <div className="player-head">
-            <h2>{step.name}</h2>
-            <span className="muted">{step.muscle}</span>
-            {step.group && <span className="player-ss">Superset {step.group} · alternate with {partnerName(steps, step)}</span>}
-          </div>
-          <div className="player-dots" aria-label={`${'Set'} ${step.setNo} ${'of'} ${step.setCount}`}>
-            {Array.from({ length: step.setCount }, (_, i) => (
-              <span key={i} className={i + 1 < step.setNo ? 'done' : i + 1 === step.setNo ? 'now' : ''} />
-            ))}
-          </div>
-          <div className="player-set">
-            <span className="player-kicker">{step.setLabel}</span>
-            <div className="player-reps">{step.reps}</div>
-            <span className="muted">{step.guide}</span>
-          </div>
-          {step.logs && (
-            <div className="player-log">
-              <label>
-                kg
-                <input inputMode="decimal" type="number" step="0.5" min="0" value={kg} onChange={(e) => setKg(e.target.value)} />
-              </label>
-              <label>
-                reps
-                <input inputMode="numeric" type="number" step="1" min="0" value={reps} placeholder={step.reps.split(/[-,\s]/)[0]} onChange={(e) => setReps(e.target.value)} />
-              </label>
-            </div>
+      <div className="player-stage">
+        <AnimatePresence mode="wait" initial={false}>
+          {finished ? (
+            <motion.section
+              key="done"
+              className="player-main player-done"
+              initial={viewMotion.initial}
+              animate={viewMotion.animate}
+              exit={viewMotion.exit}
+              transition={viewMotion.transition}
+            >
+              <div className="player-done-mark" aria-hidden>
+                <span />
+              </div>
+              <h2>Session complete</h2>
+              <p className="player-done-line">{title}</p>
+              <button type="button" className="btn btn-primary player-cta" onClick={onClose}>
+                Done
+              </button>
+            </motion.section>
+          ) : resting ? (
+            <motion.section
+              key={viewKey}
+              className={`player-main player-rest${handoff ? ' handoff' : ''}${closing ? ' closing' : ''}${switching ? ' switching' : ''}`}
+              initial={viewMotion.initial}
+              animate={viewMotion.animate}
+              exit={viewMotion.exit}
+              transition={viewMotion.transition}
+            >
+              <div className="player-rest-ring" aria-hidden />
+              <span className="player-kicker">
+                {handoff
+                  ? 'Ready · next set'
+                  : switching
+                    ? `Superset ${step.group} · switch`
+                    : 'Rest'}
+              </span>
+              <div className="player-clock" aria-live="polite">
+                {handoff ? 'GO' : formatClock(left)}
+              </div>
+              {handoff && <p className="player-handoff-cue">Up next — tap Go when ready</p>}
+              <div className="player-next">
+                <span className="player-kicker">Up next</span>
+                <ExerciseGif name={next!.name} media={next!.media} size="sm" />
+                <strong>{next!.name}</strong>
+                <span className="muted">
+                  {next!.setLabel} · {next!.reps}
+                </span>
+              </div>
+              <div className={`player-row${handoff ? ' go-only' : ''}`}>
+                {!handoff && (
+                  <button type="button" className="btn" onClick={() => setRestEnd((e) => (e ?? Date.now()) + 15000)}>
+                    +15s
+                  </button>
+                )}
+                <button type="button" className={`btn btn-primary${handoff ? ' player-go' : ''}`} onClick={advanceFromRest}>
+                  {handoff ? 'Go' : 'Skip rest'}
+                </button>
+              </div>
+            </motion.section>
+          ) : (
+            <motion.section
+              key={viewKey}
+              className="player-main"
+              initial={viewMotion.initial}
+              animate={viewMotion.animate}
+              exit={viewMotion.exit}
+              transition={viewMotion.transition}
+            >
+              <ExerciseGif key={step.name} name={step.name} media={step.media} />
+              <div className="player-head">
+                <h2>{step.name}</h2>
+                <span className="muted">{step.muscle}</span>
+                {step.group && (
+                  <span className="player-ss">
+                    Superset {step.group} · alternate with {partnerName(steps, step)}
+                  </span>
+                )}
+              </div>
+              <div className="player-dots" aria-label={`Set ${step.setNo} of ${step.setCount}`}>
+                {Array.from({ length: step.setCount }, (_, i) => (
+                  <span key={i} className={i + 1 < step.setNo ? 'done' : i + 1 === step.setNo ? 'now' : ''} />
+                ))}
+              </div>
+              <div className="player-set">
+                <span className="player-kicker">{step.setLabel}</span>
+                <div className="player-reps">{step.reps}</div>
+                <span className="muted">{step.guide}</span>
+              </div>
+              {step.logs && (
+                <div className="player-log">
+                  <label>
+                    kg
+                    <input
+                      inputMode="decimal"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={kg}
+                      onChange={(e) => setKg(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    reps
+                    <input
+                      inputMode="numeric"
+                      type="number"
+                      step="1"
+                      min="0"
+                      value={reps}
+                      placeholder={step.reps.split(/[-,\s]/)[0]}
+                      onChange={(e) => setReps(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
+              {step.cue && <p className="player-cue">{step.cue}</p>}
+            </motion.section>
           )}
-          {step.cue && <p className="player-cue">{step.cue}</p>}
-        </section>
-      )}
+        </AnimatePresence>
+      </div>
 
-      {!finished && !resting && (
+      {opened && !finished && !resting && (
         <footer className="player-foot">
           <button type="button" className="player-icon" onClick={() => go(-1)} disabled={idx === 0} aria-label={'Previous'}>
             ‹

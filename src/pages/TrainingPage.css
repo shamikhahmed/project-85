@@ -53,7 +53,7 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
 .ex-swap-badge{display:block;margin-top:4px;font-size:var(--text-caption);color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0}
 .ex-pain{margin:0;font-size:var(--text-sm);color:#f5c542}
 
-/* Rest timer — floats above the tab bar */
+/* Rest timer — hero moment above the tab bar */
 .rest-timer {
   position: fixed;
   left: 12px;
@@ -68,16 +68,38 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
 }
+.rest-timer-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%);
+  opacity: 0.7;
+}
+.rest-timer.closing .rest-timer-ring {
+  animation: rest-urgency 0.85s var(--ease-out) infinite;
+}
+.rest-timer.done {
+  border-color: var(--accent);
+  box-shadow: 0 12px 36px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.rest-timer.done .rest-timer-ring {
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%);
+  animation: rest-handoff var(--motion-hero) var(--ease-out);
+}
 .rest-timer-bar {
   height: 3px;
   background: var(--accent);
   transition: width 0.25s linear;
+  position: relative;
+  z-index: 1;
 }
 .rest-timer-body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  position: relative;
+  z-index: 1;
 }
 .rest-timer-text {
   flex: 1;
@@ -93,18 +115,52 @@ textarea.checkin{width:100%;min-height:220px;font:var(--text-caption)/1.5 var(--
   text-overflow: ellipsis;
 }
 .rest-timer-clock {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 .rest-timer.done .rest-timer-clock {
   color: var(--accent);
+}
+.rest-timer-handoff {
+  font-size: var(--text-caption);
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 2px;
 }
 .ex-rest-btn {
   margin-left: 8px;
   min-height: 36px;
   padding: 4px 10px;
+}
+.ex.just-logged {
+  animation: set-logged var(--motion-hero) var(--ease-out);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+.ex.just-logged .ex-code {
+  color: var(--accent);
+}
+@keyframes rest-urgency {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes rest-handoff {
+  from { opacity: 0.2; }
+  to { opacity: 0.85; }
+}
+@keyframes set-logged {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent); }
+  60% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-timer.closing .rest-timer-ring,
+  .rest-timer.done .rest-timer-ring,
+  .ex.just-logged {
+    animation: none;
+  }
 }
 
 /* Muscle recovery grid */

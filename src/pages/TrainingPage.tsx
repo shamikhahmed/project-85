@@ -8,6 +8,7 @@ import { ExerciseGif } from '../components/ExerciseGif';
 import { SwapPanel } from '../components/SwapPanel';
 import { WarmupList } from '../components/WarmupList';
 import { WorkoutPlayer } from '../components/WorkoutPlayer';
+import { PageReveal } from '../components/PageReveal';
 import { demoUrl } from '../domain/exerciseMedia';
 import type { PlayerExercise } from '../domain/workoutPlayer';
 import { parseRestSeconds } from '../domain/restTimer';
@@ -117,6 +118,8 @@ function PlanTraining() {
   const [rest, setRest] = useState<RestState>(null);
   const [swaps, setSwaps] = useState<ActiveSwapMap>({});
   const [playing, setPlaying] = useState(false);
+  /** Brief set-complete flash — never awaited; clears itself. */
+  const [justLogged, setJustLogged] = useState<string | null>(null);
   const [lastNightSleepH, setLastNightSleepH] = useState<number | null>(null);
   const [todayRecovery, setTodayRecovery] = useState<number | null>(null);
   const [todayStrain, setTodayStrain] = useState<number | null>(null);
@@ -212,9 +215,26 @@ function PlanTraining() {
   const saveSet = async (name: string, weightKg: number | undefined, reps: number | undefined) => {
     const ex: WorkoutExercise = { name, weightKg, reps, sets: 1, notes: 'top set' };
     const best = isNewBest(history, name, today, weightKg, reps);
+    const already = new Set(
+      (todaySession?.exercises ?? []).map((e) => e.name.toLowerCase()),
+    );
+    const wasNew = !already.has(name.toLowerCase());
     await repo.logPlanExercise(today, sessionLabel, ex);
+    // Flash immediately — do not wait for animation before rest / next log
+    setJustLogged(name);
+    window.setTimeout(() => setJustLogged((n) => (n === name ? null : n)), 560);
     await Promise.all([loadHistory(), refreshDay()]);
-    setToast(best ? `🏆 New best on ${name}: ${weightKg} kg${reps != null ? ` × ${reps}` : ''}` : `${name} logged`);
+    const newlyLogged = wasNew ? already.size + 1 : already.size;
+    const sessionDone = wasNew && newlyLogged >= exercises.length && exercises.length > 0;
+    if (sessionDone) {
+      setToast(
+        best
+          ? `Session complete · 🏆 ${name}`
+          : `Session complete · ${sessionLabel}`,
+      );
+    } else {
+      setToast(best ? `🏆 New best on ${name}: ${weightKg} kg${reps != null ? ` × ${reps}` : ''}` : `${name} logged`);
+    }
   };
 
   const makeCheckin = async () => {
@@ -481,6 +501,7 @@ function PlanTraining() {
                   sessionNote={session.key !== 'rest' ? session.note : null}
                   last={lastLogs[name]}
                   todayLog={todayEx}
+                  justLogged={justLogged === name}
                   defaultOpen={i === 0}
                   swap={swap}
                   shoulderCaution={settings.shoulderCaution}
@@ -657,7 +678,7 @@ export function TrainingPage() {
   };
 
   return (
-    <div className="stack page">
+    <PageReveal className="stack page">
       <div className="seg-control train-tabs" role="tablist" aria-label="Train">
         {TABS.map((t) => (
           <button
@@ -679,7 +700,7 @@ export function TrainingPage() {
         {tab === 'build' && <WorkoutBuilder api={builder} onOpenLibrary={() => setTab('library')} />}
         {tab === 'library' && <ExerciseLibrary onAdd={addToBuild} shoulderCaution={builder.shoulderCaution} />}
       </div>
-    </div>
+    </PageReveal>
   );
 }
 
@@ -710,6 +731,7 @@ function ExerciseCard({
   sessionNote,
   last,
   todayLog,
+  justLogged = false,
   defaultOpen,
   swap,
   shoulderCaution,
@@ -725,6 +747,7 @@ function ExerciseCard({
   sessionNote: string | null;
   last: LastLog | undefined;
   todayLog: WorkoutExercise | undefined;
+  justLogged?: boolean;
   defaultOpen: boolean;
   swap?: { name: string; reason: SwapReason };
   shoulderCaution: boolean;
@@ -782,7 +805,7 @@ function ExerciseCard({
   };
 
   return (
-    <details className={`ex${todayLog ? ' done' : ''}`} open={defaultOpen}>
+    <details className={`ex${todayLog ? ' done' : ''}${justLogged ? ' just-logged' : ''}`} open={defaultOpen}>
       <summary>
         <span className="ex-code">{todayLog ? '✓' : ex.code}</span>
         <span>

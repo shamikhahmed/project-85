@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.19.0 — Ritual craft (logging motion) (2026-11-26)
+
+- **Philosophy:** amazing = ritual around logging, not brochure spam. Instant commit, no form parallax, reduced-motion safe, lime `#C4F36B` on charcoal, system fonts only. No HealthKit claims.
+- **Session start/end:** lime particle burst on player open; lime checkmark + “Session complete” on finish (dense burst).
+- **Set-complete pops:** player set pulse + Train card `just-logged`; session-complete toast when the last exercise is logged. Logging never waits on animation.
+- **Rest as hero:** floating Train rest timer enter/exit, closing urgency, done handoff (“Ready when you are” / Next); player rest breathes, then GO handoff into the next set (Skip/Go always available).
+- **Weekly earned:** Progress `StreakMoment` when ≥3 sessions this rolling week (one burst per browser session); weekly report card stagger-reveals on Today/Progress.
+- Soft `PageReveal` on Today / Train / Progress. Helpers + tests in `src/lib/motion.ts`.
+
 ## v0.18.0 — Cardio-aware builder (2026-11-11)
 
 - **Cardio today (Build):** add cardio earlier today, before lifting, after lifting or later today — machine (walk, incline walk, run, bike, elliptical, stairs, rower, swim), minutes and effort by the talk test (easy: you can chat · moderate: short sentences · hard: can't talk). Cardio already logged today is offered as "earlier today". Each block says in one line what it will change.

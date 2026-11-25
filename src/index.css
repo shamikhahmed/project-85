@@ -822,7 +822,7 @@ button {
   position: fixed;
   left: 50%;
   bottom: calc(var(--nav-total-height) + var(--space-4));
-  transform: translateX(-50%);
+  /* Horizontal center via Framer `x: -50%` so enter/exit can own transform */
   z-index: 50;
   background: var(--bg-panel);
   border: 1px solid rgba(196, 243, 107, 0.45);
@@ -947,6 +947,99 @@ button {
 .proof-win {
   border-left: 3px solid var(--accent);
   padding-left: var(--space-3);
+}
+
+/* Lime celebration burst — session start/end + streak (pointer-events none) */
+.cele-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.cele-burst .cele-dot {
+  position: absolute;
+  width: var(--size, 6px);
+  height: var(--size, 6px);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: cele-fly var(--motion-hero) var(--ease-out) forwards;
+  animation-delay: var(--delay, 0ms);
+  opacity: 0;
+}
+.cele-burst.dense .cele-dot {
+  background: color-mix(in srgb, var(--accent) 92%, #fff);
+}
+@keyframes cele-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cele-burst .cele-dot {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Earned weekly streak beat — Progress only when ≥3 sessions this week */
+.streak-moment {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.streak-moment.burst {
+  animation: streak-burst var(--motion-hero) var(--ease-out);
+}
+.streak-moment-mark {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.streak-moment-mark span {
+  width: 12px;
+  height: 22px;
+  border-right: 2.5px solid var(--accent);
+  border-bottom: 2.5px solid var(--accent);
+  transform: rotate(40deg) translateY(-3px);
+}
+.streak-moment h2 {
+  color: var(--text);
+}
+@keyframes streak-burst {
+  from {
+    opacity: 0.65;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .streak-moment.burst {
+    animation: none;
+  }
 }
 
 .ring-wrap {
@@ -1669,6 +1762,12 @@ button {
 }
 
 /* Weekly report */
+.weekly-report.earned {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background:
+    radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 45%),
+    var(--bg-elevated);
+}
 .report-verdict {
   font-size: var(--text-caption);
   font-weight: 650;

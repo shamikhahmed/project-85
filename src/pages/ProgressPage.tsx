@@ -12,7 +12,12 @@ import {
   Bar,
 } from 'recharts';
 import * as repo from '../data/repository';
-import { calendarDaysRemaining, eachISODate, toLocalISODate } from '../lib/dates';
+import {
+  calendarDaysRemaining,
+  eachISODate,
+  rollingWeekBounds,
+  toLocalISODate,
+} from '../lib/dates';
 import {
   projectWeightAtDeadline,
   requiredWeeklyLossKg,
@@ -22,6 +27,8 @@ import {
 import { assessWeightTrend, dailyWeightVsTrendMessage } from '../lib/weightTrend';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { WeeklyReportCard } from '../components/WeeklyReportCard';
+import { PageReveal } from '../components/PageReveal';
+import { StreakMoment } from '../components/StreakMoment';
 import { useAppStore } from '../store/useAppStore';
 
 export function ProgressPage() {
@@ -40,6 +47,7 @@ export function ProgressPage() {
     sleepHit: 0,
     sleepDays: 0,
     cigTotal: 0,
+    weekWorkouts: 0,
   });
 
   useEffect(() => {
@@ -56,8 +64,10 @@ export function ProgressPage() {
           .map((w) => ({ date: w.date, waistCm: w.waistCm! })),
       );
 
-      const days = eachISODate(settings.startDate, toLocalISODate());
-      const stepRows = await repo.getStepsInRange(settings.startDate, toLocalISODate());
+      const today = toLocalISODate();
+      const days = eachISODate(settings.startDate, today);
+      const { weekStart, weekEnd } = rollingWeekBounds(today, 7);
+      const stepRows = await repo.getStepsInRange(settings.startDate, today);
       const stepMap = new Map(stepRows.map((s) => [s.date, s.totalSteps]));
       setSteps(days.map((d) => ({ date: d, steps: stepMap.get(d) ?? null })));
 
@@ -68,6 +78,7 @@ export function ProgressPage() {
       let sleepHit = 0;
       let sleepDays = 0;
       let cigTotal = 0;
+      let weekWorkouts = 0;
       const nut: { date: string; calories: number | null; protein: number | null }[] = [];
 
       for (const d of days.slice(-28)) {
@@ -82,7 +93,10 @@ export function ProgressPage() {
           if (st >= settings.stepsTarget) stepHit += 1;
         }
         const wos = await repo.getWorkoutsByDate(d);
-        if (wos.length) workoutDays += 1;
+        if (wos.length) {
+          workoutDays += 1;
+          if (d >= weekStart && d <= weekEnd) weekWorkouts += 1;
+        }
         const sleep = await repo.getSleepByDate(d);
         if (sleep) {
           sleepDays += 1;
@@ -96,7 +110,16 @@ export function ProgressPage() {
         cigTotal += cigs.reduce((s, c) => s + c.count, 0);
       }
       setNutrition(nut);
-      setHabits({ stepDays, stepHit, foodDays, workoutDays, sleepHit, sleepDays, cigTotal });
+      setHabits({
+        stepDays,
+        stepHit,
+        foodDays,
+        workoutDays,
+        sleepHit,
+        sleepDays,
+        cigTotal,
+        weekWorkouts,
+      });
     })();
   }, [settings]);
 
@@ -135,7 +158,7 @@ export function ProgressPage() {
   });
 
   return (
-    <div className="stack page">
+    <PageReveal className="stack page">
       <header className="panel page-header">
         <h1>Progress proof</h1>
         <p className="muted">
@@ -161,6 +184,8 @@ export function ProgressPage() {
       </section>
 
       <WeeklyReportCard mode="progress" />
+
+      <StreakMoment sessionsThisWeek={habits.weekWorkouts} weekEnd={toLocalISODate()} />
 
       <WeeklyReviewCard />
 
@@ -420,6 +445,6 @@ export function ProgressPage() {
           </p>
         )}
       </section>
-    </div>
+    </PageReveal>
   );
 }

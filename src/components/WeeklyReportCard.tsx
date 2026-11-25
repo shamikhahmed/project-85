@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import * as repo from '../data/repository';
 import { addLocalCalendarDays, parseLocalDate, toLocalISODate } from '../lib/dates';
+import { fadeUpItem, staggerChildren } from '../lib/motion';
 import { buildWeeklyReport, reportDue, reportWeek, type WeeklyReport } from '../lib/weeklyReport';
 import { useAppStore } from '../store/useAppStore';
 
@@ -17,11 +19,15 @@ const VERDICT: Record<WeeklyReport['verdict'], string> = {
   'no-weight': 'No weigh-ins',
 };
 
+/** Closed-week report with an earned reveal — earned data, not brochure chrome. */
 export function WeeklyReportCard({ mode }: Props) {
   const settings = useAppStore((s) => s.settings);
   const refreshSettings = useAppStore((s) => s.refreshSettings);
   const setToast = useAppStore((s) => s.setToast);
   const [report, setReport] = useState<WeeklyReport | null>(null);
+  const reduce = useReducedMotion();
+  const list = staggerChildren(reduce);
+  const item = fadeUpItem(reduce);
   const today = toLocalISODate();
   const due = settings
     ? mode === 'progress'
@@ -62,9 +68,16 @@ export function WeeklyReportCard({ mode }: Props) {
   };
 
   return (
-    <section className="panel stack weekly-report" aria-labelledby={`report-${mode}`}>
+    <motion.section
+      className="panel stack weekly-report earned"
+      aria-labelledby={`report-${mode}`}
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduce ? 0 : 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="section-head">
         <div>
+          <p className="briefing-kicker">Week earned</p>
           <h2 id={`report-${mode}`} style={{ fontSize: 'var(--text-lg)' }}>
             {report.planWeek > 0 ? `Week ${report.planWeek} report` : 'Weekly report'}
           </h2>
@@ -79,17 +92,17 @@ export function WeeklyReportCard({ mode }: Props) {
           7-day average <strong>{report.avgWeightKg} kg</strong> vs plan line {report.lineKg} kg.
         </p>
       )}
-      <div className="report-rows">
+      <motion.div className="report-rows" variants={list} initial="hidden" animate="show">
         {report.rows.map((r) => (
-          <div key={r.id} className="report-row">
+          <motion.div key={r.id} className="report-row" variants={item}>
             <span className="label">{r.label}</span>
             <strong>{r.value}</strong>
             <span className={`report-trend ${r.trend ?? ''}`}>
               {r.previous != null ? `${r.trend === 'better' ? '▲' : r.trend === 'worse' ? '▼' : '='} ${r.previous}` : ''}
             </span>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
       {report.wins.length > 0 && (
         <ul className="briefing-list">
           {report.wins.map((w) => (
@@ -114,6 +127,6 @@ export function WeeklyReportCard({ mode }: Props) {
       <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
         Arrows compare with the week before. Built from logged days only.
       </p>
-    </section>
+    </motion.section>
   );
 }

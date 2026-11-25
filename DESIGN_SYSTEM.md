@@ -29,7 +29,7 @@ Tabular numerals via `font-variant-numeric: tabular-nums`. Rem scale respects te
 Dark default. Light + system in Settings.
 
 ## Motion
-Short ease-out transitions; Framer for sheets. `prefers-reduced-motion` honored.
+Short ease-out transitions; Framer for sheets + ritual beats (session start/end, set-complete flash, rest hero, rest→next handoff, weekly earned reveal, page enter on Today/Train/Progress). Helpers in `src/lib/motion.ts`. Logging is never gated on animation. `prefers-reduced-motion` → durations collapse to 0.
 
 ## Principles
 1. One focal point per screen  
