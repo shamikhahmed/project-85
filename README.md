@@ -27,6 +27,8 @@ GITHUB_PAGES=1 npm run build && npx gh-pages -d dist -t
 
 **Ritual craft** around logging (not brochure spam): session start/end bursts + lime done-mark, set-complete pops, rest as hero with GO handoff, weekly earned streak (≥3 sessions) + report reveal, soft page enters on Today/Train/Progress. Reduced-motion safe; logging never waits. See `CHANGELOG.md` / `src/lib/motion.ts`.
 
+**Wave 3 UI proofs (tracked):** [`docs/screenshots/v0.19.0-ritual/`](./docs/screenshots/v0.19.0-ritual/) — Today / Log / Progress / Train (iPhone dark).
+
 ## What’s in v0.18
 
 The builder plans around **cardio the same day** — before lifting it tires the muscles the machine uses (reorders and says so), after lifting it keeps 2–3 reps in the tank and trims a set for long hard blocks. Research-fitted; sources in `CHANGELOG.md` and `src/domain/cardioLoad.ts`.

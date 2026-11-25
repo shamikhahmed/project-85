@@ -1,0 +1,7 @@
+Project 85 UI proof — Wave 3 re-verify post v0.19.0 ritual craft
+tip: 7188abe7f0eef8bd88abb01ddad635b5e55edb67
+captured: 2026-11-25T20:43:11.507Z
+method: local vite preview :4185 + Playwright iPhone 14 dark; Skip tour then route shells
+routes: / today, /log food, /progress proof, /train plan
+tracked: docs/screenshots/v0.19.0-ritual/ (DoD-valid; qa-live/**/*.png remains gitignored for ad-hoc local QA)
+note: empty/demo IndexedDB; static frames cannot prove burst/rest-hero motion
